@@ -59,3 +59,9 @@ Limits to know: Vercel request bodies are limited to ~4.5 MB (photos ≤ 3 MB, i
 | Project Manager / Viewer | Read-only dashboards, portfolio, teams, workload and reels |
 
 All checks run on the server (`lib/perm.ts`, `app/api/**`); hiding buttons in the UI is only a convenience.
+
+## Upgrading an existing database: employee photos
+
+Databases created before employee photos existed need one extra column. Run `db/migrations/001_employee_photo.sql`
+(or just: `alter table employees add column if not exists photo_id uuid;`) once in the Supabase SQL Editor
+**before** deploying this version. It is safe to run more than once. New installs get the column from `db/schema.sql`.

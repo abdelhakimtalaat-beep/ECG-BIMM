@@ -100,14 +100,45 @@ test('alerts never show capacity % without a basis', () => {
 });
 
 import * as L from '../lib/orgLayout.ts';
-test('org layout centres parents over children and hides collapsed branches', () => {
-  const nodes = [{ id: 'd', reports_to: null }, { id: 'a', reports_to: 'd' }, { id: 'b', reports_to: 'd' }, { id: 'a1', reports_to: 'a' }, { id: 'a2', reports_to: 'a' }];
-  const full = L.layoutTree(nodes, new Set());
-  assert.equal(full.placed.size, 5);
-  const a = full.placed.get('a')!, a1 = full.placed.get('a1')!, a2 = full.placed.get('a2')!;
-  assert.equal(a.x, (a1.x + a2.x) / 2);
-  assert.ok(full.placed.get('d')!.y < a.y && a.y < a1.y);
+test('org layout (columns mode): teams sit side by side, members stack in a column, collapsed branches are hidden', () => {
+  const nodes = [{ id: 'd', reports_to: null }, { id: 'a', reports_to: 'd' }, { id: 'b', reports_to: 'd' }, { id: 'a1', reports_to: 'a' }, { id: 'a2', reports_to: 'a' },
+    { id: 'b1', reports_to: 'b' }, { id: 'b1x', reports_to: 'b1' }];
+  const full = L.layoutTree(nodes, new Set(), 'columns');
+  assert.equal(full.placed.size, 7);
+  const P = (id: string) => full.placed.get(id)!;
+  assert.equal(P('a1').x, P('a2').x);                    // stacked in one column
+  assert.ok(P('a2').y > P('a1').y);                      // ...one under the other
+  assert.ok(P('a').y < P('a1').y && P('d').y < P('a').y);
+  assert.equal(P('a').y, P('b').y);                      // sibling teams share a row
+  assert.ok(P('b').x > P('a').x);
+  assert.ok(P('d').x > P('a').x && P('d').x < P('b').x + L.CARD_W); // manager sits over its teams
+  assert.ok(P('b1').depth === 2 && P('b1x').depth === 3);
+  assert.equal(full.paths.length, 6);                    // one link per reporting line
+  assert.ok(full.paths.every((l) => /^M[\d.,-]+( L[\d.,-]+)+$/.test(l.d)));
+  assert.ok(full.height > full.width * 0.5 || full.height > 0);
+  const coll = L.layoutTree(nodes, new Set(['a']), 'columns');
+  assert.equal(coll.placed.size, 5);
+  assert.deepEqual(L.descendants(full.kids, 'd').sort(), ['a', 'a1', 'a2', 'b', 'b1', 'b1x']);
+  // no two cards overlap
+  const cards = [...full.placed.values()];
+  for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) {
+    const a = cards[i], b = cards[j];
+    assert.ok(a.x + L.CARD_W <= b.x || b.x + L.CARD_W <= a.x || a.y + L.CARD_H <= b.y || b.y + L.CARD_H <= a.y, `${a.id} overlaps ${b.id}`);
+  }
+});
+
+test('org layout (vertical mode, default): one tall column, reports indented under their manager', () => {
+  const nodes = [{ id: 'd', reports_to: null }, { id: 'a', reports_to: 'd' }, { id: 'a1', reports_to: 'a' }, { id: 'b', reports_to: 'd' }, { id: 'b1', reports_to: 'b' }];
+  const r = L.layoutTree(nodes, new Set());
+  const P = (id: string) => r.placed.get(id)!;
+  assert.equal(r.placed.size, 5);
+  assert.deepEqual(['d', 'a', 'a1', 'b', 'b1'].map((i) => P(i).y).every((y, i, a) => i === 0 || y > a[i - 1]), true); // strictly top to bottom
+  assert.ok(P('a').x > P('d').x && P('a1').x > P('a').x && P('b').x === P('a').x);
+  assert.ok(r.height > r.width);
+  assert.equal(r.paths.length, 4);
   const coll = L.layoutTree(nodes, new Set(['a']));
-  assert.equal(coll.placed.size, 3);
-  assert.deepEqual(L.descendants(full.kids, 'd').sort(), ['a', 'a1', 'a2', 'b']);
+  assert.equal(coll.placed.size, 4);
+  assert.ok(coll.height < r.height);
+  const cards = [...r.placed.values()];
+  for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) assert.ok(cards[i].y + L.CARD_H <= cards[j].y || cards[j].y + L.CARD_H <= cards[i].y);
 });

@@ -1,12 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, Download, Maximize2, Minus, Plus, Search, UserPlus, ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, Maximize2, Minus, Plus, Search, UserPlus, ChevronsDownUp, ChevronsUpDown, ImagePlus, Trash2 } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { Badge, Confirm, Drawer, Empty, Field, Modal, PageHeader, StatusBadge, useToast } from '@/components/ui';
-import { api, saveBlob } from '@/lib/client';
+import { api, resizeImage, saveBlob } from '@/lib/client';
 import { chainToRoot } from '@/lib/metrics';
-import { CARD_H, CARD_W, descendants, layoutTree } from '@/lib/orgLayout';
+import { CARD_H, CARD_W, descendants, layoutTree, type OrgMode } from '@/lib/orgLayout';
 import type { Employee } from '@/lib/types';
 import { isAdmin } from '@/lib/can';
 
@@ -21,6 +21,17 @@ const CAT_STYLE: Record<string, string> = {
 const CAT_LABEL: Record<string, string> = { department_manager: 'Department Manager', bim_manager: 'BIM Manager', bim_coordinator: 'BIM Coordinator', bim_specialist: 'BIM Specialist', rd_engineer: 'R&D BIM Engineer', other: 'Other' };
 const PAD = 40;
 
+function Avatar({ e, size, className = '' }: { e: Employee; size: number; className?: string }) {
+  const init = e.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+  const st = { width: size, height: size };
+  if (e.photo_id) return <img src={`/api/files/${e.photo_id}`} alt={`Photo of ${e.name}`} style={st} className={`shrink-0 rounded-xl bg-white object-cover ${className}`} />;
+  return <span style={st} role="img" aria-label={`No photo for ${e.name}`} className={`flex shrink-0 items-center justify-center rounded-xl bg-slate-200/80 text-2xl font-bold text-slate-500 ${className}`}>{init}</span>;
+}
+async function uploadPhoto(id: string, f: File) {
+  const blob = await resizeImage(f);
+  await api(`/api/employees/${id}/photo`, { raw: blob, headers: { 'Content-Type': 'image/jpeg', 'x-filename': encodeURIComponent(f.name) } });
+}
+
 export default function OrgPage() {
   const { me, data, refresh, emp } = useApp(); const toast = useToast();
   const admin = isAdmin(me);
@@ -28,29 +39,33 @@ export default function OrgPage() {
   const [sel, setSel] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [term, setTerm] = useState('');
-  const [view, setView] = useState({ x: 20, y: 20, k: 0.8 });
+  const [mode, setMode] = useState<OrgMode>('vertical');
+  const [view, setView] = useState({ x: 20, y: 20, k: 0.9 });
+  const photoInput = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState<Partial<Employee> & { _new?: boolean } | null>(null);
   const [confirmDeact, setConfirmDeact] = useState<Employee | null>(null);
   const vp = useRef<HTMLDivElement>(null); const content = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
 
-  const layout = useMemo(() => layoutTree(data.employees.map((e) => ({ id: e.id, reports_to: e.reports_to })), collapsed), [data.employees, collapsed]);
+  const layout = useMemo(() => layoutTree(data.employees.map((e) => ({ id: e.id, reports_to: e.reports_to })), collapsed, mode), [data.employees, collapsed, mode]);
   const chain = useMemo(() => new Set(sel ? chainToRoot(data.employees, sel) : []), [sel, data.employees]);
   const W = layout.width + PAD * 2, H = layout.height + PAD * 2;
 
   const fit = useCallback(() => {
     const el = vp.current; if (!el || !W) return;
+    if (mode === 'vertical') { const k = Math.min(1.1, Math.max(0.2, (el.clientWidth - 24) / W)); setView({ k, x: (el.clientWidth - W * k) / 2, y: 8 }); return; } // fit the width; scroll down for the rest
     const k = Math.min(1.2, Math.max(0.15, Math.min(el.clientWidth / W, el.clientHeight / H)));
     setView({ k, x: (el.clientWidth - W * k) / 2, y: 12 });
-  }, [W, H]);
-  useEffect(() => { fit(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [W, H, mode]);
+  useEffect(() => { fit(); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { // wheel zoom around the cursor (non-passive so the page does not scroll)
     const el = vp.current; if (!el) return;
     const h = (e: WheelEvent) => {
       e.preventDefault();
+      if (!e.ctrlKey && !e.metaKey) { setView((v) => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY })); return; } // plain scroll moves the chart
       const r = el.getBoundingClientRect(); const mx = e.clientX - r.left, my = e.clientY - r.top;
-      setView((v) => { const k = Math.min(2.5, Math.max(0.15, v.k * (e.deltaY < 0 ? 1.1 : 1 / 1.1))); return { k, x: mx - ((mx - v.x) / v.k) * k, y: my - ((my - v.y) / v.k) * k }; });
+      setView((v) => { const k = Math.min(2.5, Math.max(0.15, v.k * (e.deltaY < 0 ? 1.12 : 1 / 1.12))); return { k, x: mx - ((mx - v.x) / v.k) * k, y: my - ((my - v.y) / v.k) * k }; });
     };
     el.addEventListener('wheel', h, { passive: false }); return () => el.removeEventListener('wheel', h);
   }, []);
@@ -64,8 +79,8 @@ export default function OrgPage() {
     setSel(id); setTerm('');
     const anc = chainToRoot(data.employees, id).slice(1); // expand collapsed ancestors
     setCollapsed((c) => { const n = new Set(c); anc.forEach((a) => n.delete(a)); return n; });
-    setTimeout(() => { const p = layoutTree(data.employees.map((e) => ({ id: e.id, reports_to: e.reports_to })), new Set([...collapsed].filter((c) => !anc.includes(c)))).placed.get(id); const el = vp.current;
-      if (p && el) setView((v) => ({ ...v, x: el.clientWidth / 2 - (p.x + PAD + CARD_W / 2) * v.k, y: el.clientHeight / 3 - (p.y + PAD) * v.k })); }, 0);
+    setTimeout(() => { const p = layoutTree(data.employees.map((e) => ({ id: e.id, reports_to: e.reports_to })), new Set([...collapsed].filter((c) => !anc.includes(c))), mode).placed.get(id); const el = vp.current;
+      if (p && el) setView((v) => ({ ...v, x: el.clientWidth / 2 - (p.x + PAD + CARD_W / 2) * v.k, y: el.clientHeight / 3 - (p.y + PAD) * v.k })); }, 50);
   };
   const toggle = (id: string) => setCollapsed((c) => { const n = new Set(c); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const collapseAll = () => setCollapsed(new Set(data.employees.filter((e) => data.employees.some((x) => x.reports_to === e.id) && e.job_category !== 'department_manager').map((e) => e.id)));
@@ -77,12 +92,22 @@ export default function OrgPage() {
       const png = await toPng(node, { pixelRatio: 2.5, backgroundColor: '#ffffff', width: W, height: H, style: { transform: 'none', left: '0', top: '0' } });
       if (kind === 'png') { const b = await (await fetch(png)).blob(); saveBlob(b, 'ecg-bim-organization-chart.png'); return; }
       const { jsPDF } = await import('jspdf');
-      const pdf = new jsPDF({ orientation: W >= H ? 'landscape' : 'portrait', unit: 'pt', format: 'a3' });
+      const pdf = new jsPDF({ orientation: W > H * 1.15 ? 'landscape' : 'portrait', unit: 'pt', format: 'a3' });
       const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
-      pdf.setFontSize(14); pdf.setTextColor(11, 37, 69); pdf.text('ECG BIM Department — Organization Chart', 30, 28);
-      pdf.setFontSize(8); pdf.setTextColor(100); pdf.text(`Generated ${new Date().toLocaleString('en-GB')}`, 30, 40);
-      const s = Math.min((pw - 60) / W, (ph - 70) / H);
-      pdf.addImage(png, 'PNG', (pw - W * s) / 2, 52, W * s, H * s);
+      const s = Math.min((pw - 60) / W, 1.6), top = 56, usable = ph - top - 24;
+      const pageH = usable / s; // chart pixels that fit on one page
+      const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('image')); i.src = png; });
+      const px = img.width / W; // device pixels per chart pixel
+      const pages = Math.max(1, Math.ceil(H / pageH));
+      for (let i = 0; i < pages; i++) {
+        if (i) pdf.addPage();
+        pdf.setFontSize(14); pdf.setTextColor(11, 37, 69); pdf.text('ECG BIM Department — Organization Chart', 30, 28);
+        pdf.setFontSize(8); pdf.setTextColor(100); pdf.text(`Generated ${new Date().toLocaleString('en-GB')} · page ${i + 1} of ${pages}`, 30, 40);
+        const sy = i * pageH, sh = Math.min(pageH, H - sy);
+        const c = document.createElement('canvas'); c.width = img.width; c.height = Math.max(1, Math.round(sh * px));
+        const g = c.getContext('2d')!; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, Math.round(sy * px), img.width, c.height, 0, 0, c.width, c.height);
+        pdf.addImage(c.toDataURL('image/png'), 'PNG', (pw - W * s) / 2, top, W * s, sh * s);
+      }
       pdf.save('ecg-bim-organization-chart.pdf');
     } catch (e: any) { toast('Export failed: ' + e.message, 'err'); }
   };
@@ -93,7 +118,7 @@ export default function OrgPage() {
 
   return (
     <>
-      <PageHeader title="Department Organization Chart" subtitle="Generated from employee and reporting-relationship data. Drag to pan, scroll to zoom, click a card for details."
+      <PageHeader title="Department Organization Chart" subtitle="Generated from employee and reporting-relationship data. Scroll or drag to move, Ctrl + scroll to zoom, click a card for details."
         actions={<>{admin && <button className="btn-primary" onClick={() => setEditing({ _new: true, job_category: 'bim_coordinator', reports_to: data.employees.find((e) => e.job_category === 'department_manager')?.id ?? null })}><UserPlus size={16} />Add employee</button>}
           <button className="btn-secondary" onClick={() => exportImg('png')}><Download size={16} />PNG</button><button className="btn-secondary" onClick={() => exportImg('pdf')}><Download size={16} />PDF</button></>} />
       <div className="card no-print mb-3 flex flex-wrap items-center gap-2 p-3">
@@ -104,37 +129,42 @@ export default function OrgPage() {
         </div>
         <button className="btn-secondary btn-sm" onClick={() => zoom(1.2)} aria-label="Zoom in"><Plus size={14} /></button>
         <button className="btn-secondary btn-sm" onClick={() => zoom(1 / 1.2)} aria-label="Zoom out"><Minus size={14} /></button>
-        <button className="btn-secondary btn-sm" onClick={fit}><Maximize2 size={14} />Fit to screen</button>
+        <div className="inline-flex overflow-hidden rounded-lg border border-slate-300" role="group" aria-label="Chart layout">
+          {([['vertical', 'Vertical'], ['columns', 'Columns']] as const).map(([m, l]) => <button key={m} aria-pressed={mode === m} className={`px-3 py-1.5 text-sm ${mode === m ? 'bg-brand-700 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`} onClick={() => setMode(m)}>{l}</button>)}
+        </div>
+        <button className="btn-secondary btn-sm" onClick={fit}><Maximize2 size={14} />{mode === 'vertical' ? 'Fit width' : 'Fit to screen'}</button>
         <button className="btn-secondary btn-sm" onClick={() => setCollapsed(new Set())}><ChevronsUpDown size={14} />Expand all</button>
         <button className="btn-secondary btn-sm" onClick={collapseAll}><ChevronsDownUp size={14} />Collapse teams</button>
         <div className="ml-auto flex flex-wrap gap-1.5 text-xs">{Object.entries(CAT_LABEL).filter(([k]) => k !== 'other').map(([k, v]) => <span key={k} className={`rounded border px-2 py-0.5 ${CAT_STYLE[k]}`}>{v}</span>)}</div>
       </div>
 
       {!data.employees.length ? <Empty title="No employees yet" hint="Add the first employee or run the seed script." /> : (
-        <div ref={vp} className="card relative h-[68vh] min-h-[420px] cursor-grab touch-none overflow-hidden bg-[radial-gradient(#DCEAFA_1px,transparent_1px)] [background-size:18px_18px] active:cursor-grabbing"
+        <div ref={vp} className="card relative h-[78vh] min-h-[480px] cursor-grab touch-none overflow-hidden bg-[radial-gradient(#DCEAFA_1px,transparent_1px)] [background-size:18px_18px] active:cursor-grabbing"
           onPointerDown={(e) => { if ((e.target as HTMLElement).closest('[data-card]')) return; drag.current = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y }; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); }}
           onPointerMove={(e) => { const d = drag.current; if (d) setView((v) => ({ ...v, x: d.vx + e.clientX - d.x, y: d.vy + e.clientY - d.y })); }}
           onPointerUp={() => { drag.current = null; }}>
           <div style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})`, transformOrigin: '0 0', position: 'absolute', left: 0, top: 0 }}>
             <div ref={content} style={{ position: 'relative', width: W, height: H, background: 'transparent' }}>
               <svg width={W} height={H} style={{ position: 'absolute', left: 0, top: 0 }} aria-hidden>
-                {[...layout.placed.values()].flatMap((p) => p.children.map((cid) => {
-                  const c = layout.placed.get(cid)!; const x1 = p.x + PAD + CARD_W / 2, y1 = p.y + PAD + CARD_H, x2 = c.x + PAD + CARD_W / 2, y2 = c.y + PAD, my = (y1 + y2) / 2;
-                  const hi = chain.has(cid) && chain.has(p.id);
-                  return <path key={p.id + cid} d={`M${x1},${y1} V${my} H${x2} V${y2}`} fill="none" stroke={hi ? '#E8A317' : '#8DB9EA'} strokeWidth={hi ? 3 : 1.6} />;
-                }))}
+                <g transform={`translate(${PAD},${PAD})`}>
+                  {[...layout.paths].map((l) => ({ l, hi: chain.has(l.c) && chain.has(l.p) })).sort((a, b) => Number(a.hi) - Number(b.hi)).map(({ l, hi }) => (
+                    <path key={l.p + l.c} d={l.d} fill="none" stroke={hi ? '#E8A317' : '#8DB9EA'} strokeWidth={hi ? 3.5 : 2.2} strokeLinejoin="round" />))}
+                </g>
               </svg>
               {[...layout.placed.values()].map((p) => {
                 const e = emp.get(p.id)!; const nKids = data.employees.filter((x) => x.reports_to === e.id).length; const isCol = collapsed.has(e.id);
                 return (
                   <div key={e.id} data-card style={{ position: 'absolute', left: p.x + PAD, top: p.y + PAD, width: CARD_W, height: CARD_H }}>
-                    <button onClick={() => { setSel(e.id); setOpen(e.id); }} className={`h-full w-full rounded-xl border-2 p-3 text-left shadow-card transition hover:shadow-lg ${CAT_STYLE[e.job_category]} ${!e.active ? 'opacity-50' : ''} ${sel === e.id ? 'ring-4 ring-amber-400' : chain.has(e.id) ? 'ring-2 ring-amber-300' : ''}`}>
-                      <span className="block truncate text-sm font-semibold leading-tight">{e.name}</span>
-                      <span className="mt-0.5 block text-xs font-medium opacity-90">{e.employee_code ? `ID ${e.employee_code}` : 'ID not supplied'}</span>
-                      <span className="mt-1 block truncate text-xs opacity-90">{e.job_title}{e.team_location ? ` (${e.team_location})` : ''}</span>
-                      <span className="block truncate text-xs opacity-80">{[e.discipline, e.year_value].filter(Boolean).join(' · ')}{!e.active ? ' · inactive' : ''}</span>
+                    <button onClick={() => { setSel(e.id); setOpen(e.id); }} className={`flex h-full w-full items-center gap-3 rounded-xl border-2 p-3 text-left shadow-card transition hover:shadow-lg ${CAT_STYLE[e.job_category]} ${!e.active ? 'opacity-50' : ''} ${sel === e.id ? 'ring-4 ring-amber-400' : chain.has(e.id) ? 'ring-2 ring-amber-300' : ''}`}>
+                      <Avatar e={e} size={88} />
+                      <span className="min-w-0 flex-1">
+                        <span className="line-clamp-2 block text-[17px] font-semibold leading-tight">{e.name}</span>
+                        <span className="mt-1 block text-sm font-medium opacity-90">{e.employee_code ? `ID ${e.employee_code}` : 'ID not supplied'}</span>
+                        <span className="block truncate text-sm opacity-95">{e.job_title}{e.team_location ? ` (${e.team_location})` : ''}</span>
+                        <span className="block truncate text-sm opacity-85">{[e.discipline, e.year_value].filter(Boolean).join(' · ')}{!e.active ? ' · inactive' : ''}</span>
+                      </span>
                     </button>
-                    {nKids > 0 && <button onClick={() => toggle(e.id)} aria-label={isCol ? 'Expand branch' : 'Collapse branch'} className="absolute -bottom-3 left-1/2 flex h-6 -translate-x-1/2 items-center gap-0.5 rounded-full border border-brand-300 bg-white px-1.5 text-xs text-brand-700 shadow hover:bg-brand-50">{isCol ? <ChevronRight size={12} /> : <ChevronDown size={12} />}{nKids}</button>}
+                    {nKids > 0 && <button onClick={() => toggle(e.id)} aria-label={isCol ? 'Expand branch' : 'Collapse branch'} className="absolute -bottom-3.5 left-1/2 flex h-7 -translate-x-1/2 items-center gap-0.5 rounded-full border border-brand-300 bg-white px-2 text-sm text-brand-700 shadow hover:bg-brand-50">{isCol ? <ChevronRight size={14} /> : <ChevronDown size={14} />}{nKids}</button>}
                   </div>);
               })}
             </div>
@@ -143,6 +173,15 @@ export default function OrgPage() {
 
       <Drawer open={!!detail} onClose={() => setOpen(null)} title={detail?.name ?? ''}>
         {detail && <div className="space-y-5">
+          <div className="flex items-center gap-4">
+            <Avatar e={detail} size={120} />
+            <div className="space-y-1"><p className="text-lg font-semibold">{detail.name}</p><p className="text-sm text-slate-600">{detail.job_title}</p>
+              {admin && <div className="flex flex-wrap gap-2 pt-1">
+                <button className="btn-secondary btn-sm" onClick={() => photoInput.current?.click()}><ImagePlus size={14} />{detail.photo_id ? 'Replace photo' : 'Add photo'}</button>
+                {detail.photo_id && <button className="btn-secondary btn-sm" aria-label="Remove photo" onClick={async () => { try { await api(`/api/employees/${detail.id}/photo`, { method: 'DELETE' }); toast('Photo removed'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }}><Trash2 size={14} /></button>}
+                <input ref={photoInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={async (ev) => { const f = ev.target.files?.[0]; ev.target.value = ''; if (!f) return; try { await uploadPhoto(detail.id, f); toast('Photo saved'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
+              </div>}</div>
+          </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             {[['Employee ID', detail.employee_code ?? 'Not supplied'], ['Role', detail.job_title], ['Category', CAT_LABEL[detail.job_category]], ['Discipline', detail.discipline ?? '—'], ['Year (as supplied)', detail.year_value ?? '—'], ['Team location', detail.team_location ?? '—'],
               ['Reports to', detail.reports_to ? emp.get(detail.reports_to)?.name : '—'], ['Status', detail.active ? 'Active' : 'Inactive']].map(([k, v]) => <div key={String(k)}><p className="label">{k}</p><p>{v}</p></div>)}
@@ -171,14 +210,20 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
   const { data } = useApp(); const toast = useToast();
   const [f, setF] = useState({ employee_code: init.employee_code ?? '', name: init.name ?? '', job_title: init.job_title ?? '', job_category: init.job_category ?? 'bim_coordinator', discipline: init.discipline ?? '', year_value: init.year_value ?? ('' as any), team_location: init.team_location ?? '', notes: init.notes ?? '', reports_to: init.reports_to ?? '' });
   const [busy, setBusy] = useState(false);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const preview = useMemo(() => (photo ? URL.createObjectURL(photo) : init.photo_id ? `/api/files/${init.photo_id}` : null), [photo, init.photo_id]);
   const titles = [...new Set(data.employees.map((e) => e.job_title))];
   const blockedIds = init.id ? new Set([init.id, ...descendants(layoutTree(data.employees.map((e) => ({ id: e.id, reports_to: e.reports_to })), new Set()).kids, init.id)]) : new Set<string>();
   const save = async () => {
     setBusy(true);
     try {
       const body: any = { employee_code: f.employee_code || null, name: f.name, job_title: f.job_title, job_category: f.job_category, discipline: f.discipline || null, year_value: f.year_value === '' ? null : Number(f.year_value), team_location: f.team_location || null, notes: f.notes || null, reports_to: f.reports_to || null };
-      if (init._new) await api('/api/employees', { body }); else await api(`/api/employees/${init.id}`, { method: 'PATCH', body });
-      toast(init._new ? 'Employee added' : 'Saved'); onSaved();
+      let id = init.id as string | undefined;
+      if (init._new) id = (await api<{ id: string }>('/api/employees', { body })).id; else await api(`/api/employees/${init.id}`, { method: 'PATCH', body });
+      let photoErr = '';
+      if (photo && id) { try { await uploadPhoto(id, photo); } catch (e: any) { photoErr = e.message; } }
+      if (photoErr) toast(`Saved, but the photo failed: ${photoErr}`, 'err'); else toast(init._new ? 'Employee added' : 'Saved');
+      onSaved();
     } catch (e: any) { toast(e.message, 'err'); setBusy(false); }
   };
   return (
@@ -192,6 +237,10 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
         <Field label="Year (as shown on the chart)"><input type="number" className="input" value={f.year_value} onChange={(e) => setF({ ...f, year_value: e.target.value as any })} /></Field>
         <Field label="Team location"><input className="input" placeholder="NC / SV / Alex" value={f.team_location} onChange={(e) => setF({ ...f, team_location: e.target.value })} /></Field>
         <Field label="Reports to"><select className="input" value={f.reports_to} onChange={(e) => setF({ ...f, reports_to: e.target.value })}><option value="">(nobody — top of chart)</option>{data.employees.filter((e) => !blockedIds.has(e.id)).map((e) => <option key={e.id} value={e.id}>{e.name} — {e.job_title}</option>)}</select></Field>
+        <div className="flex items-center gap-4 sm:col-span-2">
+          {preview ? <img src={preview} alt="Selected photo" className="h-24 w-24 rounded-xl object-cover ring-1 ring-slate-200" /> : <span className="flex h-24 w-24 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-400">No photo</span>}
+          <Field label="Photo (optional)" hint="PNG, JPEG or WebP. It is resized automatically."><input type="file" accept="image/png,image/jpeg,image/webp" className="text-sm" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} /></Field>
+        </div>
         <div className="sm:col-span-2"><Field label="Notes"><textarea className="input" rows={2} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
       </div>
     </Modal>
