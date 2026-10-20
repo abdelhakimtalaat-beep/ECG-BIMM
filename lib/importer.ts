@@ -1,5 +1,5 @@
 // Pure helpers for the Excel/CSV import (unit tested in tests/importer.test.ts). No database access here.
-export const FIELDS = ['manager', 'coordinator', 'project_no', 'name', 'cde', 'type', 'area', 'status', 'activity'] as const;
+export const FIELDS = ['manager', 'coordinator', 'project_no', 'name', 'cde', 'type', 'area', 'status', 'activity', 'deltek', 'client', 'project_manager', 'technical_manager'] as const;
 export type Field = (typeof FIELDS)[number];
 
 const SYNONYMS: Record<Field, string[]> = {
@@ -12,6 +12,10 @@ const SYNONYMS: Record<Field, string[]> = {
   area: ['built-up area', 'built up area', 'builtup area', 'area', 'bua'],
   status: ['status', 'project status'],
   activity: ['activity', 'active', 'active/not active', 'activity status'],
+  deltek: ['deltek', 'deltek number', 'deltek no', 'deltek no.', 'deltek #', 'deltek id'],
+  client: ['client', 'client name'],
+  project_manager: ['project manager', 'pm'],
+  technical_manager: ['technical manager', 'tm'],
 };
 export function autoMap(headers: (string | number | null)[]): Record<Field, number | null> {
   const out = {} as Record<Field, number | null>;

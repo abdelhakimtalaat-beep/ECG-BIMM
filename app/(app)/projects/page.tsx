@@ -42,6 +42,10 @@ function Inner() {
     { key: 'status', header: 'Status', render: (p) => <StatusBadge status={p.status} />, sort: (p) => p.status },
     { key: 'mgr', header: 'BIM Manager', render: (p) => mgrOf.m.get(p.id) ?? <Badge tone="red">none</Badge>, sort: (p) => mgrOf.m.get(p.id) ?? '' },
     { key: 'coord', header: 'BIM Coordinator', render: (p) => mgrOf.c.get(p.id) ?? '—', sort: (p) => mgrOf.c.get(p.id) ?? '', hideBelow: 'md' },
+    { key: 'deltek', header: 'Deltek No.', render: (p) => p.deltek_number ?? '—', sort: (p) => p.deltek_number ?? '', hideBelow: 'md' },
+    { key: 'client', header: 'Client', render: (p) => <span className="block max-w-[14rem] truncate" title={p.client ?? ''}>{p.client ?? '—'}</span>, sort: (p) => (p.client ?? '').toLowerCase(), hideBelow: 'md' },
+    { key: 'pm', header: 'Project Manager', render: (p) => p.project_manager ?? '—', sort: (p) => (p.project_manager ?? '').toLowerCase(), hideBelow: 'lg' },
+    { key: 'tm', header: 'Technical Manager', render: (p) => p.technical_manager ?? '—', sort: (p) => (p.technical_manager ?? '').toLowerCase(), hideBelow: 'lg' },
     { key: 'cde', header: 'CDE', render: (p) => p.cde ?? '—', sort: (p) => p.cde, hideBelow: 'md' },
     { key: 'type', header: 'Type', render: (p) => p.type ?? '—', sort: (p) => p.type, hideBelow: 'lg' },
     { key: 'area', header: 'Built-up area', render: (p) => (hasArea(p) ? fmtNum(p.built_up_area) : <span title={p.area_note ?? 'Missing'} className="text-slate-400">{p.area_raw ? `“${p.area_raw}”` : '—'}</span>), sort: (p) => p.built_up_area, className: 'text-right', hideBelow: 'md' },
@@ -57,7 +61,7 @@ function Inner() {
         actions={<><div className="flex overflow-hidden rounded-lg border border-slate-300"><button className={`px-3 py-2 text-sm ${view === 'cards' ? 'bg-brand-600 text-white' : 'bg-white'}`} onClick={() => setV('cards')} aria-pressed={view === 'cards'}><LayoutGrid size={16} /></button><button className={`px-3 py-2 text-sm ${view === 'table' ? 'bg-brand-600 text-white' : 'bg-white'}`} onClick={() => setV('table')} aria-pressed={view === 'table'}><Table2 size={16} /></button></div>
           <button className="btn-secondary" onClick={() => doExport('xlsx')}><FileSpreadsheet size={16} />Excel</button><button className="btn-secondary" onClick={() => doExport('csv')}><Download size={16} />CSV</button>
           {me.role === 'admin' && <><button className="btn-secondary" onClick={() => setImporting(true)}><Upload size={16} />Import</button><button className="btn-primary" onClick={() => setAdding(true)}><Plus size={16} />New project</button></>}</>} />
-      <FilterBar show={['q', 'manager', 'coordinator', 'status', 'cde', 'type', 'area']} />
+      <FilterBar show={['q', 'manager', 'coordinator', 'status', 'deltek', 'client', 'pm', 'tm', 'cde', 'type', 'area']} />
 
       {view === 'cards' && <div className="mb-3 flex items-center gap-2 text-sm"><span className="text-slate-500">Sort by</span>
         <select className="input w-44" value={sort} onChange={(e) => setSort(e.target.value as any)}><option value="name">Name</option><option value="area">Built-up area</option><option value="status">Status</option><option value="manager">BIM Manager</option></select></div>}
@@ -72,7 +76,7 @@ function Inner() {
             <button key={p.id} onClick={() => open(p.id)} className="card overflow-hidden text-left transition hover:shadow-lg"><ProjectPhoto project={p} className="h-36 w-full" />
               <div className="space-y-2 p-4"><div className="flex items-start justify-between gap-2"><h3 className="font-semibold leading-snug text-brand-900">{p.name}</h3><StatusBadge status={p.status} className="shrink-0" /></div>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs"><dt className="text-slate-500">Project no.</dt><dd>{p.project_no ?? '—'}</dd><dt className="text-slate-500">Built-up area</dt><dd>{hasArea(p) ? fmtNum(p.built_up_area) : '—'}</dd>
-                  <dt className="text-slate-500">BIM Manager</dt><dd className="truncate">{mgrOf.m.get(p.id) ?? '—'}</dd><dt className="text-slate-500">BIM Coordinator</dt><dd className="truncate">{mgrOf.c.get(p.id) ?? '—'}</dd><dt className="text-slate-500">CDE · Type</dt><dd>{p.cde ?? '—'} · {p.type ?? '—'}</dd><dt className="text-slate-500">Last updated</dt><dd>{fmtDate(p.updated_at)}</dd></dl></div></button>))}
+                  <dt className="text-slate-500">BIM Manager</dt><dd className="truncate">{mgrOf.m.get(p.id) ?? '—'}</dd><dt className="text-slate-500">BIM Coordinator</dt><dd className="truncate">{mgrOf.c.get(p.id) ?? '—'}</dd><dt className="text-slate-500">Deltek no.</dt><dd className="truncate">{p.deltek_number ?? '—'}</dd><dt className="text-slate-500">Client</dt><dd className="truncate">{p.client ?? '—'}</dd><dt className="text-slate-500">Project Manager</dt><dd className="truncate">{p.project_manager ?? '—'}</dd><dt className="text-slate-500">Technical Manager</dt><dd className="truncate">{p.technical_manager ?? '—'}</dd><dt className="text-slate-500">CDE · Type</dt><dd>{p.cde ?? '—'} · {p.type ?? '—'}</dd><dt className="text-slate-500">Last updated</dt><dd>{fmtDate(p.updated_at)}</dd></dl></div></button>))}
             {sorted.length > 60 && <p className="col-span-full text-center text-sm text-slate-500">Showing the first 60 cards. Use the table view or filters to see all {sorted.length}.</p>}</div>}
 
       <ProjectDetail id={openId} onClose={() => open(null)} />
@@ -86,14 +90,18 @@ function Inner() {
 
 function NewProject({ onClose }: { onClose: () => void }) {
   const { data, refresh } = useApp(); const toast = useToast();
-  const [f, setF] = useState<any>({ project_no: '', name: '', cde: 'ACC', type: 'BIM', built_up_area: '', status: 'Not Started', manager_id: '', coordinator_id: '', notes: '' });
+  const [f, setF] = useState<any>({ project_no: '', name: '', cde: 'ACC', type: 'BIM', built_up_area: '', deltek_number: '', client: '', project_manager: '', technical_manager: '', status: 'Not Started', manager_id: '', coordinator_id: '', notes: '' });
   const people = (c: string) => data.employees.filter((e) => e.active && e.job_category === c);
   return (
     <Modal open onClose={onClose} wide title="New project" footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!f.name.trim()} onClick={async () => {
-      try { await api('/api/projects', { body: { project_no: f.project_no || null, name: f.name, cde: f.cde || null, type: f.type || null, built_up_area: f.built_up_area === '' ? null : Number(f.built_up_area), status: f.status, notes: f.notes || null, manager_id: f.manager_id || null, coordinator_ids: f.coordinator_id ? [f.coordinator_id] : [] } }); toast('Project created'); await refresh(); onClose(); } catch (e: any) { toast(e.message, 'err'); } }}>Create</button></>}>
+      try { await api('/api/projects', { body: { project_no: f.project_no || null, name: f.name, cde: f.cde || null, type: f.type || null, deltek_number: f.deltek_number || null, client: f.client || null, project_manager: f.project_manager || null, technical_manager: f.technical_manager || null, built_up_area: f.built_up_area === '' ? null : Number(f.built_up_area), status: f.status, notes: f.notes || null, manager_id: f.manager_id || null, coordinator_ids: f.coordinator_id ? [f.coordinator_id] : [] } }); toast('Project created'); await refresh(); onClose(); } catch (e: any) { toast(e.message, 'err'); } }}>Create</button></>}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Project number" hint="Optional — projects without a number are allowed."><input className="input" value={f.project_no} onChange={(e) => setF({ ...f, project_no: e.target.value })} /></Field>
         <Field label="Project name"><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+        <Field label="Deltek number"><input className="input" value={f.deltek_number} onChange={(e) => setF({ ...f, deltek_number: e.target.value })} /></Field>
+        <Field label="Client"><input className="input" value={f.client} onChange={(e) => setF({ ...f, client: e.target.value })} /></Field>
+        <Field label="Project Manager"><input className="input" value={f.project_manager} onChange={(e) => setF({ ...f, project_manager: e.target.value })} /></Field>
+        <Field label="Technical Manager"><input className="input" value={f.technical_manager} onChange={(e) => setF({ ...f, technical_manager: e.target.value })} /></Field>
         <Field label="CDE"><input className="input" list="cdes" value={f.cde} onChange={(e) => setF({ ...f, cde: e.target.value })} /><datalist id="cdes"><option>ACC</option><option>Server</option></datalist></Field>
         <Field label="Type"><input className="input" list="types" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} /><datalist id="types"><option>BIM</option><option>CAD</option></datalist></Field>
         <Field label="Built-up area"><input type="number" min={0} className="input" value={f.built_up_area} onChange={(e) => setF({ ...f, built_up_area: e.target.value })} /></Field>

@@ -11,13 +11,14 @@ export function filtersToText(f: Filters, emp: Map<string, { name: string }>): s
   const p: string[] = [];
   if (f.q) p.push(`text "${f.q}"`); if (f.manager.length) p.push(`BIM Manager: ${n(f.manager)}`); if (f.coordinator.length) p.push(`BIM Coordinator: ${n(f.coordinator)}`);
   if (f.member.length) p.push(`Team member: ${n(f.member)}`); if (f.status.length) p.push(`Status: ${f.status.join(', ')}`); if (f.cde.length) p.push(`CDE: ${f.cde.join(', ')}`);
-  if (f.type.length) p.push(`Type: ${f.type.join(', ')}`); if (f.areaMin != null) p.push(`Area ≥ ${f.areaMin}`); if (f.areaMax != null) p.push(`Area ≤ ${f.areaMax}`);
+  if (f.type.length) p.push(`Type: ${f.type.join(', ')}`); if (f.deltek.length) p.push(`Deltek: ${f.deltek.join(', ')}`); if (f.client.length) p.push(`Client: ${f.client.join(', ')}`);
+  if (f.pm.length) p.push(`Project Manager: ${f.pm.join(', ')}`); if (f.tm.length) p.push(`Technical Manager: ${f.tm.join(', ')}`); if (f.areaMin != null) p.push(`Area ≥ ${f.areaMin}`); if (f.areaMax != null) p.push(`Area ≤ ${f.areaMax}`);
   if (f.dateFrom) p.push(`Training from ${f.dateFrom}`); if (f.dateTo) p.push(`Training to ${f.dateTo}`);
   return p.join(' · ') || '(none)';
 }
-export const activeFilterCount = (f: Filters) => [f.q, f.manager.length, f.coordinator.length, f.member.length, f.status.length, f.cde.length, f.type.length, f.areaMin, f.areaMax, f.dateFrom, f.dateTo].filter((x) => x !== '' && x !== 0 && x != null).length;
+export const activeFilterCount = (f: Filters) => [f.q, f.manager.length, f.coordinator.length, f.member.length, f.status.length, f.cde.length, f.type.length, f.deltek.length, f.pm.length, f.tm.length, f.client.length, f.areaMin, f.areaMax, f.dateFrom, f.dateTo].filter((x) => x !== '' && x !== 0 && x != null).length;
 
-export function FilterBar({ show = ['q', 'manager', 'coordinator', 'member', 'status', 'cde', 'type', 'area', 'date'] }: { show?: string[] }) {
+export function FilterBar({ show = ['q', 'manager', 'coordinator', 'member', 'status', 'deltek', 'client', 'pm', 'tm', 'cde', 'type', 'area', 'date'] }: { show?: string[] }) {
   const { data, filters: f, setFilters, resetFilters } = useApp();
   const people = (cat: string[]) => data.employees.filter((e) => cat.includes(e.job_category)).map((e) => ({ value: e.id, label: e.name }));
   const opts = useMemo(() => ({
@@ -26,6 +27,10 @@ export function FilterBar({ show = ['q', 'manager', 'coordinator', 'member', 'st
     all: data.employees.map((e) => ({ value: e.id, label: e.name })),
     cde: distinct(data.projects.map((p) => p.cde)).map((v) => ({ value: v, label: v })),
     type: distinct(data.projects.map((p) => p.type)).map((v) => ({ value: v, label: v })),
+    deltek: distinct(data.projects.map((p) => p.deltek_number)).map((v) => ({ value: v, label: v })),
+    pm: distinct(data.projects.map((p) => p.project_manager)).map((v) => ({ value: v, label: v })),
+    tm: distinct(data.projects.map((p) => p.technical_manager)).map((v) => ({ value: v, label: v })),
+    client: distinct(data.projects.map((p) => p.client)).map((v) => ({ value: v, label: v })),
   }), [data]);
   const n = activeFilterCount(f);
   const num = (v: string) => (v === '' ? null : Number(v));
@@ -38,6 +43,10 @@ export function FilterBar({ show = ['q', 'manager', 'coordinator', 'member', 'st
         {show.includes('coordinator') && <MultiSelect label="BIM Coordinator" options={opts.coord} value={f.coordinator} onChange={(coordinator) => setFilters({ coordinator })} />}
         {show.includes('member') && <MultiSelect label="Team member" options={opts.all} value={f.member} onChange={(member) => setFilters({ member })} />}
         {show.includes('status') && <MultiSelect label="Status" width="w-36" options={STATUSES.map((s) => ({ value: s, label: s }))} value={f.status} onChange={(status) => setFilters({ status: status as Status[] })} />}
+        {show.includes('deltek') && <MultiSelect label="Deltek No." width="w-32" options={opts.deltek} value={f.deltek} onChange={(deltek) => setFilters({ deltek })} />}
+        {show.includes('client') && <MultiSelect label="Client" width="w-32" options={opts.client} value={f.client} onChange={(client) => setFilters({ client })} />}
+        {show.includes('pm') && <MultiSelect label="Project Manager" options={opts.pm} value={f.pm} onChange={(pm) => setFilters({ pm })} />}
+        {show.includes('tm') && <MultiSelect label="Technical Manager" options={opts.tm} value={f.tm} onChange={(tm) => setFilters({ tm })} />}
         {show.includes('cde') && <MultiSelect label="CDE" width="w-28" options={opts.cde} value={f.cde} onChange={(cde) => setFilters({ cde })} />}
         {show.includes('type') && <MultiSelect label="Type" width="w-28" options={opts.type} value={f.type} onChange={(type) => setFilters({ type })} />}
         {show.includes('area') && <div className="flex items-center gap-1 text-xs text-slate-500"><span>Area</span>

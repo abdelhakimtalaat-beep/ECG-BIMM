@@ -15,8 +15,8 @@ export async function projectScope(u: Me, projectId: string): Promise<Scope> {
   return 'none';
 }
 export const PROJECT_FIELDS: Record<Scope, string[]> = {
-  full: ['project_no', 'name', 'cde', 'type', 'built_up_area', 'status', 'notes'],
-  manager: ['name', 'cde', 'type', 'built_up_area', 'status', 'notes'],
+  full: ['project_no', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'],
+  manager: ['name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'],
   coordinator: ['notes'],
   none: [],
 };

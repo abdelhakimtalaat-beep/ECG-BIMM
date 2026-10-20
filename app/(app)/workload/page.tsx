@@ -55,7 +55,7 @@ export default function WorkloadPage() {
     <>
       <PageHeader title="BIM Team Workload" subtitle="Traceable calculations over unique projects. Project count and built-up area are proxies for workload, not measured effort."
         actions={<>{me.role === 'admin' && <button className="btn-secondary" onClick={() => setCfg(true)}><Settings2 size={16} />Capacity settings</button>}<button className="btn-secondary" onClick={exportXlsx}><FileSpreadsheet size={16} />Excel</button><button className="btn-secondary" onClick={exportPdf}><FileDown size={16} />PDF</button></>} />
-      <FilterBar show={['q', 'manager', 'coordinator', 'status', 'cde', 'type', 'area']} />
+      <FilterBar show={['q', 'manager', 'coordinator', 'status', 'deltek', 'client', 'pm', 'tm', 'cde', 'type', 'area']} />
 
       <div className={`mb-5 rounded-xl border p-4 text-sm ${hasCap ? 'border-brand-200 bg-brand-50 text-brand-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
         {hasCap ? <><b>Capacity basis defined.</b> Percentages = active load ÷ configured maximum (highest of the defined measures). Counted as active: {cap.count_statuses.join(', ')}.</>

@@ -48,10 +48,14 @@ export function applyProjectFilters(ds: Pick<Dataset, 'projects' | 'assignments'
   const q = f.q.trim().toLowerCase();
   return ds.projects.filter((p) => {
     const as = byProject.get(p.id) || [];
-    if (q && !(lc(p.name).includes(q) || lc(p.project_no).includes(q))) return false;
+    if (q && !(lc(p.name).includes(q) || lc(p.project_no).includes(q) || lc(p.deltek_number).includes(q) || lc(p.client).includes(q))) return false;
     if (f.status.length && !f.status.includes(p.status)) return false;
     if (f.cde.length && !f.cde.includes(p.cde || '(none)')) return false;
     if (f.type.length && !f.type.includes(p.type || '(none)')) return false;
+    if (f.deltek.length && !f.deltek.includes(p.deltek_number || '(none)')) return false;
+    if (f.pm.length && !f.pm.includes(p.project_manager || '(none)')) return false;
+    if (f.tm.length && !f.tm.includes(p.technical_manager || '(none)')) return false;
+    if (f.client.length && !f.client.includes(p.client || '(none)')) return false;
     if (f.manager.length && !as.some((a) => a.role === 'manager' && f.manager.includes(a.employee_id))) return false;
     if (f.coordinator.length && !as.some((a) => a.role === 'coordinator' && f.coordinator.includes(a.employee_id))) return false;
     if (f.member.length && !as.some((a) => f.member.includes(a.employee_id))) return false;

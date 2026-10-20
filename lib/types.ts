@@ -15,6 +15,7 @@ export interface Employee {
 }
 export interface Project {
   id: string; project_no: string | null; name: string; cde: string | null; type: string | null;
+  deltek_number?: string | null; project_manager?: string | null; technical_manager?: string | null; client?: string | null;
   built_up_area: number | null; area_raw: string | null; area_note: string | null;
   status_raw: string | null; activity_raw: string | null; status: Status; status_source: 'mapping' | 'manual';
   notes: string | null; photo_id: string | null; source_rows: number[]; created_at: string; updated_at: string;
@@ -40,7 +41,7 @@ export interface Dataset {
 export interface Me { id: string; email: string; full_name: string | null; role: Role; employee_id: string | null }
 
 export interface Filters {
-  q: string; manager: string[]; coordinator: string[]; member: string[]; status: Status[]; cde: string[]; type: string[];
+  q: string; manager: string[]; coordinator: string[]; member: string[]; status: Status[]; cde: string[]; type: string[]; deltek: string[]; pm: string[]; tm: string[]; client: string[];
   areaMin: number | null; areaMax: number | null; dateFrom: string | null; dateTo: string | null;
 }
-export const EMPTY_FILTERS: Filters = { q: '', manager: [], coordinator: [], member: [], status: [], cde: [], type: [], areaMin: null, areaMax: null, dateFrom: null, dateTo: null };
+export const EMPTY_FILTERS: Filters = { q: '', manager: [], coordinator: [], member: [], status: [], cde: [], type: [], deltek: [], pm: [], tm: [], client: [], areaMin: null, areaMax: null, dateFrom: null, dateTo: null };

@@ -38,3 +38,8 @@ test('activity flag normalisation', () => {
   assert.equal(i.normFlag('Active '), 'Active');
   assert.equal(i.normFlag(null), '');
 });
+
+test('headers for the new project fields are auto-mapped', () => {
+  const m = i.autoMap(['Project No.', 'Deltek Number', 'Project Name', 'Client', 'Project Manager', 'Technical Manager', 'BIM Manager']);
+  assert.deepEqual([m.project_no, m.deltek, m.name, m.client, m.project_manager, m.technical_manager, m.manager], [0, 1, 2, 3, 4, 5, 6]);
+});

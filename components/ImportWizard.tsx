@@ -7,7 +7,7 @@ import { csvEscape } from '@/lib/importer';
 import { useApp } from './store';
 import { Badge, Modal, Spinner, useToast } from './ui';
 
-const LABEL: Record<string, string> = { manager: 'BIM Manager', coordinator: 'BIM Coordinator', project_no: 'Project No.', name: 'Project Name', cde: 'CDE', type: 'Type', area: 'Built-Up Area', status: 'Status', activity: 'Active / Not Active flag' };
+const LABEL: Record<string, string> = { manager: 'BIM Manager', coordinator: 'BIM Coordinator', project_no: 'Project No.', name: 'Project Name', cde: 'CDE', type: 'Type', area: 'Built-Up Area', status: 'Status', activity: 'Active / Not Active flag', deltek: 'Deltek Number', client: 'Client', project_manager: 'Project Manager', technical_manager: 'Technical Manager' };
 type Sheet = { name: string; headers: (string | null)[]; rows: any[][]; mapping: Record<string, number | null> };
 
 export function ImportWizard({ open, onClose }: { open: boolean; onClose: () => void }) {

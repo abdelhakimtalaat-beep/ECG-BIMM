@@ -83,7 +83,7 @@ test('status mapping falls back to the status without a flag', () => {
   assert.equal(m.mapStatus(maps, 'Unknown', null), 'Not Started');
 });
 test('filters combine and exclude projects without area when an area range is set', () => {
-  const f: any = { q: '', manager: ['M1'], coordinator: [], member: [], status: [], cde: [], type: [], areaMin: 250, areaMax: null, dateFrom: null, dateTo: null };
+  const f: any = { q: '', manager: ['M1'], coordinator: [], member: [], status: [], cde: [], type: [], deltek: [], pm: [], tm: [], client: [], areaMin: 250, areaMax: null, dateFrom: null, dateTo: null };
   assert.deepEqual(m.applyProjectFilters(ds, f).map((p: any) => p.id), ['p1', 'p3', 'p5']);
 });
 test('cycle detection for reporting changes', () => {
@@ -137,4 +137,44 @@ test('org layout (vertical mode, default): one tall column, reports indented und
   assert.ok(coll.height < r.height);
   const cards = [...r.placed.values()];
   for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) assert.ok(cards[i].y + L.CARD_H <= cards[j].y || cards[j].y + L.CARD_H <= cards[i].y);
+});
+
+test('org layout (horizontal mode): each level is one row, siblings side by side, parents centred over reports', () => {
+  const nodes = [{ id: 'd', reports_to: null }, { id: 'a', reports_to: 'd' }, { id: 'b', reports_to: 'd' }, { id: 'a1', reports_to: 'a' }, { id: 'a2', reports_to: 'a' }, { id: 'b1', reports_to: 'b' }];
+  const r = L.layoutTree(nodes, new Set(), 'horizontal');
+  const P = (id: string) => r.placed.get(id)!;
+  assert.equal(r.placed.size, 6);
+  assert.equal(P('a').y, P('b').y); assert.equal(P('a1').y, P('a2').y);   // a level shares a row
+  assert.ok(P('d').y < P('a').y && P('a').y < P('a1').y);
+  assert.ok(P('a1').x < P('a2').x && P('a2').x < P('b1').x);                // left to right
+  assert.equal(P('a').x, (P('a1').x + P('a2').x) / 2);
+  assert.equal(P('d').x, (P('a').x + P('b').x) / 2);
+  assert.equal(r.paths.length, 5);
+  assert.equal(L.layoutTree(nodes, new Set(['a']), 'horizontal').placed.size, 4);
+  const cards = [...r.placed.values()];
+  for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) {
+    const m = cards[i], n = cards[j];
+    assert.ok(m.x + L.CARD_W <= n.x || n.x + L.CARD_W <= m.x || m.y + L.CARD_H <= n.y || n.y + L.CARD_H <= m.y);
+  }
+});
+
+test('project filters: Deltek number, Project Manager, Technical Manager and Client', () => {
+  const mk = (id: string, extra: any) => ({ id, name: 'P ' + id, project_no: id, cde: 'ACC', type: 'BIM', built_up_area: 100, status: 'In Progress', ...extra }) as any;
+  const projects = [
+    mk('a', { deltek_number: 'D-100', project_manager: 'Sara', technical_manager: 'Omar', client: 'Acme' }),
+    mk('b', { deltek_number: 'D-200', project_manager: 'Sara', technical_manager: null, client: 'Globex' }),
+    mk('c', {}),
+  ];
+  const ds = { projects, assignments: [] as any[] };
+  const base: any = { q: '', manager: [], coordinator: [], member: [], status: [], cde: [], type: [], deltek: [], pm: [], tm: [], client: [], areaMin: null, areaMax: null, dateFrom: null, dateTo: null };
+  const ids = (f: any) => m.applyProjectFilters(ds as any, { ...base, ...f }).map((p) => p.id).join();
+  assert.equal(ids({}), 'a,b,c');
+  assert.equal(ids({ deltek: ['D-200'] }), 'b');
+  assert.equal(ids({ pm: ['Sara'] }), 'a,b');
+  assert.equal(ids({ tm: ['Omar'] }), 'a');
+  assert.equal(ids({ tm: ['(none)'] }), 'b,c');           // projects without a value can be selected
+  assert.equal(ids({ client: ['Acme', 'Globex'] }), 'a,b');
+  assert.equal(ids({ pm: ['Sara'], client: ['Globex'] }), 'b'); // filters combine
+  assert.equal(ids({ q: 'acme' }), 'a');                    // free-text search also covers client
+  assert.equal(ids({ q: 'd-200' }), 'b');                   // ...and the Deltek number
 });

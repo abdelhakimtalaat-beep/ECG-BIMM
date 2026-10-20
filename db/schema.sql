@@ -82,6 +82,10 @@ create table if not exists projects (
   name          text not null,
   cde           text,
   type          text,
+  deltek_number     text,                          -- Deltek project number
+  project_manager   text,                          -- free text: usually not a BIM department employee
+  technical_manager text,
+  client            text,
   built_up_area numeric,                           -- valid numeric values only
   area_raw      text,                              -- original cell content
   area_note     text,
@@ -95,6 +99,10 @@ create table if not exists projects (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+alter table projects add column if not exists deltek_number text;       -- upgrades databases created before these fields existed
+alter table projects add column if not exists project_manager text;
+alter table projects add column if not exists technical_manager text;
+alter table projects add column if not exists client text;
 create index if not exists projects_no_idx on projects(project_no);
 
 create table if not exists project_status_history (

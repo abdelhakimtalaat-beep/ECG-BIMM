@@ -66,7 +66,7 @@ export default function TeamsPage() {
     <>
       <PageHeader title="BIM Teams & Project Assignments" subtitle="Department Manager → BIM Manager → BIM Coordinator → Projects. Click a project for details; every assignment change is audited."
         actions={<><button className="btn-secondary" onClick={exportXlsx}><FileSpreadsheet size={16} />Excel</button><button className="btn-secondary" onClick={exportPdf}><FileDown size={16} />PDF</button></>} />
-      <FilterBar show={['q', 'manager', 'coordinator', 'status', 'cde', 'type']} />
+      <FilterBar show={['q', 'manager', 'coordinator', 'status', 'deltek', 'client', 'pm', 'tm', 'cde', 'type']} />
       <div className="mb-4 flex gap-1 border-b border-slate-200" role="tablist">
         {([['hierarchy', 'Team hierarchy'], ['matrix', 'Matrix'], ['checks', `Checks (${unassignedMgr.length + issues.length + dupes.length})`]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{l}</button>)}
       </div>

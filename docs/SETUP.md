@@ -65,3 +65,10 @@ All checks run on the server (`lib/perm.ts`, `app/api/**`); hiding buttons in th
 Databases created before employee photos existed need one extra column. Run `db/migrations/001_employee_photo.sql`
 (or just: `alter table employees add column if not exists photo_id uuid;`) once in the Supabase SQL Editor
 **before** deploying this version. It is safe to run more than once. New installs get the column from `db/schema.sql`.
+
+## Upgrading an existing database: extra project fields
+
+Projects now also carry **Deltek Number, Project Manager, Technical Manager and Client**. Run
+`db/migrations/002_project_extra_fields.sql` once in the Supabase SQL Editor **before** deploying this version
+(safe to run more than once). New installs get the columns from `db/schema.sql`.
+The Excel/CSV importer recognises columns named "Deltek Number", "Client", "Project Manager" and "Technical Manager".

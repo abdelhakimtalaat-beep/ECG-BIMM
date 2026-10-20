@@ -51,7 +51,8 @@ export async function POST(req: Request) {
       const key = `${(no || '').toLowerCase()}|${normKey(name)}`;
       const dup = existing.get(key) || (seenInFile.has(key) ? 'in-file' : null);
       seenInFile.add(key);
-      const data = { project_no: no, name, cde: get(row, 'cde') ? String(get(row, 'cde')).trim() : null, type: get(row, 'type') ? String(get(row, 'type')).trim() : null,
+      const txt = (k: string) => (get(row, k) == null ? null : String(get(row, k)).trim() || null);
+      const data = { project_no: no, name, deltek_number: txt('deltek'), client: txt('client'), project_manager: txt('project_manager'), technical_manager: txt('technical_manager'), cde: get(row, 'cde') ? String(get(row, 'cde')).trim() : null, type: get(row, 'type') ? String(get(row, 'type')).trim() : null,
         area, area_raw: get(row, 'area') == null ? null : String(get(row, 'area')), area_note: note, status_raw: rawStatus, activity_raw: flag ? normFlag(flag) : null, status, mgr, coords };
       results.push({ line, status: dup ? 'duplicate' : 'new', messages: dup ? [`Duplicate of an existing ${dup === 'in-file' ? 'row in this file' : 'project'} (same number and name)`, ...messages] : messages, data });
     });
@@ -64,8 +65,8 @@ export async function POST(req: Request) {
       for (const r of results) {
         if (r.status !== 'new') continue;
         const d = r.data;
-        const p = (await c.query(`insert into projects(project_no,name,cde,type,built_up_area,area_raw,area_note,status_raw,activity_raw,status,status_source,source_rows)
-          values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'mapping',$11) returning id`, [d.project_no, d.name, d.cde, d.type, d.area, d.area_raw, d.area_note, d.status_raw, d.activity_raw, d.status, [r.line]])).rows[0];
+        const p = (await c.query(`insert into projects(project_no,name,cde,type,built_up_area,area_raw,area_note,status_raw,activity_raw,status,status_source,source_rows,deltek_number,client,project_manager,technical_manager)
+          values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'mapping',$11,$12,$13,$14,$15) returning id`, [d.project_no, d.name, d.cde, d.type, d.area, d.area_raw, d.area_note, d.status_raw, d.activity_raw, d.status, [r.line], d.deltek_number, d.client, d.project_manager, d.technical_manager])).rows[0];
         await c.query(`insert into project_status_history(project_id,old_status,new_status,reason,changed_by) values($1,null,$2,$3,$4)`, [p.id, d.status, `Imported from ${b.filename}`, me.email]);
         if (d.mgr) await c.query(`insert into project_assignments(project_id,employee_id,role,source_row) values($1,$2,'manager',$3) on conflict do nothing`, [p.id, d.mgr, r.line]);
         for (const e of d.coords) await c.query(`insert into project_assignments(project_id,employee_id,role,source_row) values($1,$2,'coordinator',$3) on conflict do nothing`, [p.id, e, r.line]);

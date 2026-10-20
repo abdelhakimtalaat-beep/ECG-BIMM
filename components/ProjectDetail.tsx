@@ -27,7 +27,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const asg = useMemo(() => data.assignments.filter((a) => a.project_id === id), [data.assignments, id]);
   const mgrs = asg.filter((a) => a.role === 'manager'), coords = asg.filter((a) => a.role === 'coordinator'), members = asg.filter((a) => a.role === 'member');
   const scope = canEditProject(me, mgrs.map((a) => a.employee_id), [...coords, ...members].map((a) => a.employee_id));
-  const can = (f: string) => ({ full: ['project_no', 'name', 'cde', 'type', 'built_up_area', 'status', 'notes'], manager: ['name', 'cde', 'type', 'built_up_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
+  const can = (f: string) => ({ full: ['project_no', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], manager: ['name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
   const team = new Set(asg.map((a) => a.employee_id));
   const related = useMemo(() => upcomingReels(data.reels, today).filter((r) => r.employee_id && team.has(r.employee_id)), [data.reels, today, team]);
 
@@ -53,7 +53,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
     let y = 84;
     if (p.photo_id) { try { const b = await (await fetch(`/api/files/${p.photo_id}`)).blob(); const url: string = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(b); }); doc.addImage(url, 'JPEG', 40, y, 160, 110); y += 122; } catch {} }
     autoTable(doc, { startY: y, head: [['Field', 'Value']], theme: 'grid', headStyles: { fillColor: [15, 85, 168] }, body: [
-      ['Project number', p.project_no ?? '—'], ['Status', p.status], ['Built-up area', p.built_up_area ? fmtNum(p.built_up_area) : (p.area_note ?? '—')], ['CDE', p.cde ?? '—'], ['Type', p.type ?? '—'],
+      ['Project number', p.project_no ?? '—'], ['Status', p.status], ['Built-up area', p.built_up_area ? fmtNum(p.built_up_area) : (p.area_note ?? '—')], ['Deltek number', p.deltek_number ?? '—'], ['Client', p.client ?? '—'], ['Project Manager', p.project_manager ?? '—'], ['Technical Manager', p.technical_manager ?? '—'], ['CDE', p.cde ?? '—'], ['Type', p.type ?? '—'],
       ['BIM Manager', names(mgrs)], ['BIM Coordinator', names(coords)], ['Other team members', names(members)], ['Original workbook status', `${p.status_raw ?? '—'}${p.activity_raw ? ` / ${p.activity_raw}` : ''}`], ['Last updated', fmtDate(p.updated_at)], ['Notes', p.notes ?? '—']] });
     if (extra?.history.length) autoTable(doc, { startY: (doc as any).lastAutoTable.finalY + 16, head: [['Date', 'From', 'To', 'By', 'Reason']], headStyles: { fillColor: [15, 85, 168] }, body: extra.history.map((h) => [fmtDate(h.changed_at), h.old_status ?? '—', h.new_status, h.changed_by ?? '', h.reason ?? '']) });
     if (extra?.notes.length) autoTable(doc, { startY: (doc as any).lastAutoTable.finalY + 16, head: [['Management comments', 'By', 'Date']], headStyles: { fillColor: [15, 85, 168] }, body: extra.notes.map((n) => [n.body, n.author ?? '', fmtDate(n.created_at)]) });
@@ -76,6 +76,8 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Project number">{inp('project_no')}</Field><Field label="Project name">{inp('name')}</Field>
+          <Field label="Deltek number">{inp('deltek_number')}</Field><Field label="Client">{inp('client')}</Field>
+          <Field label="Project Manager">{inp('project_manager')}</Field><Field label="Technical Manager">{inp('technical_manager')}</Field>
           <Field label="CDE">{inp('cde')}</Field><Field label="Type">{inp('type')}</Field>
           <Field label="Built-up area" hint={p.area_note ? `Source: ${p.area_raw} — ${p.area_note}` : undefined}>{inp('built_up_area', 'number')}</Field>
           <Field label="Status" hint={`Workbook: ${p.status_raw ?? '—'}${p.activity_raw ? ' / ' + p.activity_raw : ''}`}>
