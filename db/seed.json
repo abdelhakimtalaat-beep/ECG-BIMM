@@ -1,0 +1,4489 @@
+{
+ "generated": "2026-10-20T11:42:43",
+ "employees": [
+  {
+   "idx": 0,
+   "raw": "BIM Department Manager5701-Abdelhakim TalaatArchitect-2002",
+   "job_title": "BIM Department Manager",
+   "team_location": null,
+   "employee_id": "5701",
+   "name": "Abdelhakim Talaat",
+   "discipline": "Architect",
+   "year": 2002,
+   "reports_to_idx": null
+  },
+  {
+   "idx": 1,
+   "raw": "BIM Manager (NC)C147-Nesrin Mahmoud Architect-2002",
+   "job_title": "BIM Manager",
+   "team_location": "NC",
+   "employee_id": "C147",
+   "name": "Nesrin Mahmoud",
+   "discipline": "Architect",
+   "year": 2002,
+   "reports_to_idx": 0
+  },
+  {
+   "idx": 2,
+   "raw": "BIM Coordinator (SV)D574-Hagar AboelalaArchitect-2021",
+   "job_title": "BIM Coordinator",
+   "team_location": "SV",
+   "employee_id": "D574",
+   "name": "Hagar Aboelala",
+   "discipline": "Architect",
+   "year": 2021,
+   "reports_to_idx": 1
+  },
+  {
+   "idx": 3,
+   "raw": "BIM Coordinator (Alex)Mais AtwanArchitect-2024",
+   "job_title": "BIM Coordinator",
+   "team_location": "Alex",
+   "employee_id": null,
+   "name": "Mais Atwan",
+   "discipline": "Architect",
+   "year": 2024,
+   "reports_to_idx": 1
+  },
+  {
+   "idx": 4,
+   "raw": "BIM Manager (NC)C106-Sanaa Ahmed Architect-2002",
+   "job_title": "BIM Manager",
+   "team_location": "NC",
+   "employee_id": "C106",
+   "name": "Sanaa Ahmed",
+   "discipline": "Architect",
+   "year": 2002,
+   "reports_to_idx": 0
+  },
+  {
+   "idx": 5,
+   "raw": "BIM Coordinator (SV)C549-Abdelrahman Radwan Architect-2020",
+   "job_title": "BIM Coordinator",
+   "team_location": "SV",
+   "employee_id": "C549",
+   "name": "Abdelrahman Radwan",
+   "discipline": "Architect",
+   "year": 2020,
+   "reports_to_idx": 4
+  },
+  {
+   "idx": 6,
+   "raw": "BIM Coordinator (NC)D051-Mahitab Yosri Architect-2019",
+   "job_title": "BIM Coordinator",
+   "team_location": "NC",
+   "employee_id": "D051",
+   "name": "Mahitab Yosri",
+   "discipline": "Architect",
+   "year": 2019,
+   "reports_to_idx": 4
+  },
+  {
+   "idx": 7,
+   "raw": "BIM Manager (NC)A786-Mahmoud Mostafa Structure-2020",
+   "job_title": "BIM Manager",
+   "team_location": "NC",
+   "employee_id": "A786",
+   "name": "Mahmoud Mostafa",
+   "discipline": "Structure",
+   "year": 2020,
+   "reports_to_idx": 0
+  },
+  {
+   "idx": 8,
+   "raw": "BIM Coordinator (NC)C145-Fatma Idriss Architect-2021",
+   "job_title": "BIM Coordinator",
+   "team_location": "NC",
+   "employee_id": "C145",
+   "name": "Fatma Idriss",
+   "discipline": "Architect",
+   "year": 2021,
+   "reports_to_idx": 7
+  },
+  {
+   "idx": 9,
+   "raw": "R&D BIM Engineer (NC)Muhammed Ghareeb Structure-2025",
+   "job_title": "R&D BIM Engineer",
+   "team_location": "NC",
+   "employee_id": null,
+   "name": "Muhammed Ghareeb",
+   "discipline": "Structure",
+   "year": 2025,
+   "reports_to_idx": 7
+  },
+  {
+   "idx": 10,
+   "raw": "BIM Manager (SV)9783-Mariam Samuel Architect-2009",
+   "job_title": "BIM Manager",
+   "team_location": "SV",
+   "employee_id": "9783",
+   "name": "Mariam Samuel",
+   "discipline": "Architect",
+   "year": 2009,
+   "reports_to_idx": 0
+  },
+  {
+   "idx": 11,
+   "raw": "BIM Coordinator (NC)C263-Mahmoud Hussien HVAC-2021",
+   "job_title": "BIM Coordinator",
+   "team_location": "NC",
+   "employee_id": "C263",
+   "name": "Mahmoud Hussien",
+   "discipline": "HVAC",
+   "year": 2021,
+   "reports_to_idx": 10
+  },
+  {
+   "idx": 12,
+   "raw": "BIM Manager (NC)B370-Ibrahim Afify HVAC-2007",
+   "job_title": "BIM Manager",
+   "team_location": "NC",
+   "employee_id": "B370",
+   "name": "Ibrahim Afify",
+   "discipline": "HVAC",
+   "year": 2007,
+   "reports_to_idx": 0
+  },
+  {
+   "idx": 13,
+   "raw": "BIM Manager (NC)B769-Moataz BelalArchitect-2018",
+   "job_title": "BIM Manager",
+   "team_location": "NC",
+   "employee_id": "B769",
+   "name": "Moataz Belal",
+   "discipline": "Architect",
+   "year": 2018,
+   "reports_to_idx": 12
+  },
+  {
+   "idx": 14,
+   "raw": "BIM Manager (NC)B461-Ibrahim Elghannam Mechanical-2008",
+   "job_title": "BIM Manager",
+   "team_location": "NC",
+   "employee_id": "B461",
+   "name": "Ibrahim Elghannam",
+   "discipline": "Mechanical",
+   "year": 2008,
+   "reports_to_idx": 0
+  },
+  {
+   "idx": 15,
+   "raw": "BIM Coordinator (NC)C084-Rana Khaled Architect-2019",
+   "job_title": "BIM Coordinator",
+   "team_location": "NC",
+   "employee_id": "C084",
+   "name": "Rana Khaled",
+   "discipline": "Architect",
+   "year": 2019,
+   "reports_to_idx": 14
+  },
+  {
+   "idx": 16,
+   "raw": "BIM Manager (SV)C466-Maha Hassan Architect-2006",
+   "job_title": "BIM Manager",
+   "team_location": "SV",
+   "employee_id": "C466",
+   "name": "Maha Hassan",
+   "discipline": "Architect",
+   "year": 2006,
+   "reports_to_idx": 0
+  },
+  {
+   "idx": 17,
+   "raw": "BIM Coordinator (Alex)C303-Amal Zaghloul Architect-2013",
+   "job_title": "BIM Coordinator",
+   "team_location": "Alex",
+   "employee_id": "C303",
+   "name": "Amal Zaghloul",
+   "discipline": "Architect",
+   "year": 2013,
+   "reports_to_idx": 16
+  },
+  {
+   "idx": 18,
+   "raw": "BIM Manager (Alex)C304-Nahla Magdy Structure-2011",
+   "job_title": "BIM Manager",
+   "team_location": "Alex",
+   "employee_id": "C304",
+   "name": "Nahla Magdy",
+   "discipline": "Structure",
+   "year": 2011,
+   "reports_to_idx": 0
+  },
+  {
+   "idx": 19,
+   "raw": "BIM Coordinator (Alex)9934-Mohamed AlzawawyStructure-2020",
+   "job_title": "BIM Coordinator",
+   "team_location": "Alex",
+   "employee_id": "9934",
+   "name": "Mohamed Alzawawy",
+   "discipline": "Structure",
+   "year": 2020,
+   "reports_to_idx": 18
+  },
+  {
+   "idx": 20,
+   "raw": "BIM Specialist (SV)D357-Nada IbrahimArchitect-2022",
+   "job_title": "BIM Specialist",
+   "team_location": "SV",
+   "employee_id": "D357",
+   "name": "Nada Ibrahim",
+   "discipline": "Architect",
+   "year": 2022,
+   "reports_to_idx": 0
+  }
+ ],
+ "projects": [
+  {
+   "idx": 0,
+   "project_no": "3674",
+   "name": "Wadi Yamm ( 6 Plots)",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 291069.0,
+   "area_raw": "291069",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    2
+   ]
+  },
+  {
+   "idx": 1,
+   "project_no": null,
+   "name": "Wadi Yamm (DP01 & DP02 ) Landscape",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    3
+   ]
+  },
+  {
+   "idx": 2,
+   "project_no": "3722",
+   "name": "Miskan Elaros",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 291577.0,
+   "area_raw": "291577",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    4
+   ]
+  },
+  {
+   "idx": 3,
+   "project_no": "3541",
+   "name": "ZED EAST C12 A-B",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 179690.0,
+   "area_raw": "179690",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Not Active",
+   "source_rows": [
+    5
+   ]
+  },
+  {
+   "idx": 4,
+   "project_no": "3446",
+   "name": "ZED West 5A",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 230230.0,
+   "area_raw": "230230",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    6
+   ]
+  },
+  {
+   "idx": 5,
+   "project_no": "3515",
+   "name": "DRI-DRJ (Mostakbal City)",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 250708.0,
+   "area_raw": "250708",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    7
+   ]
+  },
+  {
+   "idx": 6,
+   "project_no": "3497",
+   "name": "Alfanar Front",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 8800.0,
+   "area_raw": "8800",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    8
+   ]
+  },
+  {
+   "idx": 7,
+   "project_no": "3375",
+   "name": "Al Samha Mosque",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 1866.0,
+   "area_raw": "1866",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    9
+   ]
+  },
+  {
+   "idx": 8,
+   "project_no": "3092",
+   "name": "Suez Canal Office Building",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 17022.9,
+   "area_raw": "17022.9",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    10
+   ]
+  },
+  {
+   "idx": 9,
+   "project_no": "3589",
+   "name": "MMM-Car Ass.",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 40000.0,
+   "area_raw": "40000",
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    11
+   ]
+  },
+  {
+   "idx": 10,
+   "project_no": "3566",
+   "name": "Admin Building LIBYA",
+   "cde": "ACC",
+   "type": null,
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    12
+   ]
+  },
+  {
+   "idx": 11,
+   "project_no": "3539",
+   "name": "ZED EAST TOWERS-CLUSTER 12",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 124052.0,
+   "area_raw": "124052",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    15
+   ]
+  },
+  {
+   "idx": 12,
+   "project_no": "3490",
+   "name": "DORAR NAJD SCHOOL",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 54207.3,
+   "area_raw": "54207.3",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    16
+   ]
+  },
+  {
+   "idx": 13,
+   "project_no": "I477",
+   "name": "New Plasma fractionation and Pilot Plant",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 6068.76,
+   "area_raw": "6068.76",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    17
+   ]
+  },
+  {
+   "idx": 14,
+   "project_no": "3325",
+   "name": "ZED WEST - 5B",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 37718.0,
+   "area_raw": "37718",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    18
+   ]
+  },
+  {
+   "idx": 15,
+   "project_no": "3615",
+   "name": "KING ABDALLAH MOSQUE",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 42000.0,
+   "area_raw": "42000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    19
+   ]
+  },
+  {
+   "idx": 16,
+   "project_no": "2140",
+   "name": "SKY INNOVO STARS",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 574000.0,
+   "area_raw": "574000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    20
+   ]
+  },
+  {
+   "idx": 17,
+   "project_no": "3672",
+   "name": "QIDDIYA EDUCATION ASSETS",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 41328.5,
+   "area_raw": "41328.5",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    21
+   ]
+  },
+  {
+   "idx": 18,
+   "project_no": "3656",
+   "name": "LIWAN NAJD COMPOUND",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 324367.0,
+   "area_raw": "324367",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    22
+   ]
+  },
+  {
+   "idx": 19,
+   "project_no": "J421",
+   "name": "ENAR",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 450000.0,
+   "area_raw": "450000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    23
+   ]
+  },
+  {
+   "idx": 20,
+   "project_no": "3743",
+   "name": "Cotonou Cultural (QCC)",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    24
+   ]
+  },
+  {
+   "idx": 21,
+   "project_no": "J798",
+   "name": "Med Log",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    25
+   ]
+  },
+  {
+   "idx": 22,
+   "project_no": "2730",
+   "name": "Al Rehab Pavalion",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 18900.0,
+   "area_raw": "18900",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    26
+   ]
+  },
+  {
+   "idx": 23,
+   "project_no": "3793",
+   "name": "WADI ROAD DESIGN COSULTANCY SERVICES",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    27
+   ]
+  },
+  {
+   "idx": 24,
+   "project_no": "3792",
+   "name": "INFRASTRUCTURE & LANDSCAPE DESIGN WORKS -TALAH PARK",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 53000000.0,
+   "area_raw": "53000000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    28
+   ]
+  },
+  {
+   "idx": 25,
+   "project_no": "3626",
+   "name": "MARASSI - RED SEA",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    29
+   ]
+  },
+  {
+   "idx": 26,
+   "project_no": "2856",
+   "name": "Pavillion Phase 2",
+   "cde": "Server",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    30
+   ]
+  },
+  {
+   "idx": 27,
+   "project_no": null,
+   "name": "Wyoming Data Center",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    31
+   ]
+  },
+  {
+   "idx": 28,
+   "project_no": "3554",
+   "name": "REHABILITATION OF ERCS'S",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    32
+   ]
+  },
+  {
+   "idx": 29,
+   "project_no": "3190",
+   "name": "RUA AL MADINAH SUPERBLOCK 5",
+   "cde": "Server",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    33
+   ]
+  },
+  {
+   "idx": 30,
+   "project_no": "3199",
+   "name": "NUCA",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 146961.0,
+   "area_raw": "146961",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    34
+   ]
+  },
+  {
+   "idx": 31,
+   "project_no": "3594",
+   "name": "Soul Gates In North Coast",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    35
+   ]
+  },
+  {
+   "idx": 32,
+   "project_no": "2856",
+   "name": "TWIN HOUSE",
+   "cde": "Server",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    36
+   ]
+  },
+  {
+   "idx": 33,
+   "project_no": "j002",
+   "name": "Alegeria Embassy",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    37
+   ]
+  },
+  {
+   "idx": 34,
+   "project_no": "3445",
+   "name": "ZED West Phase 3",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 169105.0,
+   "area_raw": "169105",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    40
+   ]
+  },
+  {
+   "idx": 35,
+   "project_no": "3574",
+   "name": "Hacienda Waters",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 79055.4,
+   "area_raw": "79055.4",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    41
+   ]
+  },
+  {
+   "idx": 36,
+   "project_no": "3618",
+   "name": "AL BUROUJ",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 30680.0,
+   "area_raw": "30680",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    42
+   ]
+  },
+  {
+   "idx": 37,
+   "project_no": "3629",
+   "name": "SOUL RETAIL",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 19199.0,
+   "area_raw": "19199",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    43
+   ]
+  },
+  {
+   "idx": 38,
+   "project_no": "3701",
+   "name": "KFUPM - COLLEGE OF DESIGN & BUILT ENVIRONMENT",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 26347.0,
+   "area_raw": "26347 ",
+   "area_note": "cleaned from text '26347\\xa0'",
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    44
+   ]
+  },
+  {
+   "idx": 39,
+   "project_no": "3613",
+   "name": "Spine Pilot Project",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 1400000.0,
+   "area_raw": "1400000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    45
+   ]
+  },
+  {
+   "idx": 40,
+   "project_no": "3704",
+   "name": "KFUPM-DRL",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 2830.0,
+   "area_raw": "2830",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "NOT Active",
+   "source_rows": [
+    46
+   ]
+  },
+  {
+   "idx": 41,
+   "project_no": "2926",
+   "name": "3D Community Data Center",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 484.0,
+   "area_raw": "484",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    47
+   ]
+  },
+  {
+   "idx": 42,
+   "project_no": "J584",
+   "name": "EGSOC Cold Storage",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 136.433,
+   "area_raw": "136.433",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    48
+   ]
+  },
+  {
+   "idx": 43,
+   "project_no": "3590",
+   "name": "SOLANA",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 115745.0,
+   "area_raw": "115745",
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    49
+   ]
+  },
+  {
+   "idx": 44,
+   "project_no": "3649",
+   "name": "Hacienda Blue",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 111199.0,
+   "area_raw": "111199",
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    50
+   ]
+  },
+  {
+   "idx": 45,
+   "project_no": "2724",
+   "name": "Le Meridien",
+   "cde": null,
+   "type": null,
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    51
+   ]
+  },
+  {
+   "idx": 46,
+   "project_no": "3733",
+   "name": "Alam Elroom",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 20611400.0,
+   "area_raw": "20611400",
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    52
+   ]
+  },
+  {
+   "idx": 47,
+   "project_no": "J935",
+   "name": "Stem Cell and Reg.Medicine",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 10564.0,
+   "area_raw": "10564",
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    53
+   ]
+  },
+  {
+   "idx": 48,
+   "project_no": "3574",
+   "name": "NOOR CITY-DISTRICT CENTERS 2 & 5",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    54
+   ]
+  },
+  {
+   "idx": 49,
+   "project_no": "3552",
+   "name": "Mixed use - Jeddah",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 460609.92,
+   "area_raw": "460609.92",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    57
+   ]
+  },
+  {
+   "idx": 50,
+   "project_no": "3551",
+   "name": "Al Ahly Sports City",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 90000.0,
+   "area_raw": "90000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    58
+   ]
+  },
+  {
+   "idx": 51,
+   "project_no": "3699",
+   "name": "CFC Mall Renovation and Expansion",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 451161.0,
+   "area_raw": "451161",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    59
+   ]
+  },
+  {
+   "idx": 52,
+   "project_no": "3769",
+   "name": "Jirian",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 1091159.0,
+   "area_raw": "=1083149+3480+3480+1050",
+   "area_note": "formula result",
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    60
+   ]
+  },
+  {
+   "idx": 53,
+   "project_no": "3781",
+   "name": "D-PAVILION BUILDING AT BELLE VIE PROJECT - PHASE II",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 1314.0,
+   "area_raw": "1314",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    61
+   ]
+  },
+  {
+   "idx": 54,
+   "project_no": null,
+   "name": "GTR GB2(2024)",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    62
+   ]
+  },
+  {
+   "idx": 55,
+   "project_no": "3455",
+   "name": "Smart village conference center + Think Tank",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 17075.0,
+   "area_raw": "17075",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Not Active",
+   "source_rows": [
+    63
+   ]
+  },
+  {
+   "idx": 56,
+   "project_no": "3524",
+   "name": "Madinat Zayed (Al-DAFRAH - Abu Dhabi)",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 8391.6061,
+   "area_raw": "=2373.198+2641.893+1051.2189+859.1402+743.737+336.214+386.205",
+   "area_note": "formula result",
+   "status_raw": "Open",
+   "activity": "Not Active",
+   "source_rows": [
+    64
+   ]
+  },
+  {
+   "idx": 57,
+   "project_no": "3619",
+   "name": "ZED EAST Cluster C14",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 3885.15,
+   "area_raw": "=253.15+292+780+860+1700",
+   "area_note": "formula result",
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    65
+   ]
+  },
+  {
+   "idx": 58,
+   "project_no": "3681",
+   "name": "DASMAN MIXED-USE COMPLEX IN KUWAIT",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 154000.0,
+   "area_raw": "154000",
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    66
+   ]
+  },
+  {
+   "idx": 59,
+   "project_no": "3721",
+   "name": "EIF Jeddah Shooting Range (JSR)",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    67
+   ]
+  },
+  {
+   "idx": 60,
+   "project_no": "3757",
+   "name": "EIF Riyad Shooting Range (RSR)",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    68
+   ]
+  },
+  {
+   "idx": 61,
+   "project_no": "I279",
+   "name": "CFC Mall Renovation and Expansion",
+   "cde": "ACC",
+   "type": null,
+   "area": null,
+   "area_raw": "Bid Support",
+   "area_note": "non-numeric text kept as note: 'Bid Support'",
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    69
+   ]
+  },
+  {
+   "idx": 62,
+   "project_no": "3548",
+   "name": "Marassi H Villa H1,H7,H8",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    70
+   ]
+  },
+  {
+   "idx": 63,
+   "project_no": "3543",
+   "name": "Soul Locanda",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 1013.0,
+   "area_raw": "1013",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    71
+   ]
+  },
+  {
+   "idx": 64,
+   "project_no": "3599",
+   "name": "Mostaqbal city",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    72
+   ]
+  },
+  {
+   "idx": 65,
+   "project_no": "i333",
+   "name": "Ras El Hekma",
+   "cde": "Server",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    73
+   ]
+  },
+  {
+   "idx": 66,
+   "project_no": "3394",
+   "name": "7068 Project Horus LESAFFRE",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 11625.0,
+   "area_raw": "11625",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    74
+   ]
+  },
+  {
+   "idx": 67,
+   "project_no": "3749",
+   "name": "ZOOD_ÉLEVÉE Mixed Use",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 412254.02,
+   "area_raw": "412254.02",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    77
+   ]
+  },
+  {
+   "idx": 68,
+   "project_no": "3708",
+   "name": "AL MURJAN Private Residence Villa",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 1917.83,
+   "area_raw": "1917.83",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    78
+   ]
+  },
+  {
+   "idx": 69,
+   "project_no": "3761",
+   "name": "ZOOD _ MINARA",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 274282.27,
+   "area_raw": "274282.27",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    79
+   ]
+  },
+  {
+   "idx": 70,
+   "project_no": "3821",
+   "name": "Rwanda Heart Center",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 12815.0,
+   "area_raw": "12 815 ",
+   "area_note": "cleaned from text '12 815 '",
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    80
+   ]
+  },
+  {
+   "idx": 71,
+   "project_no": "3458",
+   "name": "King Fahd University of Petroleum",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 49761.37,
+   "area_raw": "49761.37",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Not Active",
+   "source_rows": [
+    81
+   ]
+  },
+  {
+   "idx": 72,
+   "project_no": "3653",
+   "name": "Fort Capital French Fries Project",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 200000.0,
+   "area_raw": "200000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    84
+   ]
+  },
+  {
+   "idx": 73,
+   "project_no": "3550",
+   "name": "KAFD monorail project",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 13000.0,
+   "area_raw": "13000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    85
+   ]
+  },
+  {
+   "idx": 74,
+   "project_no": "F903",
+   "name": "HSR - Blue Line x 16 station",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 432000.0,
+   "area_raw": "432000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    86
+   ]
+  },
+  {
+   "idx": 75,
+   "project_no": "3032",
+   "name": "HSR - Green Line x 22 station",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 240000.0,
+   "area_raw": "240000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    87
+   ]
+  },
+  {
+   "idx": 76,
+   "project_no": "J277",
+   "name": "SouthMED (TMG)",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 23000000.0,
+   "area_raw": "23000000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    88
+   ]
+  },
+  {
+   "idx": 77,
+   "project_no": "3809",
+   "name": "Fort Capital Expansion",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    89
+   ]
+  },
+  {
+   "idx": 78,
+   "project_no": "3664",
+   "name": "Alula CASA",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 52563.0,
+   "area_raw": "52563",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    90
+   ]
+  },
+  {
+   "idx": 79,
+   "project_no": "3673",
+   "name": "Silversands Branded apartments",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 2100000.0,
+   "area_raw": "2100000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Not Active",
+   "source_rows": [
+    91
+   ]
+  },
+  {
+   "idx": 80,
+   "project_no": "3790",
+   "name": "Modon OD01 East beach community",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 5030000.0,
+   "area_raw": "5030000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    92
+   ]
+  },
+  {
+   "idx": 81,
+   "project_no": "3389",
+   "name": "ZED MADISON EAST",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 168000.0,
+   "area_raw": "168000",
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    93,
+    123
+   ]
+  },
+  {
+   "idx": 82,
+   "project_no": "3444",
+   "name": "DEPOT HSR",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 450000.0,
+   "area_raw": "450000",
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    94
+   ]
+  },
+  {
+   "idx": 83,
+   "project_no": "3693",
+   "name": "Tiffanny Cargo buildings",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 2980.0,
+   "area_raw": "2980",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    95
+   ]
+  },
+  {
+   "idx": 84,
+   "project_no": "3141",
+   "name": "DEPOT LINE 4",
+   "cde": "Server",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    96
+   ]
+  },
+  {
+   "idx": 85,
+   "project_no": "3608",
+   "name": "KKIA (Design Review)",
+   "cde": "Server",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    97
+   ]
+  },
+  {
+   "idx": 86,
+   "project_no": "3485",
+   "name": "Service Nodes - The 10TH RING ROAD - Libya projects",
+   "cde": "Server",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    98
+   ]
+  },
+  {
+   "idx": 87,
+   "project_no": "3347",
+   "name": "BADYA – DISTRICT 6 – A6 & A7",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 181109.0,
+   "area_raw": "181109",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    99
+   ]
+  },
+  {
+   "idx": 88,
+   "project_no": "3666",
+   "name": "El Robiky 10th of Ramadan",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    100
+   ]
+  },
+  {
+   "idx": 89,
+   "project_no": "3568",
+   "name": "Madinaty Plot Land 18&19",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 136000.0,
+   "area_raw": "136000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    104
+   ]
+  },
+  {
+   "idx": 90,
+   "project_no": "3514",
+   "name": "NEOM Sub station",
+   "cde": "Server",
+   "type": "BIM",
+   "area": null,
+   "area_raw": "2000 per site ( 5 Sites)",
+   "area_note": "non-numeric text kept as note: '2000 per site ( 5 Sites)'",
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    105
+   ]
+  },
+  {
+   "idx": 91,
+   "project_no": "3684",
+   "name": "Hacienda Sidi Henish",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": "51,000 for Hotel",
+   "area_note": "non-numeric text kept as note: '51,000 for Hotel'",
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    106
+   ]
+  },
+  {
+   "idx": 92,
+   "project_no": "3816",
+   "name": "South Med Bridgs",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    107
+   ]
+  },
+  {
+   "idx": 93,
+   "project_no": "C202621",
+   "name": "Hamad General Hospital Safety Improvement RMP Main",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    108
+   ]
+  },
+  {
+   "idx": 94,
+   "project_no": null,
+   "name": "Port Said air port",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    109
+   ]
+  },
+  {
+   "idx": 95,
+   "project_no": "10222069",
+   "name": "BANI YAS WEST",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 1000000.0,
+   "area_raw": "1000000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    110
+   ]
+  },
+  {
+   "idx": 96,
+   "project_no": "BIM",
+   "name": "Csix Revit",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    111
+   ]
+  },
+  {
+   "idx": 97,
+   "project_no": "3690",
+   "name": "Al Rehab Plot 14",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    112
+   ]
+  },
+  {
+   "idx": 98,
+   "project_no": "3724",
+   "name": "Open Air Bridge",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": "Special case",
+   "area_note": "non-numeric text kept as note: 'Special case'",
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    113
+   ]
+  },
+  {
+   "idx": 99,
+   "project_no": "3687",
+   "name": "Madinaty Plot 6",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    114
+   ]
+  },
+  {
+   "idx": 100,
+   "project_no": "3688",
+   "name": "Madinaty Plot 18",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    115
+   ]
+  },
+  {
+   "idx": 101,
+   "project_no": "3689",
+   "name": "Madinaty Plot 25",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    116
+   ]
+  },
+  {
+   "idx": 102,
+   "project_no": "3691",
+   "name": "Al Rehab Plot 13",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    117
+   ]
+  },
+  {
+   "idx": 103,
+   "project_no": "3692",
+   "name": "Al Rehab Plot 17",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": null,
+   "source_rows": [
+    118
+   ]
+  },
+  {
+   "idx": 104,
+   "project_no": "3707",
+   "name": "Paragon 3",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 150000.0,
+   "area_raw": "150000",
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    119
+   ]
+  },
+  {
+   "idx": 105,
+   "project_no": "3384",
+   "name": "Palm x",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 15691207.0,
+   "area_raw": "15691207",
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    120
+   ]
+  },
+  {
+   "idx": 106,
+   "project_no": "3337",
+   "name": "CRM",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 300000.0,
+   "area_raw": "300000",
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    121
+   ]
+  },
+  {
+   "idx": 107,
+   "project_no": "3197",
+   "name": "Nile Maadi Towers",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 325000.0,
+   "area_raw": "325000",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    122
+   ]
+  },
+  {
+   "idx": 108,
+   "project_no": "3291",
+   "name": "Magna",
+   "cde": "Server",
+   "type": "BIM",
+   "area": null,
+   "area_raw": "Special Case",
+   "area_note": "non-numeric text kept as note: 'Special Case'",
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    124
+   ]
+  },
+  {
+   "idx": 109,
+   "project_no": "3531",
+   "name": "JDRC (Design Review)",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    125
+   ]
+  },
+  {
+   "idx": 110,
+   "project_no": "3411",
+   "name": "EBC - V.O. for modifications",
+   "cde": "Server",
+   "type": "BIM",
+   "area": 21912.0,
+   "area_raw": "21912",
+   "area_note": null,
+   "status_raw": "Closed",
+   "activity": null,
+   "source_rows": [
+    126
+   ]
+  },
+  {
+   "idx": 111,
+   "project_no": "3801",
+   "name": "Palm Hills- The One",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 1411017.69,
+   "area_raw": "1411017.69",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    130
+   ]
+  },
+  {
+   "idx": 112,
+   "project_no": "3786",
+   "name": "Sector 01",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 16481.2,
+   "area_raw": "16481.2",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    131
+   ]
+  },
+  {
+   "idx": 113,
+   "project_no": "3822",
+   "name": "Sector 2&3",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 44390.0,
+   "area_raw": "44390",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    132
+   ]
+  },
+  {
+   "idx": 114,
+   "project_no": "3807",
+   "name": "Brackets Hub",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 64000.0,
+   "area_raw": "64000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    133
+   ]
+  },
+  {
+   "idx": 115,
+   "project_no": "3715",
+   "name": "Acres Residential",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 1960.0,
+   "area_raw": "1960",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Not Active",
+   "source_rows": [
+    134
+   ]
+  },
+  {
+   "idx": 116,
+   "project_no": "3631",
+   "name": "Madinaty Central Park 1-1",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": 542000.0,
+   "area_raw": "542000",
+   "area_note": null,
+   "status_raw": "Open",
+   "activity": "Active",
+   "source_rows": [
+    135
+   ]
+  },
+  {
+   "idx": 117,
+   "project_no": "3631",
+   "name": "Madinaty Central Park Phase 1 Stage 1",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    136
+   ]
+  },
+  {
+   "idx": 118,
+   "project_no": "3631",
+   "name": "Madinaty Central Park Phase 2",
+   "cde": "ACC",
+   "type": "BIM",
+   "area": null,
+   "area_raw": null,
+   "area_note": null,
+   "status_raw": "Hold",
+   "activity": null,
+   "source_rows": [
+    137
+   ]
+  }
+ ],
+ "assignments": [
+  {
+   "project_idx": 0,
+   "employee_idx": 4,
+   "role": "manager",
+   "source_row": 2
+  },
+  {
+   "project_idx": 0,
+   "employee_idx": 5,
+   "role": "coordinator",
+   "source_row": 2
+  },
+  {
+   "project_idx": 0,
+   "employee_idx": 6,
+   "role": "coordinator",
+   "source_row": 2
+  },
+  {
+   "project_idx": 1,
+   "employee_idx": 4,
+   "role": "manager",
+   "source_row": 3
+  },
+  {
+   "project_idx": 1,
+   "employee_idx": 5,
+   "role": "coordinator",
+   "source_row": 3
+  },
+  {
+   "project_idx": 1,
+   "employee_idx": 6,
+   "role": "coordinator",
+   "source_row": 3
+  },
+  {
+   "project_idx": 2,
+   "employee_idx": 4,
+   "role": "manager",
+   "source_row": 4
+  },
+  {
+   "project_idx": 2,
+   "employee_idx": 5,
+   "role": "coordinator",
+   "source_row": 4
+  },
+  {
+   "project_idx": 2,
+   "employee_idx": 6,
+   "role": "coordinator",
+   "source_row": 4
+  },
+  {
+   "project_idx": 3,
+   "employee_idx": 4,
+   "role": "manager",
+   "source_row": 5
+  },
+  {
+   "project_idx": 3,
+   "employee_idx": 5,
+   "role": "coordinator",
+   "source_row": 5
+  },
+  {
+   "project_idx": 3,
+   "employee_idx": 6,
+   "role": "coordinator",
+   "source_row": 5
+  },
+  {
+   "project_idx": 4,
+   "employee_idx": 4,
+   "role": "manager",
+   "source_row": 6
+  },
+  {
+   "project_idx": 4,
+   "employee_idx": 5,
+   "role": "coordinator",
+   "source_row": 6
+  },
+  {
+   "project_idx": 4,
+   "employee_idx": 6,
+   "role": "coordinator",
+   "source_row": 6
+  },
+  {
+   "project_idx": 5,
+   "employee_idx": 4,
+   "role": "manager",
+   "source_row": 7
+  },
+  {
+   "project_idx": 5,
+   "employee_idx": 5,
+   "role": "coordinator",
+   "source_row": 7
+  },
+  {
+   "project_idx": 5,
+   "employee_idx": 6,
+   "role": "coordinator",
+   "source_row": 7
+  },
+  {
+   "project_idx": 6,
+   "employee_idx": 4,
+   "role": "manager",
+   "source_row": 8
+  },
+  {
+   "project_idx": 6,
+   "employee_idx": 5,
+   "role": "coordinator",
+   "source_row": 8
+  },
+  {
+   "project_idx": 6,
+   "employee_idx": 6,
+   "role": "coordinator",
+   "source_row": 8
+  },
+  {
+   "project_idx": 7,
+   "employee_idx": 4,
+   "role": "manager",
+   "source_row": 9
+  },
+  {
+   "project_idx": 7,
+   "employee_idx": 5,
+   "role": "coordinator",
+   "source_row": 9
+  },
+  {
+   "project_idx": 7,
+   "employee_idx": 6,
+   "role": "coordinator",
+   "source_row": 9
+  },
+  {
+   "project_idx": 8,
+   "employee_idx": 4,
+   "role": "manager",
+   "source_row": 10
+  },
+  {
+   "project_idx": 8,
+   "employee_idx": 5,
+   "role": "coordinator",
+   "source_row": 10
+  },
+  {
+   "project_idx": 8,
+   "employee_idx": 6,
+   "role": "coordinator",
+   "source_row": 10
+  },
+  {
+   "project_idx": 9,
+   "employee_idx": 4,
+   "role": "manager",
+   "source_row": 11
+  },
+  {
+   "project_idx": 9,
+   "employee_idx": 5,
+   "role": "coordinator",
+   "source_row": 11
+  },
+  {
+   "project_idx": 9,
+   "employee_idx": 6,
+   "role": "coordinator",
+   "source_row": 11
+  },
+  {
+   "project_idx": 10,
+   "employee_idx": 4,
+   "role": "manager",
+   "source_row": 12
+  },
+  {
+   "project_idx": 10,
+   "employee_idx": 5,
+   "role": "coordinator",
+   "source_row": 12
+  },
+  {
+   "project_idx": 10,
+   "employee_idx": 6,
+   "role": "coordinator",
+   "source_row": 12
+  },
+  {
+   "project_idx": 11,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 15
+  },
+  {
+   "project_idx": 11,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 15
+  },
+  {
+   "project_idx": 12,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 16
+  },
+  {
+   "project_idx": 12,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 16
+  },
+  {
+   "project_idx": 13,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 17
+  },
+  {
+   "project_idx": 13,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 17
+  },
+  {
+   "project_idx": 14,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 18
+  },
+  {
+   "project_idx": 14,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 18
+  },
+  {
+   "project_idx": 15,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 19
+  },
+  {
+   "project_idx": 15,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 19
+  },
+  {
+   "project_idx": 16,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 20
+  },
+  {
+   "project_idx": 16,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 20
+  },
+  {
+   "project_idx": 17,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 21
+  },
+  {
+   "project_idx": 17,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 21
+  },
+  {
+   "project_idx": 18,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 22
+  },
+  {
+   "project_idx": 18,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 22
+  },
+  {
+   "project_idx": 19,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 23
+  },
+  {
+   "project_idx": 19,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 23
+  },
+  {
+   "project_idx": 20,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 24
+  },
+  {
+   "project_idx": 20,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 24
+  },
+  {
+   "project_idx": 21,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 25
+  },
+  {
+   "project_idx": 21,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 25
+  },
+  {
+   "project_idx": 22,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 26
+  },
+  {
+   "project_idx": 22,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 26
+  },
+  {
+   "project_idx": 23,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 27
+  },
+  {
+   "project_idx": 23,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 27
+  },
+  {
+   "project_idx": 24,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 28
+  },
+  {
+   "project_idx": 24,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 28
+  },
+  {
+   "project_idx": 25,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 29
+  },
+  {
+   "project_idx": 25,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 29
+  },
+  {
+   "project_idx": 26,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 30
+  },
+  {
+   "project_idx": 26,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 30
+  },
+  {
+   "project_idx": 27,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 31
+  },
+  {
+   "project_idx": 27,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 31
+  },
+  {
+   "project_idx": 28,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 32
+  },
+  {
+   "project_idx": 28,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 32
+  },
+  {
+   "project_idx": 29,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 33
+  },
+  {
+   "project_idx": 29,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 33
+  },
+  {
+   "project_idx": 30,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 34
+  },
+  {
+   "project_idx": 30,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 34
+  },
+  {
+   "project_idx": 31,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 35
+  },
+  {
+   "project_idx": 31,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 35
+  },
+  {
+   "project_idx": 32,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 36
+  },
+  {
+   "project_idx": 32,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 36
+  },
+  {
+   "project_idx": 33,
+   "employee_idx": 12,
+   "role": "manager",
+   "source_row": 37
+  },
+  {
+   "project_idx": 33,
+   "employee_idx": 13,
+   "role": "coordinator",
+   "source_row": 37
+  },
+  {
+   "project_idx": 34,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 40
+  },
+  {
+   "project_idx": 34,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 40
+  },
+  {
+   "project_idx": 34,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 40
+  },
+  {
+   "project_idx": 35,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 41
+  },
+  {
+   "project_idx": 35,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 41
+  },
+  {
+   "project_idx": 35,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 41
+  },
+  {
+   "project_idx": 36,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 42
+  },
+  {
+   "project_idx": 36,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 42
+  },
+  {
+   "project_idx": 36,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 42
+  },
+  {
+   "project_idx": 37,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 43
+  },
+  {
+   "project_idx": 37,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 43
+  },
+  {
+   "project_idx": 37,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 43
+  },
+  {
+   "project_idx": 38,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 44
+  },
+  {
+   "project_idx": 38,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 44
+  },
+  {
+   "project_idx": 38,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 44
+  },
+  {
+   "project_idx": 39,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 45
+  },
+  {
+   "project_idx": 39,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 45
+  },
+  {
+   "project_idx": 39,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 45
+  },
+  {
+   "project_idx": 40,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 46
+  },
+  {
+   "project_idx": 40,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 46
+  },
+  {
+   "project_idx": 40,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 46
+  },
+  {
+   "project_idx": 41,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 47
+  },
+  {
+   "project_idx": 41,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 47
+  },
+  {
+   "project_idx": 41,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 47
+  },
+  {
+   "project_idx": 42,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 48
+  },
+  {
+   "project_idx": 42,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 48
+  },
+  {
+   "project_idx": 42,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 48
+  },
+  {
+   "project_idx": 43,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 49
+  },
+  {
+   "project_idx": 43,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 49
+  },
+  {
+   "project_idx": 43,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 49
+  },
+  {
+   "project_idx": 44,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 50
+  },
+  {
+   "project_idx": 44,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 50
+  },
+  {
+   "project_idx": 44,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 50
+  },
+  {
+   "project_idx": 45,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 51
+  },
+  {
+   "project_idx": 45,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 51
+  },
+  {
+   "project_idx": 45,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 51
+  },
+  {
+   "project_idx": 46,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 52
+  },
+  {
+   "project_idx": 46,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 52
+  },
+  {
+   "project_idx": 46,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 52
+  },
+  {
+   "project_idx": 47,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 53
+  },
+  {
+   "project_idx": 47,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 53
+  },
+  {
+   "project_idx": 47,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 53
+  },
+  {
+   "project_idx": 48,
+   "employee_idx": 1,
+   "role": "manager",
+   "source_row": 54
+  },
+  {
+   "project_idx": 48,
+   "employee_idx": 2,
+   "role": "coordinator",
+   "source_row": 54
+  },
+  {
+   "project_idx": 48,
+   "employee_idx": 3,
+   "role": "coordinator",
+   "source_row": 54
+  },
+  {
+   "project_idx": 49,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 57
+  },
+  {
+   "project_idx": 49,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 57
+  },
+  {
+   "project_idx": 50,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 58
+  },
+  {
+   "project_idx": 50,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 58
+  },
+  {
+   "project_idx": 51,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 59
+  },
+  {
+   "project_idx": 51,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 59
+  },
+  {
+   "project_idx": 52,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 60
+  },
+  {
+   "project_idx": 52,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 60
+  },
+  {
+   "project_idx": 53,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 61
+  },
+  {
+   "project_idx": 53,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 61
+  },
+  {
+   "project_idx": 54,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 62
+  },
+  {
+   "project_idx": 54,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 62
+  },
+  {
+   "project_idx": 55,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 63
+  },
+  {
+   "project_idx": 55,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 63
+  },
+  {
+   "project_idx": 56,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 64
+  },
+  {
+   "project_idx": 56,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 64
+  },
+  {
+   "project_idx": 57,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 65
+  },
+  {
+   "project_idx": 57,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 65
+  },
+  {
+   "project_idx": 58,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 66
+  },
+  {
+   "project_idx": 58,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 66
+  },
+  {
+   "project_idx": 59,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 67
+  },
+  {
+   "project_idx": 59,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 67
+  },
+  {
+   "project_idx": 60,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 68
+  },
+  {
+   "project_idx": 60,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 68
+  },
+  {
+   "project_idx": 61,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 69
+  },
+  {
+   "project_idx": 62,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 70
+  },
+  {
+   "project_idx": 62,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 70
+  },
+  {
+   "project_idx": 63,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 71
+  },
+  {
+   "project_idx": 63,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 71
+  },
+  {
+   "project_idx": 64,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 72
+  },
+  {
+   "project_idx": 64,
+   "employee_idx": 11,
+   "role": "coordinator",
+   "source_row": 72
+  },
+  {
+   "project_idx": 65,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 73
+  },
+  {
+   "project_idx": 66,
+   "employee_idx": 10,
+   "role": "manager",
+   "source_row": 74
+  },
+  {
+   "project_idx": 67,
+   "employee_idx": 16,
+   "role": "manager",
+   "source_row": 77
+  },
+  {
+   "project_idx": 67,
+   "employee_idx": 17,
+   "role": "coordinator",
+   "source_row": 77
+  },
+  {
+   "project_idx": 68,
+   "employee_idx": 16,
+   "role": "manager",
+   "source_row": 78
+  },
+  {
+   "project_idx": 68,
+   "employee_idx": 17,
+   "role": "coordinator",
+   "source_row": 78
+  },
+  {
+   "project_idx": 69,
+   "employee_idx": 16,
+   "role": "manager",
+   "source_row": 79
+  },
+  {
+   "project_idx": 69,
+   "employee_idx": 17,
+   "role": "coordinator",
+   "source_row": 79
+  },
+  {
+   "project_idx": 70,
+   "employee_idx": 16,
+   "role": "manager",
+   "source_row": 80
+  },
+  {
+   "project_idx": 70,
+   "employee_idx": 17,
+   "role": "coordinator",
+   "source_row": 80
+  },
+  {
+   "project_idx": 71,
+   "employee_idx": 16,
+   "role": "manager",
+   "source_row": 81
+  },
+  {
+   "project_idx": 71,
+   "employee_idx": 17,
+   "role": "coordinator",
+   "source_row": 81
+  },
+  {
+   "project_idx": 72,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 84
+  },
+  {
+   "project_idx": 72,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 84
+  },
+  {
+   "project_idx": 73,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 85
+  },
+  {
+   "project_idx": 73,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 85
+  },
+  {
+   "project_idx": 74,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 86
+  },
+  {
+   "project_idx": 74,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 86
+  },
+  {
+   "project_idx": 75,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 87
+  },
+  {
+   "project_idx": 75,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 87
+  },
+  {
+   "project_idx": 76,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 88
+  },
+  {
+   "project_idx": 76,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 88
+  },
+  {
+   "project_idx": 77,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 89
+  },
+  {
+   "project_idx": 77,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 89
+  },
+  {
+   "project_idx": 78,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 90
+  },
+  {
+   "project_idx": 78,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 90
+  },
+  {
+   "project_idx": 79,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 91
+  },
+  {
+   "project_idx": 79,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 91
+  },
+  {
+   "project_idx": 80,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 92
+  },
+  {
+   "project_idx": 80,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 92
+  },
+  {
+   "project_idx": 81,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 93
+  },
+  {
+   "project_idx": 81,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 93
+  },
+  {
+   "project_idx": 82,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 94
+  },
+  {
+   "project_idx": 82,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 94
+  },
+  {
+   "project_idx": 83,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 95
+  },
+  {
+   "project_idx": 83,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 95
+  },
+  {
+   "project_idx": 84,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 96
+  },
+  {
+   "project_idx": 84,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 96
+  },
+  {
+   "project_idx": 85,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 97
+  },
+  {
+   "project_idx": 85,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 97
+  },
+  {
+   "project_idx": 86,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 98
+  },
+  {
+   "project_idx": 86,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 98
+  },
+  {
+   "project_idx": 87,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 99
+  },
+  {
+   "project_idx": 87,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 99
+  },
+  {
+   "project_idx": 88,
+   "employee_idx": 14,
+   "role": "manager",
+   "source_row": 100
+  },
+  {
+   "project_idx": 88,
+   "employee_idx": 15,
+   "role": "coordinator",
+   "source_row": 100
+  },
+  {
+   "project_idx": 89,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 104
+  },
+  {
+   "project_idx": 89,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 104
+  },
+  {
+   "project_idx": 90,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 105
+  },
+  {
+   "project_idx": 90,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 105
+  },
+  {
+   "project_idx": 91,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 106
+  },
+  {
+   "project_idx": 91,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 106
+  },
+  {
+   "project_idx": 92,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 107
+  },
+  {
+   "project_idx": 92,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 107
+  },
+  {
+   "project_idx": 93,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 108
+  },
+  {
+   "project_idx": 93,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 108
+  },
+  {
+   "project_idx": 94,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 109
+  },
+  {
+   "project_idx": 94,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 109
+  },
+  {
+   "project_idx": 95,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 110
+  },
+  {
+   "project_idx": 95,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 110
+  },
+  {
+   "project_idx": 96,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 111
+  },
+  {
+   "project_idx": 96,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 111
+  },
+  {
+   "project_idx": 97,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 112
+  },
+  {
+   "project_idx": 97,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 112
+  },
+  {
+   "project_idx": 98,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 113
+  },
+  {
+   "project_idx": 98,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 113
+  },
+  {
+   "project_idx": 99,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 114
+  },
+  {
+   "project_idx": 99,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 114
+  },
+  {
+   "project_idx": 100,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 115
+  },
+  {
+   "project_idx": 100,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 115
+  },
+  {
+   "project_idx": 101,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 116
+  },
+  {
+   "project_idx": 101,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 116
+  },
+  {
+   "project_idx": 102,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 117
+  },
+  {
+   "project_idx": 102,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 117
+  },
+  {
+   "project_idx": 103,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 118
+  },
+  {
+   "project_idx": 103,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 118
+  },
+  {
+   "project_idx": 104,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 119
+  },
+  {
+   "project_idx": 104,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 119
+  },
+  {
+   "project_idx": 105,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 120
+  },
+  {
+   "project_idx": 105,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 120
+  },
+  {
+   "project_idx": 106,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 121
+  },
+  {
+   "project_idx": 106,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 121
+  },
+  {
+   "project_idx": 107,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 122
+  },
+  {
+   "project_idx": 107,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 122
+  },
+  {
+   "project_idx": 81,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 123
+  },
+  {
+   "project_idx": 81,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 123
+  },
+  {
+   "project_idx": 108,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 124
+  },
+  {
+   "project_idx": 108,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 124
+  },
+  {
+   "project_idx": 109,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 125
+  },
+  {
+   "project_idx": 109,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 125
+  },
+  {
+   "project_idx": 110,
+   "employee_idx": 7,
+   "role": "manager",
+   "source_row": 126
+  },
+  {
+   "project_idx": 110,
+   "employee_idx": 8,
+   "role": "coordinator",
+   "source_row": 126
+  },
+  {
+   "project_idx": 111,
+   "employee_idx": 18,
+   "role": "manager",
+   "source_row": 130
+  },
+  {
+   "project_idx": 111,
+   "employee_idx": 19,
+   "role": "coordinator",
+   "source_row": 130
+  },
+  {
+   "project_idx": 112,
+   "employee_idx": 18,
+   "role": "manager",
+   "source_row": 131
+  },
+  {
+   "project_idx": 112,
+   "employee_idx": 19,
+   "role": "coordinator",
+   "source_row": 131
+  },
+  {
+   "project_idx": 113,
+   "employee_idx": 18,
+   "role": "manager",
+   "source_row": 132
+  },
+  {
+   "project_idx": 113,
+   "employee_idx": 19,
+   "role": "coordinator",
+   "source_row": 132
+  },
+  {
+   "project_idx": 114,
+   "employee_idx": 18,
+   "role": "manager",
+   "source_row": 133
+  },
+  {
+   "project_idx": 114,
+   "employee_idx": 19,
+   "role": "coordinator",
+   "source_row": 133
+  },
+  {
+   "project_idx": 115,
+   "employee_idx": 18,
+   "role": "manager",
+   "source_row": 134
+  },
+  {
+   "project_idx": 115,
+   "employee_idx": 19,
+   "role": "coordinator",
+   "source_row": 134
+  },
+  {
+   "project_idx": 116,
+   "employee_idx": 18,
+   "role": "manager",
+   "source_row": 135
+  },
+  {
+   "project_idx": 116,
+   "employee_idx": 19,
+   "role": "coordinator",
+   "source_row": 135
+  },
+  {
+   "project_idx": 117,
+   "employee_idx": 18,
+   "role": "manager",
+   "source_row": 136
+  },
+  {
+   "project_idx": 117,
+   "employee_idx": 19,
+   "role": "coordinator",
+   "source_row": 136
+  },
+  {
+   "project_idx": 118,
+   "employee_idx": 18,
+   "role": "manager",
+   "source_row": 137
+  },
+  {
+   "project_idx": 118,
+   "employee_idx": 19,
+   "role": "coordinator",
+   "source_row": 137
+  }
+ ],
+ "reels": [
+  {
+   "employee_id": "9783",
+   "presenter_name": "Mariam Samuel",
+   "weekday": "Sunday",
+   "date": "2026-08-16",
+   "topic": "Phasing in Revit",
+   "employee_idx": 10
+  },
+  {
+   "employee_id": "B370",
+   "presenter_name": "Ibrahim Afify",
+   "weekday": "Wednesday",
+   "date": "2026-08-19",
+   "topic": "PDF Calibration in Autodesk Forma",
+   "employee_idx": 12
+  },
+  {
+   "employee_id": "B461",
+   "presenter_name": "Ibrahim Elghannam",
+   "weekday": "Sunday",
+   "date": "2026-08-23",
+   "topic": null,
+   "employee_idx": 14
+  },
+  {
+   "employee_id": "B769",
+   "presenter_name": "Moataz Belal",
+   "weekday": "Wednesday",
+   "date": "2026-08-26",
+   "topic": null,
+   "employee_idx": 13
+  },
+  {
+   "employee_id": "C084",
+   "presenter_name": "Rana Khaled",
+   "weekday": "Sunday",
+   "date": "2026-08-30",
+   "topic": null,
+   "employee_idx": 15
+  },
+  {
+   "employee_id": "C106",
+   "presenter_name": "Sanaa Ahmed",
+   "weekday": "Wednesday",
+   "date": "2026-09-02",
+   "topic": null,
+   "employee_idx": 4
+  },
+  {
+   "employee_id": "C145",
+   "presenter_name": "Fatma Idriss",
+   "weekday": "Sunday",
+   "date": "2026-09-06",
+   "topic": null,
+   "employee_idx": 8
+  },
+  {
+   "employee_id": "C147",
+   "presenter_name": "Nesrin Mahmoud",
+   "weekday": "Wednesday",
+   "date": "2026-09-09",
+   "topic": null,
+   "employee_idx": 1
+  },
+  {
+   "employee_id": "C263",
+   "presenter_name": "Mahmoud Hussien",
+   "weekday": "Sunday",
+   "date": "2026-09-13",
+   "topic": null,
+   "employee_idx": 11
+  },
+  {
+   "employee_id": "C303",
+   "presenter_name": "Amal Zaghloul",
+   "weekday": "Wednesday",
+   "date": "2026-09-16",
+   "topic": null,
+   "employee_idx": 17
+  },
+  {
+   "employee_id": "C304",
+   "presenter_name": "Nahla Magdy",
+   "weekday": "Sunday",
+   "date": "2026-09-20",
+   "topic": null,
+   "employee_idx": 18
+  },
+  {
+   "employee_id": "C455",
+   "presenter_name": "Reem Saied",
+   "weekday": "Wednesday",
+   "date": "2026-09-23",
+   "topic": null,
+   "employee_idx": null
+  },
+  {
+   "employee_id": "C466",
+   "presenter_name": "Maha Hassan",
+   "weekday": "Sunday",
+   "date": "2026-09-27",
+   "topic": null,
+   "employee_idx": 16
+  },
+  {
+   "employee_id": "C549",
+   "presenter_name": "Abdelrahman Radwan",
+   "weekday": "Wednesday",
+   "date": "2026-09-30",
+   "topic": null,
+   "employee_idx": 5
+  },
+  {
+   "employee_id": "D051",
+   "presenter_name": "Mahitab Yosri",
+   "weekday": "Sunday",
+   "date": "2026-10-04",
+   "topic": null,
+   "employee_idx": 6
+  },
+  {
+   "employee_id": "D357",
+   "presenter_name": "Nada Ibrahim",
+   "weekday": "Wednesday",
+   "date": "2026-10-07",
+   "topic": null,
+   "employee_idx": 20
+  }
+ ],
+ "issues": [
+  {
+   "severity": "info",
+   "kind": "subtotal_row",
+   "entity": "BIM Teams!G13",
+   "message": "Subtotal formula '=SUM(G2:G4)' ignored (not a project). Its range does not cover the whole block above."
+  },
+  {
+   "severity": "info",
+   "kind": "subtotal_row",
+   "entity": "BIM Teams!G38",
+   "message": "Subtotal formula '=SUM(G15:G27)' ignored (not a project). Its range does not cover the whole block above."
+  },
+  {
+   "severity": "info",
+   "kind": "subtotal_row",
+   "entity": "BIM Teams!G55",
+   "message": "Subtotal formula '=SUM(G40:G45)' ignored (not a project). Its range does not cover the whole block above."
+  },
+  {
+   "severity": "info",
+   "kind": "subtotal_row",
+   "entity": "BIM Teams!G75",
+   "message": "Subtotal formula '=SUM(G57:G64)' ignored (not a project). Its range does not cover the whole block above."
+  },
+  {
+   "severity": "info",
+   "kind": "subtotal_row",
+   "entity": "BIM Teams!G82",
+   "message": "Subtotal formula '=SUM(G77:G80)' ignored (not a project). Its range does not cover the whole block above."
+  },
+  {
+   "severity": "info",
+   "kind": "subtotal_row",
+   "entity": "BIM Teams!G101",
+   "message": "Subtotal formula '=SUM(G84:G91)' ignored (not a project). Its range does not cover the whole block above."
+  },
+  {
+   "severity": "info",
+   "kind": "subtotal_row",
+   "entity": "BIM Teams!G127",
+   "message": "Subtotal formula '=SUM(G104:G112)' ignored (not a project). Its range does not cover the whole block above."
+  },
+  {
+   "severity": "info",
+   "kind": "subtotal_row",
+   "entity": "BIM Teams!G138",
+   "message": "Subtotal formula '=SUM(G130:G135)' ignored (not a project). Its range does not cover the whole block above."
+  },
+  {
+   "severity": "warning",
+   "kind": "missing_project_no",
+   "entity": "row 3 Wadi Yamm (DP01 & DP02 ) Landscape",
+   "message": "Project has no project number (allowed; stays blank)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 3 Wadi Yamm (DP01 & DP02 ) Landscape",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 12 Admin Building LIBYA",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_type",
+   "entity": "row 12 Admin Building LIBYA",
+   "message": "Type missing."
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 17 New Plasma fractionation and Pilot Plant",
+   "message": "Project number 'I477' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 23 ENAR",
+   "message": "Project number 'J421' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 24 Cotonou Cultural (QCC)",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 25 Med Log",
+   "message": "Project number 'J798' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 25 Med Log",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 27 WADI ROAD DESIGN COSULTANCY SERVICES",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "area_outlier",
+   "entity": "row 28 INFRASTRUCTURE & LANDSCAPE DESIGN WORKS -TALAH PARK",
+   "message": "Built-up area 53,000,000 is unusually large; check units/typo.",
+   "parsed": 53000000.0
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 29 MARASSI - RED SEA",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 30 Pavillion Phase 2",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "missing_project_no",
+   "entity": "row 31 Wyoming Data Center",
+   "message": "Project has no project number (allowed; stays blank)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 31 Wyoming Data Center",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 32 REHABILITATION OF ERCS'S",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 33 RUA AL MADINAH SUPERBLOCK 5",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 35 Soul Gates In North Coast",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 36 TWIN HOUSE",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 37 Alegeria Embassy",
+   "message": "Project number 'j002' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 37 Alegeria Embassy",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "area_cleaned",
+   "entity": "row 44 KFUPM - COLLEGE OF DESIGN & BUILT ENVIRONMENT",
+   "message": "Built-up area: cleaned from text '26347\\xa0'",
+   "raw": "26347 ",
+   "parsed": 26347.0
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 48 EGSOC Cold Storage",
+   "message": "Project number 'J584' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 51 Le Meridien",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_cde",
+   "entity": "row 51 Le Meridien",
+   "message": "CDE missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_type",
+   "entity": "row 51 Le Meridien",
+   "message": "Type missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "area_outlier",
+   "entity": "row 52 Alam Elroom",
+   "message": "Built-up area 20,611,400 is unusually large; check units/typo.",
+   "parsed": 20611400.0
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 53 Stem Cell and Reg.Medicine",
+   "message": "Project number 'J935' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 54 NOOR CITY-DISTRICT CENTERS 2 & 5",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "area_cleaned",
+   "entity": "row 60 Jirian",
+   "message": "Built-up area: formula result",
+   "raw": "=1083149+3480+3480+1050",
+   "parsed": 1091159.0
+  },
+  {
+   "severity": "warning",
+   "kind": "missing_project_no",
+   "entity": "row 62 GTR GB2(2024)",
+   "message": "Project has no project number (allowed; stays blank)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 62 GTR GB2(2024)",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "area_cleaned",
+   "entity": "row 64 Madinat Zayed (Al-DAFRAH - Abu Dhabi)",
+   "message": "Built-up area: formula result",
+   "raw": "=2373.198+2641.893+1051.2189+859.1402+743.737+336.214+386.205",
+   "parsed": 8391.6061
+  },
+  {
+   "severity": "info",
+   "kind": "area_cleaned",
+   "entity": "row 65 ZED EAST Cluster C14",
+   "message": "Built-up area: formula result",
+   "raw": "=253.15+292+780+860+1700",
+   "parsed": 3885.15
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 67 EIF Jeddah Shooting Range (JSR)",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 68 EIF Riyad Shooting Range (RSR)",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "area_non_numeric",
+   "entity": "row 69 CFC Mall Renovation and Expansion",
+   "message": "Built-up area: non-numeric text kept as note: 'Bid Support'",
+   "raw": "Bid Support",
+   "parsed": null
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 69 CFC Mall Renovation and Expansion",
+   "message": "Project number 'I279' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_type",
+   "entity": "row 69 CFC Mall Renovation and Expansion",
+   "message": "Type missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "missing_coordinator",
+   "entity": "row 69 CFC Mall Renovation and Expansion",
+   "message": "No BIM Coordinator assigned in source."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 70 Marassi H Villa H1,H7,H8",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 72 Mostaqbal city",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 73 Ras El Hekma",
+   "message": "Project number 'i333' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 73 Ras El Hekma",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "missing_coordinator",
+   "entity": "row 73 Ras El Hekma",
+   "message": "No BIM Coordinator assigned in source."
+  },
+  {
+   "severity": "warning",
+   "kind": "missing_coordinator",
+   "entity": "row 74 7068 Project Horus LESAFFRE",
+   "message": "No BIM Coordinator assigned in source."
+  },
+  {
+   "severity": "info",
+   "kind": "area_cleaned",
+   "entity": "row 80 Rwanda Heart Center",
+   "message": "Built-up area: cleaned from text '12 815 '",
+   "raw": "12 815 ",
+   "parsed": 12815.0
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 86 HSR - Blue Line x 16 station",
+   "message": "Project number 'F903' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 88 SouthMED (TMG)",
+   "message": "Project number 'J277' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "warning",
+   "kind": "area_outlier",
+   "entity": "row 88 SouthMED (TMG)",
+   "message": "Built-up area 23,000,000 is unusually large; check units/typo.",
+   "parsed": 23000000.0
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 89 Fort Capital Expansion",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "area_outlier",
+   "entity": "row 92 Modon OD01 East beach community",
+   "message": "Built-up area 5,030,000 is unusually large; check units/typo.",
+   "parsed": 5030000.0
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 96 DEPOT LINE 4",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 97 KKIA (Design Review)",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 98 Service Nodes - The 10TH RING ROAD - Libya projects",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 100 El Robiky 10th of Ramadan",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "area_non_numeric",
+   "entity": "row 105 NEOM Sub station",
+   "message": "Built-up area: non-numeric text kept as note: '2000 per site ( 5 Sites)'",
+   "raw": "2000 per site ( 5 Sites)",
+   "parsed": null
+  },
+  {
+   "severity": "warning",
+   "kind": "area_non_numeric",
+   "entity": "row 106 Hacienda Sidi Henish",
+   "message": "Built-up area: non-numeric text kept as note: '51,000 for Hotel'",
+   "raw": "51,000 for Hotel",
+   "parsed": null
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 107 South Med Bridgs",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 108 Hamad General Hospital Safety Improvement RMP Main",
+   "message": "Project number 'C202621' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 108 Hamad General Hospital Safety Improvement RMP Main",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "missing_project_no",
+   "entity": "row 109 Port Said air port",
+   "message": "Project has no project number (allowed; stays blank)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 109 Port Said air port",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 110 BANI YAS WEST",
+   "message": "Project number '10222069' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "nonstandard_project_no",
+   "entity": "row 111 Csix Revit",
+   "message": "Project number 'BIM' is not a 4-digit number (kept as supplied)."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 111 Csix Revit",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 112 Al Rehab Plot 14",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "area_non_numeric",
+   "entity": "row 113 Open Air Bridge",
+   "message": "Built-up area: non-numeric text kept as note: 'Special case'",
+   "raw": "Special case",
+   "parsed": null
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 114 Madinaty Plot 6",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 115 Madinaty Plot 18",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 116 Madinaty Plot 25",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 117 Al Rehab Plot 13",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 118 Al Rehab Plot 17",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "area_outlier",
+   "entity": "row 120 Palm x",
+   "message": "Built-up area 15,691,207 is unusually large; check units/typo.",
+   "parsed": 15691207.0
+  },
+  {
+   "severity": "warning",
+   "kind": "duplicate_project_row",
+   "entity": "3389 ZED MADISON EAST",
+   "message": "Same project number + name appears on rows [93, 123] under different managers/status (Hold vs Closed). Stored once; both assignments kept.",
+   "rows": [
+    93,
+    123
+   ]
+  },
+  {
+   "severity": "warning",
+   "kind": "area_non_numeric",
+   "entity": "row 124 Magna",
+   "message": "Built-up area: non-numeric text kept as note: 'Special Case'",
+   "raw": "Special Case",
+   "parsed": null
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 125 JDRC (Design Review)",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 136 Madinaty Central Park Phase 1 Stage 1",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "info",
+   "kind": "missing_area",
+   "entity": "row 137 Madinaty Central Park Phase 2",
+   "message": "Built-up area missing."
+  },
+  {
+   "severity": "warning",
+   "kind": "shared_project_no",
+   "entity": "2856",
+   "message": "Project number shared by distinct names (kept as separate project records / packages): Pavillion Phase 2 (row 30); TWIN HOUSE (row 36)"
+  },
+  {
+   "severity": "warning",
+   "kind": "shared_project_no",
+   "entity": "3574",
+   "message": "Project number shared by distinct names (kept as separate project records / packages): Hacienda Waters (row 41); NOOR CITY-DISTRICT CENTERS 2 & 5 (row 54)"
+  },
+  {
+   "severity": "warning",
+   "kind": "shared_project_no",
+   "entity": "3631",
+   "message": "Project number shared by distinct names (kept as separate project records / packages): Madinaty Central Park 1-1 (row 135); Madinaty Central Park Phase 1 Stage 1 (row 136); Madinaty Central Park Phase 2 (row 137)"
+  },
+  {
+   "severity": "warning",
+   "kind": "same_name_different_no",
+   "entity": "CFC Mall Renovation and Expansion",
+   "message": "Same name with different project numbers: 3699 (row 59), I279 (row 69)"
+  },
+  {
+   "severity": "warning",
+   "kind": "name_alias",
+   "entity": "Nesrin Elgohary",
+   "message": "Workbook name 'Nesrin Elgohary' matched to org-chart 'Nesrin Mahmoud'. Different surname in workbook (Elgohary) vs org chart (Mahmoud); matched by first name + role. Confirm."
+  },
+  {
+   "severity": "warning",
+   "kind": "name_alias",
+   "entity": "Hagar Abelala",
+   "message": "Workbook name 'Hagar Abelala' matched to org-chart 'Hagar Aboelala'. Spelling variant."
+  },
+  {
+   "severity": "warning",
+   "kind": "name_alias",
+   "entity": "Mais Talaat",
+   "message": "Workbook name 'Mais Talaat' matched to org-chart 'Mais Atwan'. Different surname in workbook (Talaat) vs org chart (Atwan); only one 'Mais' exists in the org chart. Confirm."
+  },
+  {
+   "severity": "warning",
+   "kind": "name_alias",
+   "entity": "Fatma Edriss",
+   "message": "Workbook name 'Fatma Edriss' matched to org-chart 'Fatma Idriss'. Spelling variant."
+  },
+  {
+   "severity": "warning",
+   "kind": "name_alias",
+   "entity": "Mohamed Elzawawy",
+   "message": "Workbook name 'Mohamed Elzawawy' matched to org-chart 'Mohamed Alzawawy'. Spelling variant."
+  },
+  {
+   "severity": "warning",
+   "kind": "missing_employee_id",
+   "entity": "Mais Atwan",
+   "message": "No employee ID in the org chart."
+  },
+  {
+   "severity": "info",
+   "kind": "no_projects",
+   "entity": "Muhammed Ghareeb",
+   "message": "R&D BIM Engineer has no project assignments in the workbook."
+  },
+  {
+   "severity": "warning",
+   "kind": "missing_employee_id",
+   "entity": "Muhammed Ghareeb",
+   "message": "No employee ID in the org chart."
+  },
+  {
+   "severity": "info",
+   "kind": "no_projects",
+   "entity": "Nada Ibrahim",
+   "message": "BIM Specialist has no project assignments in the workbook."
+  },
+  {
+   "severity": "info",
+   "kind": "status_values",
+   "entity": "BIM Teams",
+   "message": "Status values used: ['Closed', 'Hold', 'Open']. Sheet2 also lists 'Terminated' (unused)."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Ibrahim Elghannam 2026-08-23",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Moataz Belal 2026-08-26",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Rana Khaled 2026-08-30",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Sanaa Ahmed 2026-09-02",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Fatma Idriss 2026-09-06",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Nesrin Mahmoud 2026-09-09",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Mahmoud Hussien 2026-09-13",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Amal Zaghloul 2026-09-16",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Nahla Magdy 2026-09-20",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "warning",
+   "kind": "reel_presenter_not_in_org",
+   "entity": "C455 Reem Saied",
+   "message": "Presenter appears in the Reel Plan but not in the org chart; kept as text, not linked to an employee."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Reem Saied 2026-09-23",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Maha Hassan 2026-09-27",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Abdelrahman Radwan 2026-09-30",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Mahitab Yosri 2026-10-04",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_no_topic",
+   "entity": "Nada Ibrahim 2026-10-07",
+   "message": "No topic in the source image yet."
+  },
+  {
+   "severity": "info",
+   "kind": "reel_status",
+   "entity": "BIM Reel Plan",
+   "message": "The source image has no status column. All sessions are loaded as 'Not recorded'; past sessions are NOT assumed Completed."
+  }
+ ],
+ "aliases": {
+  "Nesrin Elgohary": {
+   "canonical": "Nesrin Mahmoud",
+   "reason": "Different surname in workbook (Elgohary) vs org chart (Mahmoud); matched by first name + role. Confirm."
+  },
+  "Hagar Abelala": {
+   "canonical": "Hagar Aboelala",
+   "reason": "Spelling variant."
+  },
+  "Mais Talaat": {
+   "canonical": "Mais Atwan",
+   "reason": "Different surname in workbook (Talaat) vs org chart (Atwan); only one 'Mais' exists in the org chart. Confirm."
+  },
+  "Fatma Edriss": {
+   "canonical": "Fatma Idriss",
+   "reason": "Spelling variant."
+  },
+  "Mohamed Elzawawy": {
+   "canonical": "Mohamed Alzawawy",
+   "reason": "Spelling variant."
+  }
+ }
+}
