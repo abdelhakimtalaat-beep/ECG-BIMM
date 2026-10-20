@@ -100,43 +100,39 @@ test('alerts never show capacity % without a basis', () => {
 });
 
 import * as L from '../lib/orgLayout.ts';
-test('org layout (columns mode): teams sit side by side, members stack in a column, collapsed branches are hidden', () => {
+test('org layout (side mode, default): manager left, teams to the right, one row per person, parents centred', () => {
   const nodes = [{ id: 'd', reports_to: null }, { id: 'a', reports_to: 'd' }, { id: 'b', reports_to: 'd' }, { id: 'a1', reports_to: 'a' }, { id: 'a2', reports_to: 'a' },
-    { id: 'b1', reports_to: 'b' }, { id: 'b1x', reports_to: 'b1' }];
-  const full = L.layoutTree(nodes, new Set(), 'columns');
-  assert.equal(full.placed.size, 7);
-  const P = (id: string) => full.placed.get(id)!;
-  assert.equal(P('a1').x, P('a2').x);                    // stacked in one column
-  assert.ok(P('a2').y > P('a1').y);                      // ...one under the other
-  assert.ok(P('a').y < P('a1').y && P('d').y < P('a').y);
-  assert.equal(P('a').y, P('b').y);                      // sibling teams share a row
-  assert.ok(P('b').x > P('a').x);
-  assert.ok(P('d').x > P('a').x && P('d').x < P('b').x + L.CARD_W); // manager sits over its teams
-  assert.ok(P('b1').depth === 2 && P('b1x').depth === 3);
-  assert.equal(full.paths.length, 6);                    // one link per reporting line
-  assert.ok(full.paths.every((l) => /^M[\d.,-]+( L[\d.,-]+)+$/.test(l.d)));
-  assert.ok(full.height > full.width * 0.5 || full.height > 0);
-  const coll = L.layoutTree(nodes, new Set(['a']), 'columns');
+    { id: 'b1', reports_to: 'b' }, { id: 'c', reports_to: 'd' }];
+  const r = L.layoutTree(nodes, new Set());
+  const P = (id: string) => r.placed.get(id)!;
+  assert.equal(r.placed.size, 7);
+  assert.ok(P('d').x < P('a').x && P('a').x < P('a1').x);   // depth runs left to right
+  assert.equal(P('a').x, P('b').x); assert.equal(P('a1').x, P('a2').x);
+  assert.ok(P('a1').y < P('a2').y && P('a2').y < P('b1').y && P('b1').y < P('c').y); // top to bottom, no shared rows
+  assert.equal(P('a').y, (P('a1').y + P('a2').y) / 2);       // manager centred on its team
+  assert.equal(P('d').y, (P('a').y + P('c').y) / 2);         // root centred on its first and last report
+  assert.equal(r.paths.length, 6);
+  assert.ok(r.paths.every((l) => /^M[\d.,-]+( L[\d.,-]+)+$/.test(l.d)));
+  const coll = L.layoutTree(nodes, new Set(['a']));
   assert.equal(coll.placed.size, 5);
-  assert.deepEqual(L.descendants(full.kids, 'd').sort(), ['a', 'a1', 'a2', 'b', 'b1', 'b1x']);
-  // no two cards overlap
-  const cards = [...full.placed.values()];
+  assert.deepEqual(L.descendants(r.kids, 'd').sort(), ['a', 'a1', 'a2', 'b', 'b1', 'c']);
+  const cards = [...r.placed.values()];
   for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) {
-    const a = cards[i], b = cards[j];
-    assert.ok(a.x + L.CARD_W <= b.x || b.x + L.CARD_W <= a.x || a.y + L.CARD_H <= b.y || b.y + L.CARD_H <= a.y, `${a.id} overlaps ${b.id}`);
+    const m = cards[i], n = cards[j];
+    assert.ok(m.x + L.CARD_W <= n.x || n.x + L.CARD_W <= m.x || m.y + L.CARD_H <= n.y || n.y + L.CARD_H <= m.y, `${m.id} overlaps ${n.id}`);
   }
 });
 
 test('org layout (vertical mode, default): one tall column, reports indented under their manager', () => {
   const nodes = [{ id: 'd', reports_to: null }, { id: 'a', reports_to: 'd' }, { id: 'a1', reports_to: 'a' }, { id: 'b', reports_to: 'd' }, { id: 'b1', reports_to: 'b' }];
-  const r = L.layoutTree(nodes, new Set());
+  const r = L.layoutTree(nodes, new Set(), 'vertical');
   const P = (id: string) => r.placed.get(id)!;
   assert.equal(r.placed.size, 5);
   assert.deepEqual(['d', 'a', 'a1', 'b', 'b1'].map((i) => P(i).y).every((y, i, a) => i === 0 || y > a[i - 1]), true); // strictly top to bottom
   assert.ok(P('a').x > P('d').x && P('a1').x > P('a').x && P('b').x === P('a').x);
   assert.ok(r.height > r.width);
   assert.equal(r.paths.length, 4);
-  const coll = L.layoutTree(nodes, new Set(['a']));
+  const coll = L.layoutTree(nodes, new Set(['a']), 'vertical');
   assert.equal(coll.placed.size, 4);
   assert.ok(coll.height < r.height);
   const cards = [...r.placed.values()];

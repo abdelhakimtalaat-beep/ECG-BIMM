@@ -18,6 +18,13 @@ const CAT_STYLE: Record<string, string> = {
   rd_engineer: 'bg-white text-brand-900 border-brand-400 border-dashed',
   other: 'bg-slate-100 text-slate-800 border-slate-300',
 };
+const LOC_STYLE: Record<string, string> = {
+  NC: 'bg-emerald-100 text-emerald-950 border-emerald-600',
+  SV: 'bg-amber-100 text-amber-950 border-amber-500',
+  ALEX: 'bg-orange-100 text-orange-950 border-orange-400',
+};
+const LOC_NEUTRAL = 'bg-white text-slate-900 border-slate-400';
+const cardClass = (e: Employee, by: 'location' | 'role') => by === 'role' || e.job_category === 'department_manager' ? CAT_STYLE[e.job_category] : LOC_STYLE[(e.team_location ?? '').toUpperCase()] ?? LOC_NEUTRAL;
 const CAT_LABEL: Record<string, string> = { department_manager: 'Department Manager', bim_manager: 'BIM Manager', bim_coordinator: 'BIM Coordinator', bim_specialist: 'BIM Specialist', rd_engineer: 'R&D BIM Engineer', other: 'Other' };
 const PAD = 40;
 
@@ -39,7 +46,8 @@ export default function OrgPage() {
   const [sel, setSel] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [term, setTerm] = useState('');
-  const [mode, setMode] = useState<OrgMode>('vertical');
+  const [mode, setMode] = useState<OrgMode>('side');
+  const [colorBy, setColorBy] = useState<'location' | 'role'>('location');
   const [view, setView] = useState({ x: 20, y: 20, k: 0.9 });
   const photoInput = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState<Partial<Employee> & { _new?: boolean } | null>(null);
@@ -51,12 +59,16 @@ export default function OrgPage() {
   const chain = useMemo(() => new Set(sel ? chainToRoot(data.employees, sel) : []), [sel, data.employees]);
   const W = layout.width + PAD * 2, H = layout.height + PAD * 2;
 
-  const fit = useCallback(() => {
+  const fit = useCallback(() => { // fit the chart width; scroll down for the rest
     const el = vp.current; if (!el || !W) return;
-    if (mode === 'vertical') { const k = Math.min(1.1, Math.max(0.2, (el.clientWidth - 24) / W)); setView({ k, x: (el.clientWidth - W * k) / 2, y: 8 }); return; } // fit the width; scroll down for the rest
-    const k = Math.min(1.2, Math.max(0.15, Math.min(el.clientWidth / W, el.clientHeight / H)));
-    setView({ k, x: (el.clientWidth - W * k) / 2, y: 12 });
-  }, [W, H, mode]);
+    const k = Math.min(1.1, Math.max(0.2, (el.clientWidth - 24) / W));
+    setView({ k, x: (el.clientWidth - W * k) / 2, y: 8 });
+  }, [W]);
+  const fitAll = useCallback(() => {
+    const el = vp.current; if (!el || !W) return;
+    const k = Math.min(1.2, Math.max(0.1, Math.min(el.clientWidth / W, el.clientHeight / H)));
+    setView({ k, x: (el.clientWidth - W * k) / 2, y: 8 });
+  }, [W, H]);
   useEffect(() => { fit(); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { // wheel zoom around the cursor (non-passive so the page does not scroll)
@@ -130,12 +142,21 @@ export default function OrgPage() {
         <button className="btn-secondary btn-sm" onClick={() => zoom(1.2)} aria-label="Zoom in"><Plus size={14} /></button>
         <button className="btn-secondary btn-sm" onClick={() => zoom(1 / 1.2)} aria-label="Zoom out"><Minus size={14} /></button>
         <div className="inline-flex overflow-hidden rounded-lg border border-slate-300" role="group" aria-label="Chart layout">
-          {([['vertical', 'Vertical'], ['columns', 'Columns']] as const).map(([m, l]) => <button key={m} aria-pressed={mode === m} className={`px-3 py-1.5 text-sm ${mode === m ? 'bg-brand-700 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`} onClick={() => setMode(m)}>{l}</button>)}
+          {([['side', 'Left to right'], ['vertical', 'Top down']] as const).map(([m, l]) => <button key={m} aria-pressed={mode === m} className={`px-3 py-1.5 text-sm ${mode === m ? 'bg-brand-700 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`} onClick={() => setMode(m)}>{l}</button>)}
         </div>
-        <button className="btn-secondary btn-sm" onClick={fit}><Maximize2 size={14} />{mode === 'vertical' ? 'Fit width' : 'Fit to screen'}</button>
+        <button className="btn-secondary btn-sm" onClick={fit}><Maximize2 size={14} />Fit width</button>
+        <button className="btn-secondary btn-sm" onClick={fitAll}>Fit all</button>
         <button className="btn-secondary btn-sm" onClick={() => setCollapsed(new Set())}><ChevronsUpDown size={14} />Expand all</button>
         <button className="btn-secondary btn-sm" onClick={collapseAll}><ChevronsDownUp size={14} />Collapse teams</button>
-        <div className="ml-auto flex flex-wrap gap-1.5 text-xs">{Object.entries(CAT_LABEL).filter(([k]) => k !== 'other').map(([k, v]) => <span key={k} className={`rounded border px-2 py-0.5 ${CAT_STYLE[k]}`}>{v}</span>)}</div>
+        <div className="ml-auto flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-slate-500">Colour by</span>
+          <div className="inline-flex overflow-hidden rounded-lg border border-slate-300" role="group" aria-label="Colour cards by">
+            {([['location', 'Location'], ['role', 'Role']] as const).map(([m, l]) => <button key={m} aria-pressed={colorBy === m} className={`px-2.5 py-1 ${colorBy === m ? 'bg-brand-700 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`} onClick={() => setColorBy(m)}>{l}</button>)}
+          </div>
+          {colorBy === 'location'
+            ? [['NC', LOC_STYLE.NC], ['SV', LOC_STYLE.SV], ['Alex', LOC_STYLE.ALEX]].map(([k, c]) => <span key={k} className={`rounded border px-2 py-0.5 ${c}`}>{k}</span>)
+            : Object.entries(CAT_LABEL).filter(([k]) => k !== 'other').map(([k, v]) => <span key={k} className={`rounded border px-2 py-0.5 ${CAT_STYLE[k]}`}>{v}</span>)}
+        </div>
       </div>
 
       {!data.employees.length ? <Empty title="No employees yet" hint="Add the first employee or run the seed script." /> : (
@@ -155,16 +176,15 @@ export default function OrgPage() {
                 const e = emp.get(p.id)!; const nKids = data.employees.filter((x) => x.reports_to === e.id).length; const isCol = collapsed.has(e.id);
                 return (
                   <div key={e.id} data-card style={{ position: 'absolute', left: p.x + PAD, top: p.y + PAD, width: CARD_W, height: CARD_H }}>
-                    <button onClick={() => { setSel(e.id); setOpen(e.id); }} className={`flex h-full w-full items-center gap-3 rounded-xl border-2 p-3 text-left shadow-card transition hover:shadow-lg ${CAT_STYLE[e.job_category]} ${!e.active ? 'opacity-50' : ''} ${sel === e.id ? 'ring-4 ring-amber-400' : chain.has(e.id) ? 'ring-2 ring-amber-300' : ''}`}>
+                    <button onClick={() => { setSel(e.id); setOpen(e.id); }} className={`flex h-full w-full items-center gap-3 rounded-xl border-2 p-3 text-left shadow-card transition hover:shadow-lg ${cardClass(e, colorBy)} ${!e.active ? 'opacity-50' : ''} ${sel === e.id ? 'ring-4 ring-amber-400' : chain.has(e.id) ? 'ring-2 ring-amber-300' : ''}`}>
                       <Avatar e={e} size={88} />
                       <span className="min-w-0 flex-1">
-                        <span className="line-clamp-2 block text-[17px] font-semibold leading-tight">{e.name}</span>
-                        <span className="mt-1 block text-sm font-medium opacity-90">{e.employee_code ? `ID ${e.employee_code}` : 'ID not supplied'}</span>
-                        <span className="block truncate text-sm opacity-95">{e.job_title}{e.team_location ? ` (${e.team_location})` : ''}</span>
-                        <span className="block truncate text-sm opacity-85">{[e.discipline, e.year_value].filter(Boolean).join(' · ')}{!e.active ? ' · inactive' : ''}</span>
+                        <span className="block truncate text-sm opacity-90">{e.job_title}{e.team_location ? ` (${e.team_location})` : ''}</span>
+                        <span className="line-clamp-2 block text-[17px] font-bold leading-tight">{e.employee_code ? `${e.employee_code}-` : ''}{e.name}</span>
+                        <span className="mt-0.5 block truncate text-sm opacity-90">{[e.discipline, e.year_value].filter(Boolean).join('-')}{!e.active ? ' · inactive' : ''}</span>
                       </span>
                     </button>
-                    {nKids > 0 && <button onClick={() => toggle(e.id)} aria-label={isCol ? 'Expand branch' : 'Collapse branch'} className="absolute -bottom-3.5 left-1/2 flex h-7 -translate-x-1/2 items-center gap-0.5 rounded-full border border-brand-300 bg-white px-2 text-sm text-brand-700 shadow hover:bg-brand-50">{isCol ? <ChevronRight size={14} /> : <ChevronDown size={14} />}{nKids}</button>}
+                    {nKids > 0 && <button onClick={() => toggle(e.id)} aria-label={isCol ? 'Expand branch' : 'Collapse branch'} className={`absolute flex h-7 items-center ${mode === 'side' ? '-right-3.5 top-1/2 -translate-y-1/2' : '-bottom-3.5 left-1/2 -translate-x-1/2'} gap-0.5 rounded-full border border-brand-300 bg-white px-2 text-sm text-brand-700 shadow hover:bg-brand-50`}>{isCol ? <ChevronRight size={14} /> : <ChevronDown size={14} />}{nKids}</button>}
                   </div>);
               })}
             </div>
