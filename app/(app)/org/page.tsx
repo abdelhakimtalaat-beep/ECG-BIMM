@@ -69,7 +69,7 @@ export default function OrgPage() {
     const k = Math.min(1.2, Math.max(0.1, Math.min(el.clientWidth / W, el.clientHeight / H)));
     setView({ k, x: (el.clientWidth - W * k) / 2, y: 8 });
   }, [W, H]);
-  useEffect(() => { fit(); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (mode === 'horizontal') fitAll(); else fit(); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { // wheel zoom around the cursor (non-passive so the page does not scroll)
     const el = vp.current; if (!el) return;
@@ -142,7 +142,7 @@ export default function OrgPage() {
         <button className="btn-secondary btn-sm" onClick={() => zoom(1.2)} aria-label="Zoom in"><Plus size={14} /></button>
         <button className="btn-secondary btn-sm" onClick={() => zoom(1 / 1.2)} aria-label="Zoom out"><Minus size={14} /></button>
         <div className="inline-flex overflow-hidden rounded-lg border border-slate-300" role="group" aria-label="Chart layout">
-          {([['side', 'Left to right'], ['vertical', 'Top down']] as const).map(([m, l]) => <button key={m} aria-pressed={mode === m} className={`px-3 py-1.5 text-sm ${mode === m ? 'bg-brand-700 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`} onClick={() => setMode(m)}>{l}</button>)}
+          {([['side', 'Left to right'], ['vertical', 'Vertical'], ['horizontal', 'Horizontal']] as const).map(([m, l]) => <button key={m} aria-pressed={mode === m} className={`px-3 py-1.5 text-sm ${mode === m ? 'bg-brand-700 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`} onClick={() => setMode(m)}>{l}</button>)}
         </div>
         <button className="btn-secondary btn-sm" onClick={fit}><Maximize2 size={14} />Fit width</button>
         <button className="btn-secondary btn-sm" onClick={fitAll}>Fit all</button>
