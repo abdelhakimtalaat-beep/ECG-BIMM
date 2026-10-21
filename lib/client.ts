@@ -28,7 +28,7 @@ export function saveBlob(blob: Blob, name: string) {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 export function todayLocal(): string { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
-export const fmtDate = (s: string | null | undefined) => (s ? new Date(s.length === 10 ? s + 'T00:00:00' : s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+export { fmtDate, fmtDateTime } from './dates';
 export const fmtNum = (n: number | null | undefined) => (n == null ? '—' : Math.round(n).toLocaleString('en-US'));
 export const STATUS_BG: Record<Status, string> = {
   'Not Started': 'bg-slate-100 text-slate-700 ring-slate-300', 'In Progress': 'bg-brand-100 text-brand-800 ring-brand-300',

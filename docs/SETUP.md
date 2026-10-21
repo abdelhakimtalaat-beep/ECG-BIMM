@@ -72,3 +72,16 @@ Projects now also carry **Deltek Number, Project Manager, Technical Manager and 
 `db/migrations/002_project_extra_fields.sql` once in the Supabase SQL Editor **before** deploying this version
 (safe to run more than once). New installs get the columns from `db/schema.sql`.
 The Excel/CSV importer recognises columns named "Deltek Number", "Client", "Project Manager" and "Technical Manager".
+
+## Upgrading an existing database: employee CVs and Reels software
+
+Run `db/migrations/003_cv_and_reel_software.sql` once in the Supabase SQL Editor **before** deploying this version
+(safe to run more than once):
+
+```sql
+alter table employees add column if not exists cv_id uuid;
+alter table reel_sessions add column if not exists software text;
+```
+
+CV files (PDF, DOC, DOCX, up to 4 MB) are uploaded by the Department Manager / Administrator from an employee's card on the
+Organization Chart page and can be downloaded only by administrators and BIM Managers.

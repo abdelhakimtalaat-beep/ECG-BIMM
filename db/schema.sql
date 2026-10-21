@@ -28,10 +28,12 @@ create table if not exists employees (
   active        boolean not null default true,
   notes         text,
   photo_id      uuid,                             -- attachments.id of the profile photo (optional)
+  cv_id         uuid,                             -- attachments.id of the uploaded CV (optional)
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
-alter table employees add column if not exists photo_id uuid;   -- upgrades databases created before photos existed
+alter table employees add column if not exists photo_id uuid;
+alter table employees add column if not exists cv_id uuid;   -- upgrades databases created before photos existed
 
 create table if not exists employee_aliases (     -- spellings found in other sources
   id          uuid primary key default gen_random_uuid(),
@@ -144,6 +146,7 @@ create table if not exists reel_sessions (
   weekday        text not null,
   session_date   date not null,
   topic          text,
+  software       text,                             -- Revit / Navisworks / ACC / Dynamo
   status         reel_status not null default 'Not recorded',
   notes          text,
   link           text,
@@ -151,6 +154,7 @@ create table if not exists reel_sessions (
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
 );
+alter table reel_sessions add column if not exists software text;  -- upgrades databases created before this column existed
 create index if not exists reel_date_idx on reel_sessions(session_date);
 
 -- ----------------------------------------------------------- files, settings

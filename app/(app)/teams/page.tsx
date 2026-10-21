@@ -6,7 +6,7 @@ import { FilterBar, filtersToText } from '@/components/FilterBar';
 import { AssignModal } from '@/components/AssignModal';
 import { ProjectDetail } from '@/components/ProjectDetail';
 import { Badge, Empty, PageHeader, StatusBadge, useToast } from '@/components/ui';
-import { download, fmtNum } from '@/lib/client';
+import { download, fmtDateTime, fmtNum } from '@/lib/client';
 import { inconsistencies, personStats, totalArea, hasArea, imbalanceOf } from '@/lib/metrics';
 import { STATUSES, STATUS_COLORS, type Employee, type Project } from '@/lib/types';
 import { STATUS_DOT } from '@/lib/client';
@@ -52,7 +52,7 @@ export default function TeamsPage() {
     const { jsPDF } = await import('jspdf'); const autoTable = (await import('jspdf-autotable')).default;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
     doc.setFontSize(15); doc.setTextColor(11, 37, 69); doc.text('BIM Teams & Project Assignments', 36, 40);
-    doc.setFontSize(8); doc.setTextColor(100); doc.text(`Generated ${new Date().toLocaleString('en-GB')} · Filters: ${filtersToText(filters, emp)}`, 36, 54, { maxWidth: 770 });
+    doc.setFontSize(8); doc.setTextColor(100); doc.text(`Generated ${fmtDateTime(new Date())} · Filters: ${filtersToText(filters, emp)}`, 36, 54, { maxWidth: 770 });
     const body: any[] = []; for (const t of teams) { for (const c of t.coordinators) for (const p of c.projects) body.push([t.m.name, c.c.name, p.project_no ?? '', p.name, p.status, p.cde ?? '', hasArea(p) ? fmtNum(p.built_up_area) : '']); for (const p of t.noCoord) body.push([t.m.name, '(none)', p.project_no ?? '', p.name, p.status, p.cde ?? '', hasArea(p) ? fmtNum(p.built_up_area) : '']); }
     autoTable(doc, { startY: 66, head: [['BIM Manager', 'BIM Coordinator', 'No.', 'Project', 'Status', 'CDE', 'Area']], body, styles: { fontSize: 7 }, headStyles: { fillColor: [15, 85, 168] }, didParseCell: (d: any) => { if (d.section === 'body' && d.column.index === 4) { const c = ({ 'Not Started': [154, 165, 177], 'In Progress': [31, 111, 201], 'On Hold': [232, 163, 23], Closed: [46, 158, 91] } as any)[d.cell.raw]; if (c) { d.cell.styles.textColor = c; d.cell.styles.fontStyle = 'bold'; } } } });
     doc.save('ecg-bim-teams-assignments.pdf');

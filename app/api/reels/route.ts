@@ -11,6 +11,7 @@ const reelBody = z.object({
   session_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   weekday: z.string().optional(),
   topic: z.string().trim().max(300).nullish().transform((v) => v || null),
+  software: z.enum(['Revit', 'Navisworks', 'ACC', 'Dynamo']).nullish().transform((v) => v ?? null),
   status: z.enum(['Not recorded', 'Planned', 'Completed', 'Postponed', 'Cancelled']).default('Planned'),
   notes: z.string().max(4000).nullish().transform((v) => v || null),
   link: z.string().trim().max(500).nullish().transform((v) => v || null)
@@ -27,8 +28,8 @@ export async function POST(req: Request) {
     const me = await requireUser(['admin']);
     const b = reelBody.parse(await json(req));
     const wd = checkReel(b);
-    const r = await one<{ id: string }>(`insert into reel_sessions(employee_id,presenter_code,presenter_name,weekday,session_date,topic,status,notes,link) values($1,$2,$3,$4,$5,$6,$7,$8,$9) returning id`,
-      [b.employee_id, b.presenter_code, b.presenter_name, wd, b.session_date, b.topic, b.status, b.notes, b.link]);
+    const r = await one<{ id: string }>(`insert into reel_sessions(employee_id,presenter_code,presenter_name,weekday,session_date,topic,status,notes,link,software) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,
+      [b.employee_id, b.presenter_code, b.presenter_name, wd, b.session_date, b.topic, b.status, b.notes, b.link, b.software]);
     await audit(null, me.email, 'create', 'reel', r!.id, `Added BIM Reel ${b.session_date} – ${b.presenter_name}`, undefined, b);
     return ok({ id: r!.id }, 201);
   });

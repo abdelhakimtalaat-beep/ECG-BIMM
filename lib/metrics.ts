@@ -2,6 +2,7 @@
 // Rules: totals are computed over UNIQUE projects; a person's workload counts each project once; built-up area
 // uses valid numeric values only; capacity percentages exist only when a capacity basis has been configured.
 import type { Assignment, Capacity, Dataset, Employee, Filters, Project, Reel, Status } from './types.ts';
+import { fmtDate } from './dates.ts';
 
 export const STATUS_ORDER: Status[] = ['Not Started', 'In Progress', 'On Hold', 'Closed'];
 
@@ -188,14 +189,10 @@ export function reelConflicts(reels: Reel[]): Map<string, string[]> {
   const add = (id: string, m: string) => { const l = out.get(id); if (l) l.push(m); else out.set(id, [m]); };
   const live = reels.filter((r) => r.status !== 'Cancelled');
   const byDate = new Map<string, Reel[]>();
-  const byPerson = new Map<string, Reel[]>();
   for (const r of live) {
     (byDate.get(r.session_date) ?? byDate.set(r.session_date, []).get(r.session_date)!).push(r);
-    const key = r.employee_id || r.presenter_name.toLowerCase();
-    (byPerson.get(key) ?? byPerson.set(key, []).get(key)!).push(r);
   }
   for (const [d, l] of byDate) if (l.length > 1) for (const r of l) add(r.id, `Another session is scheduled on ${d}`);
-  for (const [, l] of byPerson) if (l.length > 1) for (const r of l) add(r.id, `${r.presenter_name} presents ${l.length} sessions`);
   for (const r of reels) if (weekdayOf(r.session_date) !== r.weekday) add(r.id, `Weekday ${r.weekday} does not match the date (${weekdayOf(r.session_date)})`);
   return out;
 }
@@ -238,7 +235,7 @@ export function buildAlerts(ds: Dataset, projects: Project[], today: string): Al
       alerts.push({ id: 'rel-' + s.employee.id + s.role, level: 'medium', title: `${s.employee.name}: ${s.load} active projects, ${s.relative!.toFixed(1)}× the ${s.role} average`, detail: 'Relative comparison only — no capacity has been configured.', link: '/workload' });
   }
   const up = upcomingReels(ds.reels, today, ds.settings.alerts.reel_reminder_days);
-  if (up.length) alerts.push({ id: 'reel-up', level: 'info', title: `${up.length} BIM Reel session(s) in the next ${ds.settings.alerts.reel_reminder_days} days`, detail: up.map((r) => `${r.session_date} ${r.presenter_name}`).join(' · '), link: '/reels' });
+  if (up.length) alerts.push({ id: 'reel-up', level: 'info', title: `${up.length} BIM Reel session(s) in the next ${ds.settings.alerts.reel_reminder_days} days`, detail: up.map((r) => `${fmtDate(r.session_date)} ${r.presenter_name}`).join(' · '), link: '/reels' });
   const inc = incompleteReels(ds.reels, today);
   if (inc.length) alerts.push({ id: 'reel-late', level: 'medium', title: `${inc.length} past BIM Reel session(s) without a recorded outcome`, detail: 'Mark each as Completed, Postponed or Cancelled.', link: '/reels' });
   return alerts;

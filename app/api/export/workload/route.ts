@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { handle, json } from '@/lib/api';
 import { requireUser } from '@/lib/auth';
+import { fmtDateTimeUtc } from '@/lib/dates';
 import { loadDataset } from '@/lib/dataset';
 import { addSheet, infoSheet, newBook, sendBook } from '@/lib/xlsx';
 import { imbalanceOf, personStats } from '@/lib/metrics';
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
     addSheet(wb, 'BIM Managers', head, mk('manager') as any);
     addSheet(wb, 'BIM Coordinators', head, mk('coordinator') as any);
     infoSheet(wb, 'ECG BIM Team Workload report', [
-      ['Calculated', new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC'], ['Filters', b.filters || '(none — all projects)'], ['Projects included', String(projects.length)],
+      ['Calculated', fmtDateTimeUtc(new Date())], ['Filters', b.filters || '(none — all projects)'], ['Projects included', String(projects.length)],
       ['Counted as active', cap.count_statuses.join(', ')],
       ['Capacity definition', [cap.max_projects_per_manager && `max ${cap.max_projects_per_manager} active projects / manager`, cap.max_projects_per_coordinator && `max ${cap.max_projects_per_coordinator} active projects / coordinator`,
         cap.max_area_per_manager && `max area ${cap.max_area_per_manager} / manager`, cap.max_area_per_coordinator && `max area ${cap.max_area_per_coordinator} / coordinator`,

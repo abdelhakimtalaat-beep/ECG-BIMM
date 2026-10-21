@@ -66,9 +66,14 @@ test('weekday validation', () => {
   assert.equal(m.weekdayOf('2026-08-19'), 'Wednesday');
 });
 test('reel conflicts: weekday mismatch and same-day sessions', () => {
-  const r = (id: string, d: string, wd: string, name = id) => ({ id, employee_id: id, presenter_code: null, presenter_name: name, weekday: wd, session_date: d, topic: null, status: 'Planned', notes: null, link: null, attachment_id: null }) as any;
+  const r = (id: string, d: string, wd: string, name = id) => ({ id, employee_id: id, presenter_code: null, presenter_name: name, weekday: wd, session_date: d, topic: null, software: null, status: 'Planned', notes: null, link: null, attachment_id: null }) as any;
   const c = m.reelConflicts([r('a', '2026-08-16', 'Sunday'), r('b', '2026-08-16', 'Sunday'), r('c', '2026-08-17', 'Sunday')]);
   assert.equal(c.get('a')!.length, 1); assert.equal(c.get('c')!.length, 1);
+});
+test('a speaker with several sessions is NOT flagged (no alarm for presenting more than once)', () => {
+  const r = (id: string, d: string, wd: string) => ({ id, employee_id: 'same', presenter_code: null, presenter_name: 'Same Person', weekday: wd, session_date: d, topic: null, software: null, status: 'Planned', notes: null, link: null, attachment_id: null }) as any;
+  const c = m.reelConflicts([r('a', '2026-08-16', 'Sunday'), r('b', '2026-08-23', 'Sunday'), r('c', '2026-08-30', 'Sunday')]);
+  assert.equal(c.size, 0);
 });
 test('past sessions without outcome are not assumed completed', () => {
   const r = (id: string, d: string, st: string) => ({ id, session_date: d, status: st }) as any;

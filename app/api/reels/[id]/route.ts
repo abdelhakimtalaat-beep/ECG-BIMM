@@ -6,7 +6,7 @@ import { weekdayOf } from '@/lib/metrics';
 
 const patch = z.object({
   employee_id: z.string().uuid().nullable(), presenter_code: z.string().trim().max(40).nullable(), presenter_name: z.string().trim().min(1).max(120),
-  session_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), weekday: z.string(), topic: z.string().trim().max(300).nullable(),
+  session_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), weekday: z.string(), topic: z.string().trim().max(300).nullable(), software: z.enum(['Revit', 'Navisworks', 'ACC', 'Dynamo']).nullable(),
   status: z.enum(['Not recorded', 'Planned', 'Completed', 'Postponed', 'Cancelled']), notes: z.string().max(4000).nullable(),
   link: z.string().trim().max(500).nullable().refine((v) => !v || /^https?:\/\//i.test(v), 'Link must start with http:// or https://'),
 }).partial();

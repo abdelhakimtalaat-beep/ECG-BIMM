@@ -3,14 +3,14 @@ import type { Dataset, Settings } from './types';
 
 export async function loadDataset(): Promise<Dataset> {
   const [employees, projects, assignments, reels, settingsRows, mappings, history] = await Promise.all([
-    q(`select e.id,e.employee_code,e.name,e.job_title,e.job_category,e.discipline,e.year_value,e.team_location,e.active,e.notes,e.photo_id,
+    q(`select e.id,e.employee_code,e.name,e.job_title,e.job_category,e.discipline,e.year_value,e.team_location,e.active,e.notes,e.photo_id,e.cv_id,(select a.filename from attachments a where a.id=e.cv_id) as cv_filename,
               r.manager_id as reports_to
        from employees e left join reporting_relationships r on r.employee_id=e.id and r.valid_to is null
        order by e.name`),
     q(`select id,project_no,name,cde,type,deltek_number,project_manager,technical_manager,client,built_up_area::float8 as built_up_area,area_raw,area_note,status_raw,activity_raw,status,status_source,notes,photo_id,source_rows,created_at,updated_at
        from projects order by project_no nulls last, name`),
     q(`select id,project_id,employee_id,role,package,source_row from project_assignments`),
-    q(`select id,employee_id,presenter_code,presenter_name,weekday,session_date::text as session_date,topic,status,notes,link,attachment_id from reel_sessions order by session_date,presenter_name`),
+    q(`select id,employee_id,presenter_code,presenter_name,weekday,session_date::text as session_date,topic,software,status,notes,link,attachment_id from reel_sessions order by session_date,presenter_name`),
     q(`select key,value from app_settings`),
     q(`select id,source_status,activity_flag,target_status,note from status_mappings order by source_status,activity_flag`),
     q(`select project_id,old_status,new_status,changed_at,changed_by from project_status_history order by changed_at`),

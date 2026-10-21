@@ -11,7 +11,7 @@ export interface Employee {
   id: string; employee_code: string | null; name: string; job_title: string;
   job_category: 'department_manager' | 'bim_manager' | 'bim_coordinator' | 'bim_specialist' | 'rd_engineer' | 'other';
   discipline: string | null; year_value: number | null; team_location: string | null; active: boolean; notes: string | null;
-  reports_to: string | null; photo_id?: string | null;
+  reports_to: string | null; photo_id?: string | null; cv_id?: string | null; cv_filename?: string | null;
 }
 export interface Project {
   id: string; project_no: string | null; name: string; cde: string | null; type: string | null;
@@ -21,9 +21,10 @@ export interface Project {
   notes: string | null; photo_id: string | null; source_rows: number[]; created_at: string; updated_at: string;
 }
 export interface Assignment { id: string; project_id: string; employee_id: string; role: 'manager' | 'coordinator' | 'member'; package: string | null; source_row: number | null }
+export const SOFTWARES = ['Revit', 'Navisworks', 'ACC', 'Dynamo'] as const;
 export interface Reel {
   id: string; employee_id: string | null; presenter_code: string | null; presenter_name: string; weekday: string;
-  session_date: string; topic: string | null; status: ReelStatus; notes: string | null; link: string | null; attachment_id: string | null;
+  session_date: string; topic: string | null; software: string | null; status: ReelStatus; notes: string | null; link: string | null; attachment_id: string | null;
 }
 export interface Capacity {
   max_projects_per_coordinator: number | null; max_projects_per_manager: number | null;

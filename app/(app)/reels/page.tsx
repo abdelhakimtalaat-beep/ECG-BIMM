@@ -5,9 +5,9 @@ import { useApp } from '@/components/store';
 import { FilterBar } from '@/components/FilterBar';
 import { ChartBox, Datum, HBar, VBar } from '@/components/charts';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, useToast } from '@/components/ui';
-import { api, download, fmtDate } from '@/lib/client';
+import { api, download, fmtDate, fmtDateTime } from '@/lib/client';
 import { reelConflicts, reelStats, upcomingReels, incompleteReels, weekdayOf } from '@/lib/metrics';
-import { REEL_STATUSES, type Reel, type ReelStatus } from '@/lib/types';
+import { REEL_STATUSES, SOFTWARES, type Reel, type ReelStatus } from '@/lib/types';
 
 const TONE: Record<ReelStatus, 'gray' | 'blue' | 'green' | 'amber' | 'red'> = { 'Not recorded': 'gray', Planned: 'blue', Completed: 'green', Postponed: 'amber', Cancelled: 'red' };
 const WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -17,7 +17,7 @@ const addDays = (s: string, n: number) => { const d = new Date(s + 'T00:00:00Z')
 export default function ReelsPage() {
   const { me, data, reels, today, refresh } = useApp(); const toast = useToast();
   const admin = me.role === 'admin';
-  const [view, setView] = useState<'calendar' | 'week' | 'month' | 'table' | 'upcoming'>('calendar');
+  const [view, setView] = useState<'table' | 'calendar' | 'week' | 'month' | 'upcoming'>('table');
   const [cursor, setCursor] = useState(() => { const first = data.reels.find((r) => r.session_date >= today)?.session_date ?? data.reels[0]?.session_date ?? today; return first.slice(0, 7) + '-01'; });
   const [weekStart, setWeekStart] = useState(() => { const d = new Date(today + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return iso(d); });
   const [edit, setEdit] = useState<Partial<Reel> | null>(null); const [del, setDel] = useState<Reel | null>(null);
@@ -43,8 +43,8 @@ export default function ReelsPage() {
   const exportAs = async (format: 'xlsx' | 'csv' | 'ics') => { try { await download('/api/export/reels', { ids: reels.map((r) => r.id), format }, `ecg-bim-reels.${format}`); } catch (e: any) { toast(e.message, 'err'); } };
   const exportPdf = async () => {
     const { jsPDF } = await import('jspdf'); const autoTable = (await import('jspdf-autotable')).default; const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    doc.setFontSize(15); doc.setTextColor(11, 37, 69); doc.text('Weekly BIM Reels Plan', 36, 40); doc.setFontSize(8); doc.setTextColor(100); doc.text(`Generated ${new Date().toLocaleString('en-GB')}`, 36, 54);
-    autoTable(doc, { startY: 66, head: [['ID', 'Employee', 'Day', 'Date', 'Topic', 'Status']], body: reels.map((r) => [r.presenter_code ?? '', r.presenter_name, r.weekday, fmtDate(r.session_date), r.topic ?? '', r.status]), styles: { fontSize: 8 }, headStyles: { fillColor: [15, 85, 168] }, alternateRowStyles: { fillColor: [238, 245, 253] } });
+    doc.setFontSize(15); doc.setTextColor(11, 37, 69); doc.text('Weekly BIM Reels Plan', 36, 40); doc.setFontSize(8); doc.setTextColor(100); doc.text(`Generated ${fmtDateTime(new Date())}`, 36, 54);
+    autoTable(doc, { startY: 66, head: [['Day', 'Date', 'Topic', 'Software', 'Speaker', 'Status']], body: reels.map((r) => [r.weekday, fmtDate(r.session_date), r.topic ?? '', r.software ?? '', r.presenter_name, r.status]), styles: { fontSize: 8 }, headStyles: { fillColor: [15, 85, 168] }, alternateRowStyles: { fillColor: [238, 245, 253] } });
     doc.save('ecg-bim-reels.pdf');
   };
   const quick = async (r: Reel, patch: Partial<Reel>) => { try { await api(`/api/reels/${r.id}`, { method: 'PATCH', body: patch }); await refresh(); } catch (e: any) { toast(e.message, 'err'); } };
@@ -54,15 +54,15 @@ export default function ReelsPage() {
   const monthData = Object.entries(reels.reduce((m: Record<string, Record<string, number>>, r) => { const k = r.session_date.slice(0, 7); (m[k] ??= {})[r.status] = (m[k][r.status] || 0) + 1; return m; }, {})).sort().map(([k, v]) => ({ name: k, ...v }));
 
   const renderTable = (rows: Reel[]) => !rows.length ? <Empty title="No sessions" hint="Adjust the filters or add a session." /> : (
-    <div className="card overflow-x-auto"><table className="w-full text-left"><thead><tr>{['Employee ID', 'Employee name', 'Day', 'Date', 'Topic', 'Status', 'Notes / link', ''].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
+    <div className="card overflow-x-auto"><table className="w-full text-left"><thead><tr>{['Day', 'Date', 'Topic', 'Software', 'Speaker', 'Status', 'Link', ''].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
       <tbody>{rows.map((r, i) => (
         <tr key={r.id} className={`border-t border-slate-100 ${i % 2 ? 'bg-amber-50/70' : 'bg-brand-50/70'}`}>
-          <td className="td">{r.presenter_code ?? '—'}</td>
-          <td className="td font-medium">{r.presenter_name}{conflicts.has(r.id) && <span className="ml-1 cursor-help text-amber-600" title={conflicts.get(r.id)!.join('\n')}><AlertTriangle size={14} className="inline" /></span>}{!r.employee_id && <span title="Presenter is not in the org chart"> <Badge tone="amber">not in org chart</Badge></span>}</td>
           <td className="td">{r.weekday}</td><td className="td whitespace-nowrap">{fmtDate(r.session_date)}</td>
           <td className="td min-w-[14rem]">{admin ? <input className="input" defaultValue={r.topic ?? ''} placeholder="Add topic…" onBlur={(e) => e.target.value !== (r.topic ?? '') && quick(r, { topic: e.target.value || null })} aria-label={`Topic for ${r.presenter_name}`} /> : (r.topic ?? <span className="text-slate-400">—</span>)}</td>
+          <td className="td">{admin ? <select className="input w-32" value={r.software ?? ''} onChange={(e) => quick(r, { software: e.target.value || null })} aria-label={`Software for ${r.presenter_name}`}><option value="">—</option>{SOFTWARES.map((s) => <option key={s}>{s}</option>)}</select> : (r.software ?? <span className="text-slate-400">—</span>)}</td>
+          <td className="td font-medium">{r.presenter_name}{conflicts.has(r.id) && <span className="ml-1 cursor-help text-amber-600" title={conflicts.get(r.id)!.join('\n')}><AlertTriangle size={14} className="inline" /></span>}{!r.employee_id && <span title="Speaker is not in the org chart"> <Badge tone="amber">not in org chart</Badge></span>}</td>
           <td className="td">{admin ? <select className="input w-36" value={r.status} onChange={(e) => quick(r, { status: e.target.value as ReelStatus })} aria-label={`Status for ${r.presenter_name}`}>{REEL_STATUSES.map((s) => <option key={s}>{s}</option>)}</select> : <Badge tone={TONE[r.status]}>{r.status}</Badge>}</td>
-          <td className="td text-xs">{r.notes}{r.link && <a className="ml-1 text-brand-600 underline" href={r.link} target="_blank" rel="noopener noreferrer">link</a>}</td>
+          <td className="td text-xs">{r.link ? <a className="text-brand-600 underline" href={r.link} target="_blank" rel="noopener noreferrer">Open link</a> : <span className="text-slate-400">—</span>}</td>
           <td className="td whitespace-nowrap">{admin ? <><button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>Edit</button> <button className="btn-ghost btn-sm text-red-600" onClick={() => setDel(r)}>Delete</button></> : <button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>View</button>}</td></tr>))}</tbody></table></div>);
 
   return (
@@ -78,7 +78,7 @@ export default function ReelsPage() {
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {[['Scheduled', stats.total], ['Completed', stats.completed], ['Upcoming', up.length], ['Postponed / cancelled', stats.postponed + stats.cancelled], ['No outcome recorded', stats.notRecorded], ['Completion rate', stats.completionRate == null ? '—' : Math.round(stats.completionRate * 100) + '%']].map(([k, v]) => <div key={String(k)} className="card p-3"><p className="text-xs uppercase tracking-wide text-slate-500">{k}</p><p className="text-xl font-semibold text-brand-900">{v}</p></div>)}</div>
 
-      <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-200" role="tablist">{([['calendar', 'Calendar'], ['week', 'Weekly'], ['month', 'Monthly'], ['table', 'Table'], ['upcoming', 'Upcoming'], ] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${view === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{l}</button>)}</div>
+      <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-200" role="tablist">{([['table', 'Table'], ['calendar', 'Calendar'], ['week', 'Weekly'], ['month', 'Monthly'], ['upcoming', 'Upcoming']] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${view === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{l}</button>)}</div>
 
       {(view === 'calendar' || view === 'month') && <div className="mb-3 flex items-center gap-2"><button className="btn-secondary btn-sm" onClick={() => shiftMonth(-1)} aria-label="Previous month"><ChevronLeft size={14} /></button><b className="w-40 text-center text-sm">{label}</b><button className="btn-secondary btn-sm" onClick={() => shiftMonth(1)} aria-label="Next month"><ChevronRight size={14} /></button></div>}
 
@@ -93,7 +93,7 @@ export default function ReelsPage() {
       {view === 'upcoming' && (up.length ? <ul className="space-y-2">{up.map((r) => { const d = Math.round((new Date(r.session_date).getTime() - new Date(today).getTime()) / 86400000); return <li key={r.id} className="card flex items-center justify-between gap-3 p-3"><div><p className="font-medium text-brand-900">{r.presenter_name}{r.topic ? ` — ${r.topic}` : ''}</p><p className="text-xs text-slate-500">{r.weekday}, {fmtDate(r.session_date)}</p></div><Badge tone={d <= data.settings.alerts.reel_reminder_days ? 'amber' : 'blue'}>{d === 0 ? 'today' : `in ${d} day${d === 1 ? '' : 's'}`}</Badge></li>; })}</ul> : <Empty title="No upcoming sessions" hint="All scheduled sessions are in the past. Add the next round of sessions." action={admin ? <button className="btn-primary" onClick={() => setEdit({ status: 'Planned', session_date: today })}>Add session</button> : undefined} />)}
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <ChartBox title="Sessions by presenter" height={Math.max(240, presenterData.length * 26 + 60)}><HBar data={presenterData} /></ChartBox>
+        <ChartBox title="Sessions by speaker" height={Math.max(240, presenterData.length * 26 + 60)}><HBar data={presenterData} /></ChartBox>
         <ChartBox title="Sessions by month">{monthData.length ? <VBar data={monthData} series={['Completed', 'Planned', 'Not recorded', 'Postponed', 'Cancelled']} colors={['#2E9E5B', '#1F6FC9', '#9AA5B1', '#E8A317', '#DC2626']} /> : <Empty title="No data" />}</ChartBox>
         <ChartBox title="Topic distribution" subtitle="Topics are blank in the source plan until filled in" height={Math.max(240, topicData.length * 26 + 60)}><HBar data={topicData} color="#4F8FDB" /></ChartBox>
       </div>
@@ -106,14 +106,14 @@ export default function ReelsPage() {
 
 function ReelForm({ init, admin, onClose, onSaved }: { init: Partial<Reel>; admin: boolean; onClose: () => void; onSaved: () => void }) {
   const { data } = useApp(); const toast = useToast(); const isNew = !init.id;
-  const [f, setF] = useState({ employee_id: init.employee_id ?? '', presenter_code: init.presenter_code ?? '', presenter_name: init.presenter_name ?? '', session_date: init.session_date ?? '', weekday: init.weekday ?? '', topic: init.topic ?? '', status: (init.status ?? 'Planned') as ReelStatus, notes: init.notes ?? '', link: init.link ?? '' });
+  const [f, setF] = useState({ employee_id: init.employee_id ?? '', presenter_code: init.presenter_code ?? '', presenter_name: init.presenter_name ?? '', session_date: init.session_date ?? '', weekday: init.weekday ?? '', topic: init.topic ?? '', software: init.software ?? '', status: (init.status ?? 'Planned') as ReelStatus, notes: init.notes ?? '', link: init.link ?? '' });
   const wd = f.session_date ? weekdayOf(f.session_date) : '';
   const mismatch = f.weekday && wd && f.weekday !== wd;
   const same = data.reels.filter((r) => r.session_date === f.session_date && r.id !== init.id && r.status !== 'Cancelled');
   const pick = (id: string) => { const e = data.employees.find((x) => x.id === id); setF({ ...f, employee_id: id, presenter_code: e?.employee_code ?? '', presenter_name: e?.name ?? f.presenter_name }); };
   const save = async () => {
     try {
-      const body = { employee_id: f.employee_id || null, presenter_code: f.presenter_code || null, presenter_name: f.presenter_name, session_date: f.session_date, weekday: f.weekday || wd, topic: f.topic || null, status: f.status, notes: f.notes || null, link: f.link || null };
+      const body = { employee_id: f.employee_id || null, presenter_code: f.presenter_code || null, presenter_name: f.presenter_name, session_date: f.session_date, weekday: f.weekday || wd, topic: f.topic || null, software: f.software || null, status: f.status, notes: f.notes || null, link: f.link || null };
       if (isNew) await api('/api/reels', { body }); else await api(`/api/reels/${init.id}`, { method: 'PATCH', body });
       toast('Saved'); onSaved();
     } catch (e: any) { toast(e.message, 'err'); }
@@ -122,15 +122,15 @@ function ReelForm({ init, admin, onClose, onSaved }: { init: Partial<Reel>; admi
   return (
     <Modal open onClose={onClose} wide title={isNew ? 'Add BIM Reel session' : d ? 'BIM Reel session' : 'Edit BIM Reel session'} footer={<><button className="btn-secondary" onClick={onClose}>{d ? 'Close' : 'Cancel'}</button>{!d && <button className="btn-primary" disabled={!f.presenter_name || !f.session_date || !!mismatch} onClick={save}>Save</button>}</>}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Presenter (from org chart)"><select className="input" disabled={d} value={f.employee_id} onChange={(e) => pick(e.target.value)}><option value="">— other / not in org chart —</option>{data.employees.filter((e) => e.active).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></Field>
-        <Field label="Presenter name"><input className="input" disabled={d} value={f.presenter_name} onChange={(e) => setF({ ...f, presenter_name: e.target.value })} /></Field>
-        <Field label="Employee ID"><input className="input" disabled={d} value={f.presenter_code} onChange={(e) => setF({ ...f, presenter_code: e.target.value })} /></Field>
+        <Field label="Speaker (from org chart)"><select className="input" disabled={d} value={f.employee_id} onChange={(e) => pick(e.target.value)}><option value="">— other / not in org chart —</option>{data.employees.filter((e) => e.active).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></Field>
+        <Field label="Speaker"><input className="input" disabled={d} value={f.presenter_name} onChange={(e) => setF({ ...f, presenter_name: e.target.value })} /></Field>
         <Field label="Status"><select className="input" disabled={d} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as ReelStatus })}>{REEL_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></Field>
         <Field label="Date"><input type="date" className="input" disabled={d} value={f.session_date} onChange={(e) => setF({ ...f, session_date: e.target.value, weekday: '' })} /></Field>
         <Field label="Weekday" hint={wd ? `This date is a ${wd}.` : undefined}><select className="input" disabled={d} value={f.weekday || wd} onChange={(e) => setF({ ...f, weekday: e.target.value })}><option value="">—</option>{WD.map((w) => <option key={w}>{w}</option>)}</select></Field>
         {mismatch && <p className="sm:col-span-2 rounded bg-red-50 p-2 text-sm text-red-700">The selected weekday ({f.weekday}) does not match the date ({wd}). <button className="underline" onClick={() => setF({ ...f, weekday: wd })}>Use {wd}</button></p>}
         {same.length > 0 && <p className="sm:col-span-2 rounded bg-amber-50 p-2 text-sm text-amber-800">⚠ Conflict: another session is already scheduled that day ({same.map((s) => s.presenter_name).join(', ')}).</p>}
-        <div className="sm:col-span-2"><Field label="Topic"><input className="input" disabled={d} value={f.topic} onChange={(e) => setF({ ...f, topic: e.target.value })} /></Field></div>
+        <Field label="Topic"><input className="input" disabled={d} value={f.topic} onChange={(e) => setF({ ...f, topic: e.target.value })} /></Field>
+        <Field label="Software"><select className="input" disabled={d} value={f.software} onChange={(e) => setF({ ...f, software: e.target.value })}><option value="">—</option>{SOFTWARES.map((s) => <option key={s}>{s}</option>)}</select></Field>
         <Field label="Meeting / recording link"><input className="input" disabled={d} placeholder="https://…" value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} /></Field>
         <Field label="Notes / outcome"><input className="input" disabled={d} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
       </div>

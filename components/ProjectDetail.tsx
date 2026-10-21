@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Building2, FileDown, ImagePlus, Trash2 } from 'lucide-react';
-import { api, fmtDate, fmtNum } from '@/lib/client';
+import { api, fmtDate, fmtDateTime, fmtNum } from '@/lib/client';
 import { canEditProject } from '@/lib/can';
 import { upcomingReels } from '@/lib/metrics';
 import { STATUSES, type Project, type Status } from '@/lib/types';
@@ -49,7 +49,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
     const { jsPDF } = await import('jspdf'); const autoTable = (await import('jspdf-autotable')).default;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     doc.setFontSize(16); doc.setTextColor(11, 37, 69); doc.text(p.name, 40, 50, { maxWidth: 515 });
-    doc.setFontSize(9); doc.setTextColor(100); doc.text(`ECG BIM Department Management Portal · exported ${new Date().toLocaleString('en-GB')}`, 40, 68);
+    doc.setFontSize(9); doc.setTextColor(100); doc.text(`ECG BIM Department Management Portal · exported ${fmtDateTime(new Date())}`, 40, 68);
     let y = 84;
     if (p.photo_id) { try { const b = await (await fetch(`/api/files/${p.photo_id}`)).blob(); const url: string = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result as string); fr.readAsDataURL(b); }); doc.addImage(url, 'JPEG', 40, y, 160, 110); y += 122; } catch {} }
     autoTable(doc, { startY: y, head: [['Field', 'Value']], theme: 'grid', headStyles: { fillColor: [15, 85, 168] }, body: [

@@ -1,10 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, Download, Maximize2, Minus, Plus, Search, UserPlus, ChevronsDownUp, ChevronsUpDown, ImagePlus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, Maximize2, Minus, Plus, Search, UserPlus, ChevronsDownUp, ChevronsUpDown, FileDown, ImagePlus, Trash2 } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { Badge, Confirm, Drawer, Empty, Field, Modal, PageHeader, StatusBadge, useToast } from '@/components/ui';
-import { api, resizeImage, saveBlob } from '@/lib/client';
+import { api, fmtDateTime, resizeImage, saveBlob } from '@/lib/client';
 import { chainToRoot } from '@/lib/metrics';
 import { CARD_H, CARD_W, descendants, layoutTree, type OrgMode } from '@/lib/orgLayout';
 import type { Employee } from '@/lib/types';
@@ -34,6 +34,12 @@ function Avatar({ e, size, className = '' }: { e: Employee; size: number; classN
   if (e.photo_id) return <img src={`/api/files/${e.photo_id}`} alt={`Photo of ${e.name}`} style={st} className={`shrink-0 rounded-xl bg-white object-cover ${className}`} />;
   return <span style={st} role="img" aria-label={`No photo for ${e.name}`} className={`flex shrink-0 items-center justify-center rounded-xl bg-slate-200/80 text-2xl font-bold text-slate-500 ${className}`}>{init}</span>;
 }
+const CV_MAX = 4 * 1024 * 1024;
+async function uploadCv(id: string, f: File) {
+  if (f.size > CV_MAX) throw new Error('The CV must be 4 MB or smaller');
+  if (!/\.(pdf|docx?)$/i.test(f.name)) throw new Error('Choose a PDF, DOC or DOCX file');
+  await api(`/api/employees/${id}/cv`, { raw: f, headers: { 'Content-Type': 'application/octet-stream', 'x-filename': encodeURIComponent(f.name) } });
+}
 async function uploadPhoto(id: string, f: File) {
   const blob = await resizeImage(f);
   await api(`/api/employees/${id}/photo`, { raw: blob, headers: { 'Content-Type': 'image/jpeg', 'x-filename': encodeURIComponent(f.name) } });
@@ -50,6 +56,8 @@ export default function OrgPage() {
   const [colorBy, setColorBy] = useState<'location' | 'role'>('location');
   const [view, setView] = useState({ x: 20, y: 20, k: 0.9 });
   const photoInput = useRef<HTMLInputElement>(null);
+  const cvInput = useRef<HTMLInputElement>(null);
+  const canOpenCv = me.role === 'admin' || me.role === 'bim_manager';
   const [editing, setEditing] = useState<Partial<Employee> & { _new?: boolean } | null>(null);
   const [confirmDeact, setConfirmDeact] = useState<Employee | null>(null);
   const vp = useRef<HTMLDivElement>(null); const content = useRef<HTMLDivElement>(null);
@@ -114,7 +122,7 @@ export default function OrgPage() {
       for (let i = 0; i < pages; i++) {
         if (i) pdf.addPage();
         pdf.setFontSize(14); pdf.setTextColor(11, 37, 69); pdf.text('ECG BIM Department — Organization Chart', 30, 28);
-        pdf.setFontSize(8); pdf.setTextColor(100); pdf.text(`Generated ${new Date().toLocaleString('en-GB')} · page ${i + 1} of ${pages}`, 30, 40);
+        pdf.setFontSize(8); pdf.setTextColor(100); pdf.text(`Generated ${fmtDateTime(new Date())} · page ${i + 1} of ${pages}`, 30, 40);
         const sy = i * pageH, sh = Math.min(pageH, H - sy);
         const c = document.createElement('canvas'); c.width = img.width; c.height = Math.max(1, Math.round(sh * px));
         const g = c.getContext('2d')!; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, Math.round(sy * px), img.width, c.height, 0, 0, c.width, c.height);
@@ -201,6 +209,18 @@ export default function OrgPage() {
                 {detail.photo_id && <button className="btn-secondary btn-sm" aria-label="Remove photo" onClick={async () => { try { await api(`/api/employees/${detail.id}/photo`, { method: 'DELETE' }); toast('Photo removed'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }}><Trash2 size={14} /></button>}
                 <input ref={photoInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={async (ev) => { const f = ev.target.files?.[0]; ev.target.value = ''; if (!f) return; try { await uploadPhoto(detail.id, f); toast('Photo saved'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
               </div>}</div>
+          </div>
+          <div className="rounded-lg border border-slate-200 p-3 text-sm">
+            <p className="label">CV</p>
+            {detail.cv_id ? <div className="flex flex-wrap items-center gap-2">
+                {canOpenCv ? <a className="btn-secondary btn-sm" href={`/api/files/${detail.cv_id}`} download={detail.cv_filename ?? undefined}><FileDown size={14} />Download CV</a> : <span className="text-slate-600">CV on file</span>}
+                <span className="min-w-0 truncate text-xs text-slate-500">{detail.cv_filename}</span></div>
+              : <p className="text-slate-500">No CV uploaded.</p>}
+            {admin && <div className="mt-2 flex flex-wrap gap-2">
+              <button className="btn-secondary btn-sm" onClick={() => cvInput.current?.click()}><ImagePlus size={14} />{detail.cv_id ? 'Replace CV' : 'Upload CV'}</button>
+              {detail.cv_id && <button className="btn-secondary btn-sm" aria-label="Remove CV" onClick={async () => { try { await api(`/api/employees/${detail.id}/cv`, { method: 'DELETE' }); toast('CV removed'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }}><Trash2 size={14} /></button>}
+              <input ref={cvInput} type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden onChange={async (ev) => { const f = ev.target.files?.[0]; ev.target.value = ''; if (!f) return; try { await uploadCv(detail.id, f); toast('CV saved'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
+              <span className="self-center text-xs text-slate-400">PDF, DOC or DOCX, up to 4 MB</span></div>}
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             {[['Employee ID', detail.employee_code ?? 'Not supplied'], ['Role', detail.job_title], ['Category', CAT_LABEL[detail.job_category]], ['Discipline', detail.discipline ?? '—'], ['Year (as supplied)', detail.year_value ?? '—'], ['Team location', detail.team_location ?? '—'],

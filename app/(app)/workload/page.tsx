@@ -5,7 +5,7 @@ import { useApp } from '@/components/store';
 import { FilterBar, filtersToText } from '@/components/FilterBar';
 import { ChartBox, Datum, HBar, StatusStack } from '@/components/charts';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, StatusBadge, Tip, useToast } from '@/components/ui';
-import { api, download, fmtNum } from '@/lib/client';
+import { api, download, fmtDateTime, fmtNum } from '@/lib/client';
 import { canEditProject } from '@/lib/can';
 import { PersonStats, imbalanceOf, personStats, simulateReassign, hasArea } from '@/lib/metrics';
 import { STATUSES, type Capacity, type Status } from '@/lib/types';
@@ -32,7 +32,7 @@ export default function WorkloadPage() {
     doc.setFontSize(15); doc.setTextColor(11, 37, 69); doc.text('BIM Team Workload Report', 36, 40);
     doc.setFontSize(8); doc.setTextColor(90);
     const capText = [cap.max_projects_per_manager && `max ${cap.max_projects_per_manager} active projects/manager`, cap.max_projects_per_coordinator && `max ${cap.max_projects_per_coordinator} active projects/coordinator`, cap.max_area_per_manager && `max area ${fmtNum(cap.max_area_per_manager)}/manager`, cap.max_area_per_coordinator && `max area ${fmtNum(cap.max_area_per_coordinator)}/coordinator`, cap.hours_per_project && cap.available_hours_per_person && `${cap.hours_per_project} h/project, ${cap.available_hours_per_person} h available`].filter(Boolean).join('; ') || 'NOT DEFINED — percentages are not shown, relative comparison only';
-    doc.text([`Calculated: ${new Date().toLocaleString('en-GB')}   ·   Projects included: ${projects.length}`, `Filters: ${filtersToText(filters, emp)}`, `Counted as active: ${cap.count_statuses.join(', ')}   ·   Capacity definition: ${capText}`, 'Assumptions: project count and built-up area are proxies for workload, not measured effort; each project counts once per person; area uses valid numeric values only.'], 36, 54, { maxWidth: 770 });
+    doc.text([`Calculated: ${fmtDateTime(new Date())}   ·   Projects included: ${projects.length}`, `Filters: ${filtersToText(filters, emp)}`, `Counted as active: ${cap.count_statuses.join(', ')}   ·   Capacity definition: ${capText}`, 'Assumptions: project count and built-up area are proxies for workload, not measured effort; each project counts once per person; area uses valid numeric values only.'], 36, 54, { maxWidth: 770 });
     let y = 100;
     for (const [title, l] of [['BIM Managers', mgrs], ['BIM Coordinators', coords]] as const) {
       autoTable(doc, { startY: y, head: [[title, 'ID', 'Assigned', 'In Prog.', 'Not Started', 'On Hold', 'Closed', 'Active', 'Area (unique)', 'No area', 'Reports', 'Capacity', 'Relative']], styles: { fontSize: 7 }, headStyles: { fillColor: [15, 85, 168] },
