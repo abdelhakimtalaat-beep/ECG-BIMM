@@ -3,6 +3,7 @@ import { handle, json, ok } from '@/lib/api';
 import { ApiError, requireUser } from '@/lib/auth';
 import { audit, one, q } from '@/lib/db';
 import { weekdayOf } from '@/lib/metrics';
+import { canChangeReelStatus, canEditReel } from '@/lib/rules';
 
 const patch = z.object({
   employee_id: z.string().uuid().nullable(), presenter_code: z.string().trim().max(40).nullable(), presenter_name: z.string().trim().min(1).max(120),
@@ -16,8 +17,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     const me = await requireUser(['admin', 'bim_manager', 'bim_coordinator']);
     const { id } = await ctx.params; z.string().uuid().parse(id);
     const b = patch.parse(await json(req));
-    const cur = await one<any>('select session_date::text d, weekday, presenter_name from reel_sessions where id=$1', [id]);
+    const cur = await one<any>('select session_date::text d, weekday, presenter_name, status from reel_sessions where id=$1', [id]);
     if (!cur) throw new ApiError(404, 'Session not found');
+    if (!canEditReel(me.role, cur.status)) throw new ApiError(403, 'Only the Administrator can edit a reel that is not Planned');
+    if (b.status !== undefined && b.status !== cur.status && !canChangeReelStatus(me.role)) throw new ApiError(403, 'Only the Administrator can change a reel status');
     const date = b.session_date ?? cur.d;
     const wd = weekdayOf(date);
     if (b.weekday && b.weekday !== wd) throw new ApiError(400, `${date} is a ${wd}, not ${b.weekday}`);

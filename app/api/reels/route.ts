@@ -3,6 +3,7 @@ import { handle, json, ok } from '@/lib/api';
 import { ApiError, requireUser } from '@/lib/auth';
 import { audit, one } from '@/lib/db';
 import { weekdayOf } from '@/lib/metrics';
+import { canChangeReelStatus, canEditReel } from '@/lib/rules';
 
 const reelBody = z.object({
   employee_id: z.string().uuid().nullish().transform((v) => v ?? null),
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
     const me = await requireUser(['admin', 'bim_manager', 'bim_coordinator']);
     const b = reelBody.parse(await json(req));
     const wd = checkReel(b);
+    if (!canChangeReelStatus(me.role)) b.status = 'Planned'; // only the Administrator sets other statuses
     const r = await one<{ id: string }>(`insert into reel_sessions(employee_id,presenter_code,presenter_name,weekday,session_date,topic,status,notes,link,software) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,
       [b.employee_id, b.presenter_code, b.presenter_name, wd, b.session_date, b.topic, b.status, b.notes, b.link, b.software]);
     await audit(null, me.email, 'create', 'reel', r!.id, `Added BIM Reel ${b.session_date} – ${b.presenter_name}`, undefined, b);

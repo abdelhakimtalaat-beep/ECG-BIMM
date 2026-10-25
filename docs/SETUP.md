@@ -90,4 +90,4 @@ Organization Chart page and can be downloaded only by administrators and BIM Man
 
 1. In Supabase > SQL Editor, run `db/migrations/004_employee_emails.sql` BEFORE deploying (adds `employees.email` and fills 21 e-mails). Reem Said has no employee record: add her under Org chart > Add employee (with her e-mail).
 2. Administration > Users > Add user: pick an engineer e-mail, choose a role and a temporary password.
-3. Permissions: Administrator = everything. BIM Manager = edits Projects (all projects, incl. Project No.) and BIM Reels, all other tabs read-only. BIM Coordinator = edits BIM Reels, all other tabs read-only. Viewer = read-only. Deleting reels/projects stays Administrator-only.
+3. Permissions: Administrator = everything (only he adds/imports projects and changes reel statuses). BIM Manager = edits only the projects where he is the assigned BIM Manager (not Project No.), and Planned BIM Reels; all other tabs read-only. BIM Coordinator = edits Planned BIM Reels only. Viewer = read-only. Deleting stays Administrator-only.

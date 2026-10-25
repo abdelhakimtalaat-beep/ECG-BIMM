@@ -27,7 +27,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const asg = useMemo(() => data.assignments.filter((a) => a.project_id === id), [data.assignments, id]);
   const mgrs = asg.filter((a) => a.role === 'manager'), coords = asg.filter((a) => a.role === 'coordinator'), members = asg.filter((a) => a.role === 'member');
   const scope = canEditProject(me, mgrs.map((a) => a.employee_id), [...coords, ...members].map((a) => a.employee_id));
-  const can = (f: string) => ({ full: ['project_no', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], manager: ['project_no', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
+  const can = (f: string) => ({ full: ['project_no', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], manager: ['name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
   const team = new Set(asg.map((a) => a.employee_id));
   const related = useMemo(() => upcomingReels(data.reels, today).filter((r) => r.employee_id && team.has(r.employee_id)), [data.reels, today, team]);
 

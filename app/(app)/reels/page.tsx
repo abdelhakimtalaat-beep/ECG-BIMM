@@ -6,7 +6,7 @@ import { FilterBar } from '@/components/FilterBar';
 import { ChartBox, Datum, HBar, VBar } from '@/components/charts';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, useToast } from '@/components/ui';
 import { api, download, fmtDate, fmtDateTime } from '@/lib/client';
-import { canEditReels } from '@/lib/can';
+import { canEditReels, canEditReel } from '@/lib/can';
 import { reelConflicts, reelStats, upcomingReels, incompleteReels, weekdayOf } from '@/lib/metrics';
 import { REEL_STATUSES, SOFTWARES, type Reel, type ReelStatus } from '@/lib/types';
 
@@ -17,7 +17,9 @@ const addDays = (s: string, n: number) => { const d = new Date(s + 'T00:00:00Z')
 
 export default function ReelsPage() {
   const { me, data, reels, today, refresh } = useApp(); const toast = useToast();
-  const admin = canEditReels(me); // BIM Managers and BIM Coordinators edit the plan too
+  const admin = canEditReels(me); // may add Planned reels
+  const isAdm = me.role === 'admin'; // only the Administrator changes status
+  const ed = (r: Reel) => canEditReel(me, r.status); // BIM Manager/Coordinator: Planned reels only
   const canDelete = me.role === 'admin';
   const [view, setView] = useState<'table' | 'calendar' | 'week' | 'month' | 'upcoming'>('table');
   const [cursor, setCursor] = useState(() => { const first = data.reels.find((r) => r.session_date >= today)?.session_date ?? data.reels[0]?.session_date ?? today; return first.slice(0, 7) + '-01'; });
@@ -60,12 +62,12 @@ export default function ReelsPage() {
       <tbody>{rows.map((r, i) => (
         <tr key={r.id} className={`border-t border-slate-100 ${i % 2 ? 'bg-amber-50/70' : 'bg-brand-50/70'}`}>
           <td className="td">{r.weekday}</td><td className="td whitespace-nowrap">{fmtDate(r.session_date)}</td>
-          <td className="td min-w-[14rem]">{admin ? <input className="input" defaultValue={r.topic ?? ''} placeholder="Add topic…" onBlur={(e) => e.target.value !== (r.topic ?? '') && quick(r, { topic: e.target.value || null })} aria-label={`Topic for ${r.presenter_name}`} /> : (r.topic ?? <span className="text-slate-400">—</span>)}</td>
-          <td className="td">{admin ? <select className="input w-32" value={r.software ?? ''} onChange={(e) => quick(r, { software: e.target.value || null })} aria-label={`Software for ${r.presenter_name}`}><option value="">—</option>{SOFTWARES.map((s) => <option key={s}>{s}</option>)}</select> : (r.software ?? <span className="text-slate-400">—</span>)}</td>
+          <td className="td min-w-[14rem]">{ed(r) ? <input className="input" defaultValue={r.topic ?? ''} placeholder="Add topic…" onBlur={(e) => e.target.value !== (r.topic ?? '') && quick(r, { topic: e.target.value || null })} aria-label={`Topic for ${r.presenter_name}`} /> : (r.topic ?? <span className="text-slate-400">—</span>)}</td>
+          <td className="td">{ed(r) ? <select className="input w-32" value={r.software ?? ''} onChange={(e) => quick(r, { software: e.target.value || null })} aria-label={`Software for ${r.presenter_name}`}><option value="">—</option>{SOFTWARES.map((s) => <option key={s}>{s}</option>)}</select> : (r.software ?? <span className="text-slate-400">—</span>)}</td>
           <td className="td font-medium">{r.presenter_name}{conflicts.has(r.id) && <span className="ml-1 cursor-help text-amber-600" title={conflicts.get(r.id)!.join('\n')}><AlertTriangle size={14} className="inline" /></span>}{!r.employee_id && <span title="Speaker is not in the org chart"> <Badge tone="amber">not in org chart</Badge></span>}</td>
-          <td className="td">{admin ? <select className="input w-36" value={r.status} onChange={(e) => quick(r, { status: e.target.value as ReelStatus })} aria-label={`Status for ${r.presenter_name}`}>{REEL_STATUSES.map((s) => <option key={s}>{s}</option>)}</select> : <Badge tone={TONE[r.status]}>{r.status}</Badge>}</td>
+          <td className="td">{isAdm ? <select className="input w-36" value={r.status} onChange={(e) => quick(r, { status: e.target.value as ReelStatus })} aria-label={`Status for ${r.presenter_name}`}>{REEL_STATUSES.map((s) => <option key={s}>{s}</option>)}</select> : <Badge tone={TONE[r.status]}>{r.status}</Badge>}</td>
           <td className="td text-xs">{r.link ? <a className="text-brand-600 underline" href={r.link} target="_blank" rel="noopener noreferrer">Open link</a> : <span className="text-slate-400">—</span>}</td>
-          <td className="td whitespace-nowrap">{admin ? <><button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>Edit</button> {canDelete && <button className="btn-ghost btn-sm text-red-600" onClick={() => setDel(r)}>Delete</button>}</> : <button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>View</button>}</td></tr>))}</tbody></table></div>);
+          <td className="td whitespace-nowrap">{ed(r) ? <><button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>Edit</button> {canDelete && <button className="btn-ghost btn-sm text-red-600" onClick={() => setDel(r)}>Delete</button>}</> : <button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>View</button>}</td></tr>))}</tbody></table></div>);
 
   return (
     <>
@@ -100,13 +102,13 @@ export default function ReelsPage() {
         <ChartBox title="Topic distribution" subtitle="Topics are blank in the source plan until filled in" height={Math.max(240, topicData.length * 26 + 60)}><HBar data={topicData} color="#4F8FDB" /></ChartBox>
       </div>
 
-      {edit && <ReelForm init={edit} admin={admin} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); refresh(); }} />}
+      {edit && <ReelForm init={edit} admin={!edit.id ? admin : ed(edit as Reel)} isAdm={isAdm} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); refresh(); }} />}
       <Confirm open={!!del} danger title="Delete session" confirmLabel="Delete" onClose={() => setDel(null)} message={<>Delete the session of <b>{del?.presenter_name}</b> on {del && fmtDate(del.session_date)}? To keep the history, mark it Cancelled instead.</>} onConfirm={async () => { try { await api(`/api/reels/${del!.id}`, { method: 'DELETE' }); toast('Deleted'); setDel(null); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
     </>
   );
 }
 
-function ReelForm({ init, admin, onClose, onSaved }: { init: Partial<Reel>; admin: boolean; onClose: () => void; onSaved: () => void }) {
+function ReelForm({ init, admin, isAdm, onClose, onSaved }: { init: Partial<Reel>; admin: boolean; isAdm: boolean; onClose: () => void; onSaved: () => void }) {
   const { data } = useApp(); const toast = useToast(); const isNew = !init.id;
   const [f, setF] = useState({ employee_id: init.employee_id ?? '', presenter_code: init.presenter_code ?? '', presenter_name: init.presenter_name ?? '', session_date: init.session_date ?? '', weekday: init.weekday ?? '', topic: init.topic ?? '', software: init.software ?? '', status: (init.status ?? 'Planned') as ReelStatus, notes: init.notes ?? '', link: init.link ?? '' });
   const wd = f.session_date ? weekdayOf(f.session_date) : '';
@@ -126,7 +128,7 @@ function ReelForm({ init, admin, onClose, onSaved }: { init: Partial<Reel>; admi
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Speaker (from org chart)"><select className="input" disabled={d} value={f.employee_id} onChange={(e) => pick(e.target.value)}><option value="">— other / not in org chart —</option>{data.employees.filter((e) => e.active).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></Field>
         <Field label="Speaker"><input className="input" disabled={d} value={f.presenter_name} onChange={(e) => setF({ ...f, presenter_name: e.target.value })} /></Field>
-        <Field label="Status"><select className="input" disabled={d} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as ReelStatus })}>{REEL_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></Field>
+        <Field label="Status" hint={isAdm ? undefined : 'Only the Administrator changes the status.'}><select className="input" disabled={d || !isAdm} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as ReelStatus })}>{REEL_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></Field>
         <Field label="Date"><input type="date" className="input" disabled={d} value={f.session_date} onChange={(e) => setF({ ...f, session_date: e.target.value, weekday: '' })} /></Field>
         <Field label="Weekday" hint={wd ? `This date is a ${wd}.` : undefined}><select className="input" disabled={d} value={f.weekday || wd} onChange={(e) => setF({ ...f, weekday: e.target.value })}><option value="">—</option>{WD.map((w) => <option key={w}>{w}</option>)}</select></Field>
         {mismatch && <p className="sm:col-span-2 rounded bg-red-50 p-2 text-sm text-red-700">The selected weekday ({f.weekday}) does not match the date ({wd}). <button className="underline" onClick={() => setF({ ...f, weekday: wd })}>Use {wd}</button></p>}
