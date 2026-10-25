@@ -8,7 +8,7 @@ export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) 
     const { id } = await ctx.params; z.string().uuid().parse(id);
     const a = await one<any>('select kind,mime,data,filename from attachments where id=$1', [id]);
     if (!a) throw new ApiError(404, 'File not found');
-    if (a.kind === 'employee_cv' && me.role !== 'admin' && me.role !== 'bim_manager') throw new ApiError(403, 'You do not have permission to open CVs');
+    if (a.kind === 'employee_cv' && me.role !== 'admin' && me.role !== 'bim_manager' && !(me.employee_id && await one('select 1 from employees where id=$1 and cv_id=$2', [me.employee_id, id]))) throw new ApiError(403, 'You do not have permission to open CVs');
     const isImage = String(a.mime).startsWith('image/');
     const safe = String(a.filename || 'file').replace(/[^\w.\- ]+/g, '_');
     const disposition = isImage ? 'inline' : `attachment; filename="${safe}"; filename*=UTF-8''${encodeURIComponent(String(a.filename || 'file'))}`;

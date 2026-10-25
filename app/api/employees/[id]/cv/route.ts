@@ -6,8 +6,9 @@ import { CV_MAX_BYTES, sniffCv } from '@/lib/files';
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handle(async () => {
-    const me = await requireUser(['admin']);
+    const me = await requireUser();
     const { id } = await ctx.params; z.string().uuid().parse(id);
+    if (me.role !== 'admin' && me.employee_id !== id) throw new ApiError(403, 'You can only upload your own data');
     const name = decodeURIComponent(req.headers.get('x-filename') || 'cv').replace(/[\\/\r\n"]/g, '_').slice(0, 120);
     const buf = Buffer.from(await req.arrayBuffer());
     if (buf.length > CV_MAX_BYTES) throw new ApiError(400, 'The CV must be 4 MB or smaller');

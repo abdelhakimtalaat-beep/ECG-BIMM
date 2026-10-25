@@ -57,7 +57,8 @@ export default function OrgPage() {
   const [view, setView] = useState({ x: 20, y: 20, k: 0.9 });
   const photoInput = useRef<HTMLInputElement>(null);
   const cvInput = useRef<HTMLInputElement>(null);
-  const canOpenCv = me.role === 'admin' || me.role === 'bim_manager';
+  const canOpenCv = (e: { id: string }) => me.role === 'admin' || me.role === 'bim_manager' || me.employee_id === e.id; // own CV always
+  const canUpload = (e: { id: string }) => admin || me.employee_id === e.id; // each engineer: own photo and CV
   const [editing, setEditing] = useState<Partial<Employee> & { _new?: boolean } | null>(null);
   const [confirmDeact, setConfirmDeact] = useState<Employee | null>(null);
   const vp = useRef<HTMLDivElement>(null); const content = useRef<HTMLDivElement>(null);
@@ -83,9 +84,8 @@ export default function OrgPage() {
     const el = vp.current; if (!el) return;
     const h = (e: WheelEvent) => {
       e.preventDefault();
-      if (!e.ctrlKey && !e.metaKey) { setView((v) => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY })); return; } // plain scroll moves the chart
       const r = el.getBoundingClientRect(); const mx = e.clientX - r.left, my = e.clientY - r.top;
-      setView((v) => { const k = Math.min(2.5, Math.max(0.15, v.k * (e.deltaY < 0 ? 1.12 : 1 / 1.12))); return { k, x: mx - ((mx - v.x) / v.k) * k, y: my - ((my - v.y) / v.k) * k }; });
+      setView((v) => { const k = Math.min(2.5, Math.max(0.15, v.k * (e.deltaY < 0 ? 1.1 : 1 / 1.1))); return { k, x: mx - ((mx - v.x) / v.k) * k, y: my - ((my - v.y) / v.k) * k }; });
     };
     el.addEventListener('wheel', h, { passive: false }); return () => el.removeEventListener('wheel', h);
   }, []);
@@ -138,7 +138,7 @@ export default function OrgPage() {
 
   return (
     <>
-      <PageHeader title="Department Organization Chart" subtitle="Generated from employee and reporting-relationship data. Scroll or drag to move, Ctrl + scroll to zoom, click a card for details."
+      <PageHeader title="Department Organization Chart" subtitle="Generated from employee and reporting-relationship data. Scroll the mouse wheel to zoom in and out, drag to move, click a card for details."
         actions={<>{admin && <button className="btn-primary" onClick={() => setEditing({ _new: true, job_category: 'bim_coordinator', reports_to: data.employees.find((e) => e.job_category === 'department_manager')?.id ?? null })}><UserPlus size={16} />Add employee</button>}
           <button className="btn-secondary" onClick={() => exportImg('png')}><Download size={16} />PNG</button><button className="btn-secondary" onClick={() => exportImg('pdf')}><Download size={16} />PDF</button></>} />
       <div className="card no-print mb-3 flex flex-wrap items-center gap-2 p-3">
@@ -150,7 +150,7 @@ export default function OrgPage() {
         <button className="btn-secondary btn-sm" onClick={() => zoom(1.2)} aria-label="Zoom in"><Plus size={14} /></button>
         <button className="btn-secondary btn-sm" onClick={() => zoom(1 / 1.2)} aria-label="Zoom out"><Minus size={14} /></button>
         <div className="inline-flex overflow-hidden rounded-lg border border-slate-300" role="group" aria-label="Chart layout">
-          {([['side', 'Left to right'], ['vertical', 'Vertical'], ['horizontal', 'Horizontal']] as const).map(([m, l]) => <button key={m} aria-pressed={mode === m} className={`px-3 py-1.5 text-sm ${mode === m ? 'bg-brand-700 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`} onClick={() => setMode(m)}>{l}</button>)}
+          {([['side', 'Vertical'], ['horizontal', 'Horizontal']] as const).map(([m, l]) => <button key={m} aria-pressed={mode === m} className={`px-3 py-1.5 text-sm ${mode === m ? 'bg-brand-700 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`} onClick={() => setMode(m)}>{l}</button>)}
         </div>
         <button className="btn-secondary btn-sm" onClick={fit}><Maximize2 size={14} />Fit width</button>
         <button className="btn-secondary btn-sm" onClick={fitAll}>Fit all</button>
@@ -204,21 +204,21 @@ export default function OrgPage() {
           <div className="flex items-center gap-4">
             <Avatar e={detail} size={120} />
             <div className="space-y-1"><p className="text-lg font-semibold">{detail.name}</p><p className="text-sm text-slate-600">{detail.job_title}</p>
-              {admin && <div className="flex flex-wrap gap-2 pt-1">
+              {canUpload(detail) && <div className="flex flex-wrap gap-2 pt-1">
                 <button className="btn-secondary btn-sm" onClick={() => photoInput.current?.click()}><ImagePlus size={14} />{detail.photo_id ? 'Replace photo' : 'Add photo'}</button>
-                {detail.photo_id && <button className="btn-secondary btn-sm" aria-label="Remove photo" onClick={async () => { try { await api(`/api/employees/${detail.id}/photo`, { method: 'DELETE' }); toast('Photo removed'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }}><Trash2 size={14} /></button>}
+                {admin && detail.photo_id && <button className="btn-secondary btn-sm" aria-label="Remove photo" onClick={async () => { try { await api(`/api/employees/${detail.id}/photo`, { method: 'DELETE' }); toast('Photo removed'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }}><Trash2 size={14} /></button>}
                 <input ref={photoInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={async (ev) => { const f = ev.target.files?.[0]; ev.target.value = ''; if (!f) return; try { await uploadPhoto(detail.id, f); toast('Photo saved'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
               </div>}</div>
           </div>
           <div className="rounded-lg border border-slate-200 p-3 text-sm">
             <p className="label">CV</p>
             {detail.cv_id ? <div className="flex flex-wrap items-center gap-2">
-                {canOpenCv ? <a className="btn-secondary btn-sm" href={`/api/files/${detail.cv_id}`} download={detail.cv_filename ?? undefined}><FileDown size={14} />Download CV</a> : <span className="text-slate-600">CV on file</span>}
+                {canOpenCv(detail) ? <a className="btn-secondary btn-sm" href={`/api/files/${detail.cv_id}`} download={detail.cv_filename ?? undefined}><FileDown size={14} />Download CV</a> : <span className="text-slate-600">CV on file</span>}
                 <span className="min-w-0 truncate text-xs text-slate-500">{detail.cv_filename}</span></div>
               : <p className="text-slate-500">No CV uploaded.</p>}
-            {admin && <div className="mt-2 flex flex-wrap gap-2">
+            {canUpload(detail) && <div className="mt-2 flex flex-wrap gap-2">
               <button className="btn-secondary btn-sm" onClick={() => cvInput.current?.click()}><ImagePlus size={14} />{detail.cv_id ? 'Replace CV' : 'Upload CV'}</button>
-              {detail.cv_id && <button className="btn-secondary btn-sm" aria-label="Remove CV" onClick={async () => { try { await api(`/api/employees/${detail.id}/cv`, { method: 'DELETE' }); toast('CV removed'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }}><Trash2 size={14} /></button>}
+              {admin && detail.cv_id && <button className="btn-secondary btn-sm" aria-label="Remove CV" onClick={async () => { try { await api(`/api/employees/${detail.id}/cv`, { method: 'DELETE' }); toast('CV removed'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }}><Trash2 size={14} /></button>}
               <input ref={cvInput} type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden onChange={async (ev) => { const f = ev.target.files?.[0]; ev.target.value = ''; if (!f) return; try { await uploadCv(detail.id, f); toast('CV saved'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
               <span className="self-center text-xs text-slate-400">PDF, DOC or DOCX, up to 4 MB</span></div>}
           </div>

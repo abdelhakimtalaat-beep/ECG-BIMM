@@ -6,8 +6,9 @@ import { sniffImage } from '@/lib/files';
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handle(async () => {
-    const me = await requireUser(['admin']);
+    const me = await requireUser();
     const { id } = await ctx.params; z.string().uuid().parse(id);
+    if (me.role !== 'admin' && me.employee_id !== id) throw new ApiError(403, 'You can only upload your own data');
     const buf = Buffer.from(await req.arrayBuffer());
     const mime = sniffImage(buf);
     if (!mime) throw new ApiError(400, 'Only PNG, JPEG or WebP images are accepted');
