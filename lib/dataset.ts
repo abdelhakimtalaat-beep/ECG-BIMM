@@ -3,7 +3,7 @@ import type { Dataset, Settings } from './types';
 
 export async function loadDataset(): Promise<Dataset> {
   const [employees, projects, assignments, reels, settingsRows, mappings, history] = await Promise.all([
-    q(`select e.id,e.employee_code,e.name,e.job_title,e.job_category,e.discipline,e.year_value,e.team_location,e.active,e.notes,e.photo_id,e.cv_id,(select a.filename from attachments a where a.id=e.cv_id) as cv_filename,
+    q(`select e.id,e.employee_code,e.name,e.job_title,e.job_category,e.discipline,e.year_value,e.team_location,e.active,e.notes,e.photo_id,e.cv_id,(select a.filename from attachments a where a.id=e.cv_id) as cv_filename,e.email,
               r.manager_id as reports_to
        from employees e left join reporting_relationships r on r.employee_id=e.id and r.valid_to is null
        order by e.name`),

@@ -14,6 +14,7 @@ const patch = z.object({
   year_value: z.number().int().min(1950).max(2100).nullable(),
   team_location: z.string().trim().max(20).nullable(),
   notes: z.string().max(2000).nullable(),
+  email: z.string().trim().toLowerCase().email().max(200).nullable().or(z.literal('').transform(() => null)),
   active: z.boolean(),
   reports_to: z.string().uuid().nullable(),
 }).partial();

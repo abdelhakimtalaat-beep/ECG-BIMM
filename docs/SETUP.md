@@ -85,3 +85,9 @@ alter table reel_sessions add column if not exists software text;
 
 CV files (PDF, DOC, DOCX, up to 4 MB) are uploaded by the Department Manager / Administrator from an employee's card on the
 Organization Chart page and can be downloaded only by administrators and BIM Managers.
+
+## Update: engineer e-mails, user selection and role permissions
+
+1. In Supabase > SQL Editor, run `db/migrations/004_employee_emails.sql` BEFORE deploying (adds `employees.email` and fills 21 e-mails). Reem Said has no employee record: add her under Org chart > Add employee (with her e-mail).
+2. Administration > Users > Add user: pick an engineer e-mail, choose a role and a temporary password.
+3. Permissions: Administrator = everything. BIM Manager = edits Projects (all projects, incl. Project No.) and BIM Reels, all other tabs read-only. BIM Coordinator = edits BIM Reels, all other tabs read-only. Viewer = read-only. Deleting reels/projects stays Administrator-only.

@@ -25,7 +25,7 @@ function checkReel(b: z.infer<typeof reelBody>) {
 }
 export async function POST(req: Request) {
   return handle(async () => {
-    const me = await requireUser(['admin']);
+    const me = await requireUser(['admin', 'bim_manager', 'bim_coordinator']);
     const b = reelBody.parse(await json(req));
     const wd = checkReel(b);
     const r = await one<{ id: string }>(`insert into reel_sessions(employee_id,presenter_code,presenter_name,weekday,session_date,topic,status,notes,link,software) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,

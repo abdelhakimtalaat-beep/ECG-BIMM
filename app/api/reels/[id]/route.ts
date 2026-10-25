@@ -13,7 +13,7 @@ const patch = z.object({
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handle(async () => {
-    const me = await requireUser(['admin']);
+    const me = await requireUser(['admin', 'bim_manager', 'bim_coordinator']);
     const { id } = await ctx.params; z.string().uuid().parse(id);
     const b = patch.parse(await json(req));
     const cur = await one<any>('select session_date::text d, weekday, presenter_name from reel_sessions where id=$1', [id]);

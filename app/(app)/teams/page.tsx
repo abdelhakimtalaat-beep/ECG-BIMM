@@ -41,7 +41,7 @@ export default function TeamsPage() {
   const dupes = useMemo(() => { const m = new Map<string, Project[]>(); for (const p of data.projects) { const k = p.name.toLowerCase().replace(/[^a-z0-9]/g, ''); m.set(k, [...(m.get(k) ?? []), p]); } return [...m.values()].filter((l) => l.length > 1 || data.assignments.filter((a) => a.project_id === l[0].id && a.role === 'manager').length > 1); }, [data]);
 
   const toggle = (id: string) => setOpen((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const canAssign = (p: Project) => me.role === 'admin' || (me.role === 'bim_manager' && data.assignments.some((a) => a.project_id === p.id && a.role === 'manager' && a.employee_id === me.employee_id));
+  const canAssign = (_p: Project) => me.role === 'admin'; // Teams tab is read-only except for the Administrator
   const chip = (p: Project) => (
     <span key={p.id} className="inline-flex items-center gap-1"><button onClick={() => setDetail(p.id)} className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:border-brand-400 hover:bg-brand-50" title={`${p.name} — ${p.status}`}><span className="h-2.5 w-2.5 rounded-full" style={{ background: STATUS_DOT[p.status] }} /><span className="max-w-[14rem] truncate">{p.project_no ? p.project_no + ' · ' : ''}{p.name}</span></button>
       {canAssign(p) && <button className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-brand-600" aria-label={`Manage assignments for ${p.name}`} onClick={() => setAssign(p.id)}><UserCog size={14} /></button>}</span>

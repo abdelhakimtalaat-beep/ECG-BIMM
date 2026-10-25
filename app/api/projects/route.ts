@@ -21,7 +21,7 @@ const projectBody = z.object({
 
 export async function POST(req: Request) {
   return handle(async () => {
-    const me = await requireUser(['admin']);
+    const me = await requireUser(['admin', 'bim_manager']);
     const b = projectBody.parse(await json(req));
     const id = await tx(async (c) => {
       const r = await c.query(`insert into projects(project_no,name,cde,type,built_up_area,status,status_source,notes,deltek_number,project_manager,technical_manager,client) values($1,$2,$3,$4,$5,$6,'manual',$7,$8,$9,$10,$11) returning id`,

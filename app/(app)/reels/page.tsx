@@ -6,6 +6,7 @@ import { FilterBar } from '@/components/FilterBar';
 import { ChartBox, Datum, HBar, VBar } from '@/components/charts';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, useToast } from '@/components/ui';
 import { api, download, fmtDate, fmtDateTime } from '@/lib/client';
+import { canEditReels } from '@/lib/can';
 import { reelConflicts, reelStats, upcomingReels, incompleteReels, weekdayOf } from '@/lib/metrics';
 import { REEL_STATUSES, SOFTWARES, type Reel, type ReelStatus } from '@/lib/types';
 
@@ -16,7 +17,8 @@ const addDays = (s: string, n: number) => { const d = new Date(s + 'T00:00:00Z')
 
 export default function ReelsPage() {
   const { me, data, reels, today, refresh } = useApp(); const toast = useToast();
-  const admin = me.role === 'admin';
+  const admin = canEditReels(me); // BIM Managers and BIM Coordinators edit the plan too
+  const canDelete = me.role === 'admin';
   const [view, setView] = useState<'table' | 'calendar' | 'week' | 'month' | 'upcoming'>('table');
   const [cursor, setCursor] = useState(() => { const first = data.reels.find((r) => r.session_date >= today)?.session_date ?? data.reels[0]?.session_date ?? today; return first.slice(0, 7) + '-01'; });
   const [weekStart, setWeekStart] = useState(() => { const d = new Date(today + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return iso(d); });
@@ -63,7 +65,7 @@ export default function ReelsPage() {
           <td className="td font-medium">{r.presenter_name}{conflicts.has(r.id) && <span className="ml-1 cursor-help text-amber-600" title={conflicts.get(r.id)!.join('\n')}><AlertTriangle size={14} className="inline" /></span>}{!r.employee_id && <span title="Speaker is not in the org chart"> <Badge tone="amber">not in org chart</Badge></span>}</td>
           <td className="td">{admin ? <select className="input w-36" value={r.status} onChange={(e) => quick(r, { status: e.target.value as ReelStatus })} aria-label={`Status for ${r.presenter_name}`}>{REEL_STATUSES.map((s) => <option key={s}>{s}</option>)}</select> : <Badge tone={TONE[r.status]}>{r.status}</Badge>}</td>
           <td className="td text-xs">{r.link ? <a className="text-brand-600 underline" href={r.link} target="_blank" rel="noopener noreferrer">Open link</a> : <span className="text-slate-400">—</span>}</td>
-          <td className="td whitespace-nowrap">{admin ? <><button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>Edit</button> <button className="btn-ghost btn-sm text-red-600" onClick={() => setDel(r)}>Delete</button></> : <button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>View</button>}</td></tr>))}</tbody></table></div>);
+          <td className="td whitespace-nowrap">{admin ? <><button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>Edit</button> {canDelete && <button className="btn-ghost btn-sm text-red-600" onClick={() => setDel(r)}>Delete</button>}</> : <button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>View</button>}</td></tr>))}</tbody></table></div>);
 
   return (
     <>

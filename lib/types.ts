@@ -11,7 +11,7 @@ export interface Employee {
   id: string; employee_code: string | null; name: string; job_title: string;
   job_category: 'department_manager' | 'bim_manager' | 'bim_coordinator' | 'bim_specialist' | 'rd_engineer' | 'other';
   discipline: string | null; year_value: number | null; team_location: string | null; active: boolean; notes: string | null;
-  reports_to: string | null; photo_id?: string | null; cv_id?: string | null; cv_filename?: string | null;
+  reports_to: string | null; photo_id?: string | null; cv_id?: string | null; cv_filename?: string | null; email?: string | null;
 }
 export interface Project {
   id: string; project_no: string | null; name: string; cde: string | null; type: string | null;

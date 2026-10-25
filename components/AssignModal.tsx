@@ -11,7 +11,7 @@ export function AssignModal({ projectId, onClose }: { projectId: string; onClose
   const p = data.projects.find((x) => x.id === projectId)!;
   const asg = data.assignments.filter((a) => a.project_id === projectId);
   const scope = canEditProject(me, asg.filter((a) => a.role === 'manager').map((a) => a.employee_id), asg.filter((a) => a.role !== 'manager').map((a) => a.employee_id));
-  const editable = (role: string) => (role === 'manager' ? scope === 'full' : scope === 'full' || scope === 'manager');
+  const editable = (_role: string) => scope === 'full'; // read-only except for the Administrator
   const [add, setAdd] = useState({ role: 'coordinator', employee_id: '', pkg: '' });
   const [conf, setConf] = useState<null | { kind: 'remove'; id: string; label: string } | { kind: 'replace'; role: 'manager' | 'coordinator'; from: string; to: string }>(null);
   const eligible = (role: string) => data.employees.filter((e) => e.active && (role === 'manager' ? ['bim_manager', 'department_manager'].includes(e.job_category) : true));

@@ -118,7 +118,7 @@ function Simulator({ stats, onApplied }: { stats: PersonStats[]; onApplied: () =
   const eligible = data.employees.filter((e) => e.active && (role === 'manager' ? ['bim_manager', 'department_manager'].includes(e.job_category) : true) && e.id !== fromId);
   const sim = pid && to ? simulateReassign(data, pid, role, fromId, to) : null;
   const scope = pid ? canEditProject(me, data.assignments.filter((a) => a.project_id === pid && a.role === 'manager').map((a) => a.employee_id), []) : 'none';
-  const allowed = role === 'manager' ? me.role === 'admin' : scope === 'full' || scope === 'manager';
+  const allowed = me.role === 'admin' && scope === 'full';
   const Row = ({ label, s }: { label: string; s: PersonStats | null }) => <tr className="border-t"><td className="td">{label}</td><td className="td">{s?.projects ?? 0}</td><td className="td">{s?.active ?? 0}</td><td className="td">{fmtNum(s?.area ?? 0)}</td><td className="td">{s?.capacityPct != null ? s.capacityPct + '%' : s?.relative != null ? s.relative.toFixed(2) + '×' : '—'}</td></tr>;
   const name = (id: string | null) => (id ? emp.get(id)?.name : '(nobody)');
   return (

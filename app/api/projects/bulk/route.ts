@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   return handle(async () => {
     const me = await requireUser();
     const b = z.object({ ids: z.array(z.string().uuid()).min(1).max(500), status: z.enum(['Not Started', 'In Progress', 'On Hold', 'Closed']), reason: z.string().max(500).optional(), confirm: z.literal(true) }).parse(await json(req));
-    for (const id of b.ids) { const s = await projectScope(me, id); if (s !== 'full' && s !== 'manager') throw new ApiError(403, 'You can only change the status of projects you manage'); }
+    for (const id of b.ids) { const s = await projectScope(me, id); if (s !== 'full' && s !== 'manager') throw new ApiError(403, 'You do not have permission to change project statuses'); }
     const changed = await tx(async (c) => {
       let n = 0;
       for (const id of b.ids) {

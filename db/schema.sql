@@ -29,11 +29,14 @@ create table if not exists employees (
   notes         text,
   photo_id      uuid,                             -- attachments.id of the profile photo (optional)
   cv_id         uuid,                             -- attachments.id of the uploaded CV (optional)
+  email         text,                             -- work e-mail; also the sign-in name of the employee's portal user
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
 alter table employees add column if not exists photo_id uuid;
-alter table employees add column if not exists cv_id uuid;   -- upgrades databases created before photos existed
+alter table employees add column if not exists cv_id uuid;
+alter table employees add column if not exists email text;
+create unique index if not exists employees_email_uq on employees (lower(email)) where email is not null;   -- upgrades databases created before photos existed
 
 create table if not exists employee_aliases (     -- spellings found in other sources
   id          uuid primary key default gen_random_uuid(),

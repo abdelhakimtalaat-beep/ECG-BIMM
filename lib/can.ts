@@ -1,11 +1,10 @@
-// Client-side mirror of the server rules, used only to show/hide controls.
+// Client-side mirror of the server rules (lib/rules.ts), used only to show/hide controls.
 import type { Me } from './types';
-export const isAdmin = (u: Me | null) => u?.role === 'admin';
-export const canManageData = (u: Me | null) => u?.role === 'admin';
-export function canEditProject(u: Me | null, managerIds: string[], coordIds: string[]): 'full' | 'manager' | 'coordinator' | 'none' {
-  if (!u) return 'none';
-  if (u.role === 'admin') return 'full';
-  if (u.employee_id && u.role === 'bim_manager' && managerIds.includes(u.employee_id)) return 'manager';
-  if (u.employee_id && (u.role === 'bim_coordinator' || u.role === 'bim_manager') && coordIds.includes(u.employee_id)) return 'coordinator';
-  return 'none';
+import { canCreateProject as _cp, canEditReels as _er, isAdminRole, projectScopeFor } from './rules.ts';
+export const isAdmin = (u: Me | null) => isAdminRole(u?.role);
+export const canManageData = isAdmin;
+export const canCreateProjects = (u: Me | null) => _cp(u?.role);
+export const canEditReels = (u: Me | null) => _er(u?.role);
+export function canEditProject(u: Me | null, _managerIds?: string[], _coordIds?: string[]): 'full' | 'manager' | 'coordinator' | 'none' {
+  return projectScopeFor(u?.role);
 }
