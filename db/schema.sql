@@ -215,6 +215,29 @@ create table if not exists data_issues (
   resolved_at timestamptz
 );
 
+-- Tasks tab
+create table if not exists task_areas (
+  id          uuid primary key default gen_random_uuid(),
+  manager_id  uuid not null references employees(id) on delete cascade,
+  project_id  uuid not null references projects(id) on delete cascade,
+  created_by  text,
+  created_at  timestamptz not null default now(),
+  unique (manager_id, project_id)
+);
+create table if not exists tasks (
+  id          uuid primary key default gen_random_uuid(),
+  area_id     uuid not null references task_areas(id) on delete cascade,
+  title       text not null,
+  start_date  date,
+  due_date    date,
+  assignee_id uuid references employees(id) on delete set null,
+  status      text not null default 'Not Started' check (status in ('Not Started','In Progress','On Hold','Completed')),
+  created_by  text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists tasks_area_idx on tasks(area_id);
+
 -- ------------------------------------------------------------------ security
 -- The Next.js server is the only database client and enforces roles in code.
 -- Row level security is switched on with no policies so that the Supabase anon /
@@ -223,7 +246,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;

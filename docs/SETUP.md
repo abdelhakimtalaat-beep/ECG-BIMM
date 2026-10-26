@@ -97,3 +97,6 @@ Run `db/migrations/005_workload_factors.sql` in the Supabase SQL Editor BEFORE d
 
 ## Update: Villas and BIM Standards
 Run `db/migrations/007_bim_standards.sql` before deploying. Workload now = Built-up area x Typicality x Function x Coordination x BIM Standards; projects need all four factors set to show a workload.
+
+## Update: Tasks tab
+Run `db/migrations/008_tasks.sql` in the Supabase SQL Editor BEFORE deploying (creates `task_areas` and `tasks`). The Tasks tab shows one area per BIM Manager. The BIM Manager (and the BIM Coordinators assigned to his projects) add and track tasks (Start date, Due date, Assignee, Status); only the BIM Manager or the Administrator adds/removes the project sub-areas. Everyone else can view.

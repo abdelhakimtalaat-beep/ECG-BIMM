@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import clsx from 'clsx';
-import { LayoutDashboard, Network, FolderKanban, Users, Gauge, CalendarDays, Settings, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Network, FolderKanban, Users, Gauge, CalendarDays, Settings, ListChecks, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown } from 'lucide-react';
 import { api, roleLabel } from '@/lib/client';
 import { useApp } from './store';
 import { Field, Modal, useToast } from './ui';
@@ -14,6 +14,7 @@ const NAV = [
   { href: '/projects', label: 'Projects Portfolio', short: 'Projects', icon: FolderKanban },
   { href: '/teams', label: 'BIM Teams & Project Assignments', short: 'Teams & Assignments', icon: Users },
   { href: '/workload', label: 'BIM Team Workload', short: 'Workload', icon: Gauge },
+  { href: '/tasks', label: 'BIM Manager Tasks', short: 'Tasks', icon: ListChecks },
   { href: '/reels', label: 'Weekly BIM Reels Plan', short: 'BIM Reels', icon: CalendarDays },
 ];
 

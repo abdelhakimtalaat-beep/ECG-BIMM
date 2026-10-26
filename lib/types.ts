@@ -35,8 +35,10 @@ export interface Capacity {
 export interface Settings { capacity: Capacity; alerts: { reel_reminder_days: number; outlier_area: number } }
 export interface StatusMapping { id: string; source_status: string; activity_flag: string; target_status: Status; note: string | null }
 export interface HistoryRow { project_id: string; old_status: Status | null; new_status: Status; changed_at: string; changed_by: string | null }
+export interface TaskArea { id: string; manager_id: string; project_id: string }
+export interface Task { id: string; area_id: string; title: string; start_date: string | null; due_date: string | null; assignee_id: string | null; status: string; created_at: string; updated_at: string }
 export interface Dataset {
-  employees: Employee[]; projects: Project[]; assignments: Assignment[]; reels: Reel[];
+  employees: Employee[]; projects: Project[]; assignments: Assignment[]; reels: Reel[]; task_areas?: TaskArea[]; tasks?: Task[];
   settings: Settings; mappings: StatusMapping[]; history: HistoryRow[];
 }
 export interface Me { id: string; email: string; full_name: string | null; role: Role; employee_id: string | null }
