@@ -42,3 +42,8 @@ test('BIM Coordinator edits assigned projects like a BIM Manager', () => {
   assert.equal(projectScopeFor('bim_coordinator', true), 'manager');
   assert.equal(projectScopeFor('bim_coordinator', false), 'none');
 });
+
+test('workload factors are editable by those who can edit the project; Project No. stays admin-only', () => {
+  assert.ok(PROJECT_FIELDS.manager.includes('typicality') && PROJECT_FIELDS.manager.includes('function_type') && PROJECT_FIELDS.manager.includes('coordination_type'));
+  assert.ok(!PROJECT_FIELDS.manager.includes('project_no'));
+});

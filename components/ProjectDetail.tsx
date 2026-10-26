@@ -28,7 +28,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const asg = useMemo(() => data.assignments.filter((a) => a.project_id === id), [data.assignments, id]);
   const mgrs = asg.filter((a) => a.role === 'manager'), coords = asg.filter((a) => a.role === 'coordinator'), members = asg.filter((a) => a.role === 'member');
   const scope = canEditProject(me, mgrs.map((a) => a.employee_id), coords.map((a) => a.employee_id));
-  const can = (f: string) => ({ full: ['project_no', 'typicality', 'function_type', 'coordination_type', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], manager: ['name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
+  const can = (f: string) => ({ full: ['project_no', 'typicality', 'function_type', 'coordination_type', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], manager: ['typicality', 'function_type', 'coordination_type', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
   const team = new Set(asg.map((a) => a.employee_id));
   const related = useMemo(() => upcomingReels(data.reels, today).filter((r) => r.employee_id && team.has(r.employee_id)), [data.reels, today, team]);
 
@@ -81,7 +81,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
           <Field label="Project Manager">{inp('project_manager')}</Field><Field label="Technical Manager">{inp('technical_manager')}</Field>
           <Field label="CDE">{inp('cde')}</Field><Field label="Type">{inp('type')}</Field>
           <Field label="Built-up area" hint={p.area_note ? `Source: ${p.area_raw} — ${p.area_note}` : undefined}>{inp('built_up_area', 'number')}</Field>
-          <div className="col-span-2 mt-1 border-t border-slate-200 pt-3"><p className="text-sm font-semibold text-brand-900">Workload Factors</p>{!can('typicality') && <p className="text-xs text-slate-500">Filled by the Administrator.</p>}</div>
+          <div className="col-span-2 mt-1 border-t border-slate-200 pt-3"><p className="text-sm font-semibold text-brand-900">Workload Factors</p>{!can('typicality') && <p className="text-xs text-slate-500">View only — you can edit the factors of projects you are assigned to.</p>}</div>
           {([['typicality', 'Typicality', TYPICALITY_OPTIONS, TYPICALITY], ['function_type', 'Function', FUNCTION_OPTIONS, FUNCTION_TYPES], ['coordination_type', 'Coordination', COORDINATION_OPTIONS, COORDINATION]] as const).map(([k, label, opts, fac]) => (
             <Field key={k} label={label}><select className="input" disabled={!can(k)} value={(k in E ? E[k] : (p as any)[k]) ?? ''} onChange={(e) => setEdit({ ...E, [k]: e.target.value })}>
               <option value="">— not set —</option>{opts.map((o) => <option key={o} value={o}>{o} ({(fac as any)[o]})</option>)}</select></Field>))}

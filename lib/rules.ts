@@ -21,7 +21,7 @@ export const canChangeReelStatus = (role: RoleName | undefined | null) => role =
 /** Org chart, team assignments, workload settings, imports, users: administrator only. */
 export const isAdminRole = (role: RoleName | undefined | null) => role === 'admin';
 
-const ADMIN_ONLY = ['project_no', 'typicality', 'function_type', 'coordination_type']; // Project No. and the Workload Factors
+const ADMIN_ONLY = ['project_no']; // the Workload Factors are editable by everyone who can edit the project
 const ALL = ['project_no', 'typicality', 'function_type', 'coordination_type', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'];
 export const PROJECT_FIELDS: Record<Scope, string[]> = {
   full: ALL,

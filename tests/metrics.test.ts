@@ -196,8 +196,8 @@ test('workload strip: width follows load, default when not calculated', () => {
 });
 test('workload formula: area x typicality x function x coordination', () => {
   assert.equal(projectWorkload({ built_up_area: 10000, typicality: 'Low Typical', function_type: 'Hospital', coordination_type: 'Design Review' }), 10000 * 0.8 * 1.3 * 0.2);
-  assert.equal(projectWorkload({ built_up_area: 42000, typicality: 'No Typical', function_type: 'Residential', coordination_type: 'Internal Coordination' }), 42000);
-  assert.equal(projectWorkload({ built_up_area: 42000, typicality: 'No Typical', function_type: 'Residential', coordination_type: null }), null);
-  assert.equal(projectWorkload({ built_up_area: null, typicality: 'No Typical', function_type: 'Residential', coordination_type: 'Internal Coordination' }), null);
+  assert.equal(projectWorkload({ built_up_area: 42000, typicality: 'No Typical', function_type: 'Residential/Offices/Mixed Use', coordination_type: 'Internal Coordination' }), 42000);
+  assert.equal(projectWorkload({ built_up_area: 42000, typicality: 'No Typical', function_type: 'Residential/Offices/Mixed Use', coordination_type: null }), null);
+  assert.equal(projectWorkload({ built_up_area: null, typicality: 'No Typical', function_type: 'Residential/Offices/Mixed Use', coordination_type: 'Internal Coordination' }), null);
   assert.equal(projectWorkload({ built_up_area: 1000, typicality: 'High Typical', function_type: 'Landscape', coordination_type: 'Design Review' }), 8);
 });
