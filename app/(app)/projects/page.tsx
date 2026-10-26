@@ -71,7 +71,7 @@ function Inner() {
         <button className="btn-primary btn-sm" disabled={!bulk} onClick={() => setConfirmBulk(true)}>Apply</button><button className="btn-ghost btn-sm" onClick={() => setSel(new Set())}>Clear selection</button></div>}
 
       {!projects.length ? <Empty title="No projects match" hint="Adjust or reset the filters." /> : view === 'table'
-        ? <DataTable rows={sorted} cols={cols} rowKey={(p) => p.id} onRow={(p) => open(p.id)} selectable={me.role === 'admin' || me.role === 'bim_manager'} selected={sel} onSelect={setSel} pageSize={25} />
+        ? <DataTable rows={sorted} cols={cols} rowKey={(p) => p.id} onRow={(p) => open(p.id)} selectable={me.role !== 'viewer'} selected={sel} onSelect={setSel} pageSize={25} />
         : <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{sorted.slice(0, 60).map((p) => (
             <button key={p.id} onClick={() => open(p.id)} className="card overflow-hidden text-left transition hover:shadow-lg"><ProjectPhoto project={p} className="h-36 w-full" />
               <div className="space-y-2 p-4"><div className="flex items-start justify-between gap-2"><h3 className="font-semibold leading-snug text-brand-900">{p.name}</h3><StatusBadge status={p.status} className="shrink-0" /></div>

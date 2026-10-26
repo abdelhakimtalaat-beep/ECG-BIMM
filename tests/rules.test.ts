@@ -4,7 +4,7 @@ import { projectScopeFor, canCreateProject, canEditReels, isAdminRole, PROJECT_F
 
 test('project scope: admin full, manager only if assigned, others none', () => {
   assert.equal(projectScopeFor('admin'), 'full');
-  assert.equal(projectScopeFor('bim_coordinator', true), 'none');
+  
   assert.equal(projectScopeFor('viewer'), 'none');
   assert.equal(projectScopeFor(undefined), 'none');
   assert.equal(PROJECT_FIELDS.coordinator.length, 0);
@@ -30,4 +30,15 @@ test('reels: managers/coordinators edit Planned only; status is admin-only', () 
   assert.equal(canEditReel('viewer', 'Planned'), false);
   assert.equal(canChangeReelStatus('bim_manager'), false);
   assert.equal(canChangeReelStatus('admin'), true);
+});
+
+test('BIM Coordinator edits assigned projects like a BIM Manager', () => {
+  assert.equal(projectScopeFor('bim_coordinator', true), 'manager');
+  assert.equal(projectScopeFor('bim_coordinator', false), 'none');
+  assert.equal(projectScopeFor('viewer', true), 'none');
+});
+
+test('BIM Coordinator edits assigned projects like a BIM Manager', () => {
+  assert.equal(projectScopeFor('bim_coordinator', true), 'manager');
+  assert.equal(projectScopeFor('bim_coordinator', false), 'none');
 });
