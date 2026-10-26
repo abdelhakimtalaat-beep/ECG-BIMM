@@ -15,7 +15,7 @@ export async function loadDataset(): Promise<Dataset> {
     q(`select id,source_status,activity_flag,target_status,note from status_mappings order by source_status,activity_flag`),
     q(`select project_id,old_status,new_status,changed_at,changed_by from project_status_history order by changed_at`),
     q(`select id,manager_id,project_id from task_areas`),
-    q(`select id,area_id,title,start_date::text as start_date,due_date::text as due_date,assignee_id,status,created_at,updated_at from tasks order by due_date nulls last, created_at`),
+    q(`select id,area_id,title,start_date::text as start_date,due_date::text as due_date,assignee_id,status,comment,created_at,updated_at from tasks order by due_date nulls last, created_at`),
   ]);
   const s: any = {};
   for (const r of settingsRows) s[r.key] = r.value;

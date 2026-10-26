@@ -231,7 +231,8 @@ create table if not exists tasks (
   start_date  date,
   due_date    date,
   assignee_id uuid references employees(id) on delete set null,
-  status      text not null default 'Not Started' check (status in ('Not Started','In Progress','On Hold','Completed')),
+  status      text not null default 'Not Started' check (status in ('Not Started','In Progress','Pending','Completed')),
+  comment     text,
   created_by  text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()

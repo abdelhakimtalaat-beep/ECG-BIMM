@@ -108,3 +108,6 @@ Setup (no IT needed): use a Gmail account as the sender.
 2. Open https://myaccount.google.com/apppasswords, create an app password named "ECG Portal" (16 characters).
 3. In Vercel > Project > Settings > Environment Variables add: `SMTP_USER` = the Gmail address, `SMTP_PASS` = the app password, optional `SMTP_FROM_NAME` = `ECG BIM Portal`.
 4. Redeploy. Without these variables notifications are simply off. Engineers need their e-mail in the Org chart (already added).
+
+## Update: task templates, Pending status, comment, overdue alarm
+Run `db/migrations/009_task_pending_comment.sql` in Supabase BEFORE deploying (renames On Hold to Pending, adds the comment column).

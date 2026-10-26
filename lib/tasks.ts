@@ -1,7 +1,10 @@
 // Tasks tab rules (pure; used by the API and the UI, unit tested).
 //   Each BIM Manager has an area. He (and the BIM Coordinators assigned to his projects) edit its tasks; the Administrator edits all.
 //   Only the BIM Manager (or the Administrator) adds/removes the project sub-areas of his area. Everyone else reads.
-export const TASK_STATUSES = ['Not Started', 'In Progress', 'On Hold', 'Completed'] as const;
+export const TASK_STATUSES = ['Not Started', 'In Progress', 'Pending', 'Completed'] as const;
+export const TASK_TEMPLATES = ['Prepare BEP', 'Update BEP', 'MIDP', 'P-Info', 'Coordination Section', 'Clash Report', 'Visual Review'] as const;
+/** A Pending task must say why. */
+export const commentMissing = (status: string, comment: string | null | undefined) => status === 'Pending' && !(comment ?? '').trim();
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export interface AsgRow { project_id: string; employee_id: string; role: string }
 

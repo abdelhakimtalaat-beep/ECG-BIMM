@@ -1,13 +1,13 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, FolderPlus, Pencil, Plus, Trash2 } from 'lucide-react';
+import { BellRing, ChevronDown, ChevronRight, FolderPlus, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, StatusBadge, useToast } from '@/components/ui';
 import { api, fmtDate } from '@/lib/client';
-import { TASK_STATUSES, canEditTasks, canManageSubAreas, isOverdue, managedProjectIds, taskStats } from '@/lib/tasks';
+import { TASK_STATUSES, TASK_TEMPLATES, canEditTasks, commentMissing, canManageSubAreas, isOverdue, managedProjectIds, taskStats } from '@/lib/tasks';
 import type { Task } from '@/lib/types';
 
-const TONE: Record<string, 'gray' | 'blue' | 'amber' | 'green'> = { 'Not Started': 'gray', 'In Progress': 'blue', 'On Hold': 'amber', Completed: 'green' };
+const TONE: Record<string, 'gray' | 'blue' | 'amber' | 'green'> = { 'Not Started': 'gray', 'In Progress': 'blue', Pending: 'amber', Completed: 'green' };
 
 export default function TasksPage() {
   const { me, data, emp, refresh, today } = useApp(); const toast = useToast();
@@ -32,17 +32,22 @@ export default function TasksPage() {
   const [delTask, setDelTask] = useState<Task | null>(null);
   const [delArea, setDelArea] = useState<string | null>(null);
 
+  const overdue = tasks.filter((t) => isOverdue(t, today));
+  const myOverdue = overdue.filter((t) => t.assignee_id && t.assignee_id === me.employee_id).length;
   const shown = managers.filter((m) => who === 'all' || m.id === who);
   const toggle = (id: string) => setOpen((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const visible = (t: Task) => (status === 'all' || t.status === status) && (assignee === 'all' || (assignee === 'none' ? !t.assignee_id : t.assignee_id === assignee));
+  const visible = (t: Task) => (status === 'all' || (status === 'overdue' ? isOverdue(t, today) : t.status === status)) && (assignee === 'all' || (assignee === 'none' ? !t.assignee_id : t.assignee_id === assignee));
   const call = async (fn: () => Promise<any>, msg?: string) => { try { await fn(); if (msg) toast(msg); await refresh(); } catch (e: any) { toast(e.message, 'err'); } };
 
   return (
     <div className="space-y-4">
       <PageHeader title="BIM Manager Tasks" subtitle="Each BIM Manager has an area. He adds his projects; he and his BIM Coordinators add and track the tasks. Everyone else can view." />
+      {overdue.length > 0 && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+        <BellRing size={18} className="shrink-0" /><span><b>{overdue.length} task{overdue.length === 1 ? ' is' : 's are'} overdue</b>{myOverdue > 0 && <> — <b>{myOverdue}</b> assigned to you</>}. Their due date has passed and they are not completed.</span>
+        <button className="btn-secondary btn-sm ml-auto" onClick={() => { setStatus(status === 'overdue' ? 'all' : 'overdue'); setWho('all'); }}>{status === 'overdue' ? 'Show all tasks' : 'Show overdue tasks'}</button></div>}
       <div className="card flex flex-wrap items-end gap-3 p-3">
         <Field label="BIM Manager"><select className="input w-52" value={who} onChange={(e) => setWho(e.target.value)}><option value="all">All BIM Managers</option>{managers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></Field>
-        <Field label="Status"><select className="input w-40" value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">All statuses</option>{TASK_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></Field>
+        <Field label="Status"><select className="input w-40" value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">All statuses</option>{TASK_STATUSES.map((s) => <option key={s}>{s}</option>)}<option value="overdue">⚠ Overdue only</option></select></Field>
         <Field label="Assignee"><select className="input w-48" value={assignee} onChange={(e) => setAssignee(e.target.value)}><option value="all">Everyone</option><option value="none">Unassigned</option>{data.employees.filter((e) => e.active).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></Field>
         {me.employee_id && <button className="btn-secondary" onClick={() => setAssignee(assignee === me.employee_id ? 'all' : me.employee_id!)}>{assignee === me.employee_id ? 'Show everyone' : 'My tasks'}</button>}
       </div>
@@ -53,7 +58,7 @@ export default function TasksPage() {
         const st = taskStats(all, today);
         const editor = canEditTasks(me.role, me.employee_id, m.id, data.assignments);
         const manage = canManageSubAreas(me.role, me.employee_id, m.id);
-        const isOpen = open.has(m.id) || who !== 'all';
+        const isOpen = open.has(m.id) || who !== 'all' || status === 'overdue';
         return (
           <section key={m.id} className="card overflow-hidden">
             <button className="flex w-full flex-wrap items-center gap-3 bg-brand-50 px-4 py-3 text-left" onClick={() => toggle(m.id)} aria-expanded={isOpen}>
@@ -77,14 +82,15 @@ export default function TasksPage() {
                       </span>
                     </div>
                     {!rows.length ? <p className="p-3 text-sm text-slate-500">No tasks{status !== 'all' || assignee !== 'all' ? ' match the filters' : ' yet'}.</p> : (
-                      <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{['Task', 'Assignee', 'Start date', 'Due date', 'Status', ''].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
+                      <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{['Task', 'Assignee', 'Start date', 'Due date', 'Status', 'Comment', ''].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
                         <tbody>{rows.map((t) => { const late = isOverdue(t, today); return (
-                          <tr key={t.id} className="border-t border-slate-100">
+                          <tr key={t.id} className={`border-t border-slate-100 ${late ? 'bg-red-50/60' : ''}`}>
                             <td className="td min-w-[14rem] font-medium">{t.title}</td>
                             <td className="td whitespace-nowrap">{t.assignee_id ? emp.get(t.assignee_id)?.name ?? '—' : <span className="text-slate-400">Unassigned</span>}</td>
                             <td className="td whitespace-nowrap">{t.start_date ? fmtDate(t.start_date) : '—'}</td>
-                            <td className={`td whitespace-nowrap ${late ? 'font-semibold text-red-600' : ''}`}>{t.due_date ? fmtDate(t.due_date) : '—'}{late && <span className="ml-1 text-xs">overdue</span>}</td>
-                            <td className="td">{editor ? <select className="input w-36" value={t.status} aria-label={`Status of ${t.title}`} onChange={(e) => call(() => api(`/api/tasks/${t.id}`, { method: 'PATCH', body: { status: e.target.value } }))}>{TASK_STATUSES.map((s) => <option key={s}>{s}</option>)}</select> : <Badge tone={TONE[t.status] ?? 'gray'}>{t.status}</Badge>}</td>
+                            <td className={`td whitespace-nowrap ${late ? 'font-semibold text-red-600' : ''}`}>{t.due_date ? fmtDate(t.due_date) : '—'}{late && <span className="ml-1 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-xs font-medium text-white"><BellRing size={11} />overdue</span>}</td>
+                            <td className="td">{editor ? <select className="input w-36" value={t.status} aria-label={`Status of ${t.title}`} onChange={(e) => e.target.value === 'Pending' && commentMissing('Pending', t.comment) ? setTaskForm({ area_id: a.id, task: { ...t, status: 'Pending' } }) : call(() => api(`/api/tasks/${t.id}`, { method: 'PATCH', body: { status: e.target.value } }))}>{TASK_STATUSES.map((s) => <option key={s}>{s}</option>)}</select> : <Badge tone={TONE[t.status] ?? 'gray'}>{t.status}</Badge>}</td>
+                            <td className="td max-w-[16rem] text-xs text-slate-600" title={t.comment ?? ''}><span className="line-clamp-2">{t.comment ?? ''}</span></td>
                             <td className="td whitespace-nowrap">{editor && <><button className="btn-ghost btn-sm" aria-label="Edit task" onClick={() => setTaskForm({ area_id: a.id, task: t })}><Pencil size={14} /></button><button className="btn-ghost btn-sm text-red-600" aria-label="Delete task" onClick={() => setDelTask(t)}><Trash2 size={14} /></button></>}</td>
                           </tr>); })}</tbody></table></div>)}
                   </div>);
@@ -114,18 +120,23 @@ function AddArea({ managerId, onClose, onDone }: { managerId: string; onClose: (
 
 function TaskForm({ area_id, task, onClose, onDone }: { area_id: string; task?: Task; onClose: () => void; onDone: () => void }) {
   const { data, emp } = useApp(); const toast = useToast();
-  const [f, setF] = useState({ title: task?.title ?? '', start_date: task?.start_date ?? '', due_date: task?.due_date ?? '', assignee_id: task?.assignee_id ?? '', status: task?.status ?? 'Not Started' });
+  const isTpl = (TASK_TEMPLATES as readonly string[]).includes(task?.title ?? '');
+  const [preset, setPreset] = useState<string>(task ? (isTpl ? task.title : '__other') : '');
+  const [f, setF] = useState({ comment: task?.comment ?? '', title: task?.title ?? '', start_date: task?.start_date ?? '', due_date: task?.due_date ?? '', assignee_id: task?.assignee_id ?? '', status: task?.status ?? 'Not Started' });
   const area = (data.task_areas ?? []).find((a) => a.id === area_id);
   const team = new Set(data.assignments.filter((a) => a.project_id === area?.project_id).map((a) => a.employee_id));
   const act = data.employees.filter((e) => e.active || e.id === f.assignee_id);
+  const title = (preset === '__other' ? f.title : preset).trim();
+  const needC = commentMissing(f.status, f.comment);
   const bad = !!f.start_date && !!f.due_date && f.due_date < f.start_date;
   const save = async () => {
-    const body = { title: f.title, start_date: f.start_date || null, due_date: f.due_date || null, assignee_id: f.assignee_id || null, status: f.status };
+    const body = { comment: f.comment.trim() || null, title, start_date: f.start_date || null, due_date: f.due_date || null, assignee_id: f.assignee_id || null, status: f.status };
     try { const r: any = task ? await api(`/api/tasks/${task.id}`, { method: 'PATCH', body }) : await api('/api/tasks', { body: { ...body, area_id } }); toast(r?.mail === 'sent' ? 'Saved — assignee notified by e-mail' : r?.mail === 'failed' ? 'Saved, but the e-mail could not be sent' : r?.mail === 'off' ? 'Saved — e-mail notifications are not set up yet (SMTP_USER / SMTP_PASS)' : r?.mail === 'skipped' ? 'Saved — no e-mail sent (no assignee, or the assignee has no e-mail address)' : 'Saved'); onDone(); } catch (e: any) { toast(e.message, 'err'); }
   };
-  return <Modal open onClose={onClose} title={task ? 'Edit task' : 'Add task'} footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!f.title.trim() || bad} onClick={save}>Save</button></>}>
+  return <Modal open onClose={onClose} title={task ? 'Edit task' : 'Add task'} footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!title || bad || needC} onClick={save}>Save</button></>}>
     <div className="grid grid-cols-2 gap-3">
-      <div className="col-span-2"><Field label="Task"><input className="input" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field></div>
+      <div className="col-span-2"><Field label="Task"><select className="input" value={preset} onChange={(e) => setPreset(e.target.value)}><option value="">— choose a task —</option>{TASK_TEMPLATES.map((t) => <option key={t}>{t}</option>)}<option value="__other">Other (type a new task)…</option></select></Field>
+        {preset === '__other' && <input className="input mt-2" autoFocus placeholder="Type the task name" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />}</div>
       <Field label="Start date"><input type="date" className="input" value={f.start_date} onChange={(e) => setF({ ...f, start_date: e.target.value })} /></Field>
       <Field label="Due date"><input type="date" className="input" value={f.due_date} onChange={(e) => setF({ ...f, due_date: e.target.value })} /></Field>
       {bad && <p className="col-span-2 rounded bg-red-50 p-2 text-sm text-red-700">The due date is before the start date.</p>}
@@ -133,6 +144,7 @@ function TaskForm({ area_id, task, onClose, onDone }: { area_id: string; task?: 
         <optgroup label="Project team">{act.filter((e) => team.has(e.id)).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</optgroup>
         <optgroup label="Other engineers">{act.filter((e) => !team.has(e.id)).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</optgroup></select></Field>
       <Field label="Status"><select className="input" value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}>{TASK_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></Field>
+      <div className="col-span-2"><Field label={f.status === 'Pending' ? 'Comment (required for Pending) *' : 'Comment'} hint={needC ? 'Explain why the task is pending.' : undefined}><textarea rows={3} className={`input ${needC ? 'border-red-400' : ''}`} value={f.comment} onChange={(e) => setF({ ...f, comment: e.target.value })} /></Field></div>
     </div>
   </Modal>;
 }

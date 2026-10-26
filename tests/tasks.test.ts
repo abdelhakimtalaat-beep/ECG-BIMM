@@ -27,3 +27,11 @@ test('overdue and stats', () => {
   assert.equal(isOverdue(t[1], '2026-10-26'), false);
   assert.deepEqual(taskStats(t, '2026-10-26'), { total: 4, done: 1, open: 3, overdue: 1 });
 });
+
+import { TASK_STATUSES, TASK_TEMPLATES, commentMissing } from '../lib/tasks.ts';
+test('Pending replaces On Hold; Pending needs a comment; templates', () => {
+  assert.ok(TASK_STATUSES.includes('Pending' as any) && !TASK_STATUSES.includes('On Hold' as any));
+  assert.equal(commentMissing('Pending', ''), true); assert.equal(commentMissing('Pending', '  '), true); assert.equal(commentMissing('Pending', null), true);
+  assert.equal(commentMissing('Pending', 'waiting for client'), false); assert.equal(commentMissing('In Progress', ''), false);
+  assert.deepEqual([...TASK_TEMPLATES], ['Prepare BEP', 'Update BEP', 'MIDP', 'P-Info', 'Coordination Section', 'Clash Report', 'Visual Review']);
+});
