@@ -100,3 +100,11 @@ Run `db/migrations/007_bim_standards.sql` before deploying. Workload now = Built
 
 ## Update: Tasks tab
 Run `db/migrations/008_tasks.sql` in the Supabase SQL Editor BEFORE deploying (creates `task_areas` and `tasks`). The Tasks tab shows one area per BIM Manager. The BIM Manager (and the BIM Coordinators assigned to his projects) add and track tasks (Start date, Due date, Assignee, Status); only the BIM Manager or the Administrator adds/removes the project sub-areas. Everyone else can view.
+
+## Update: e-mail notifications and Outlook calendar invitations
+When a task is assigned/changed, or a BIM Reel is planned, the assignee/speaker receives an e-mail with a calendar invitation (.ics). Outlook shows it as an invitation; one click adds it to the calendar. Changes and deletions send an update/cancellation, so the calendar entry follows.
+Setup (no IT needed): use a Gmail account as the sender.
+1. Google Account > Security > turn on 2-Step Verification.
+2. Open https://myaccount.google.com/apppasswords, create an app password named "ECG Portal" (16 characters).
+3. In Vercel > Project > Settings > Environment Variables add: `SMTP_USER` = the Gmail address, `SMTP_PASS` = the app password, optional `SMTP_FROM_NAME` = `ECG BIM Portal`.
+4. Redeploy. Without these variables notifications are simply off. Engineers need their e-mail in the Org chart (already added).

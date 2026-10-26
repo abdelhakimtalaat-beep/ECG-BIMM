@@ -118,8 +118,8 @@ function ReelForm({ init, admin, isAdm, onClose, onSaved }: { init: Partial<Reel
   const save = async () => {
     try {
       const body = { employee_id: f.employee_id || null, presenter_code: f.presenter_code || null, presenter_name: f.presenter_name, session_date: f.session_date, weekday: f.weekday || wd, topic: f.topic || null, software: f.software || null, status: f.status, notes: f.notes || null, link: f.link || null };
-      if (isNew) await api('/api/reels', { body }); else await api(`/api/reels/${init.id}`, { method: 'PATCH', body });
-      toast('Saved'); onSaved();
+      const r: any = isNew ? await api('/api/reels', { body }) : await api(`/api/reels/${init.id}`, { method: 'PATCH', body });
+      toast(r?.mail === 'sent' ? 'Saved — speaker notified by e-mail' : r?.mail === 'failed' ? 'Saved, but the e-mail could not be sent' : 'Saved'); onSaved();
     } catch (e: any) { toast(e.message, 'err'); }
   };
   const d = !admin;

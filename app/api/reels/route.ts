@@ -4,6 +4,7 @@ import { ApiError, requireUser } from '@/lib/auth';
 import { audit, one } from '@/lib/db';
 import { weekdayOf } from '@/lib/metrics';
 import { canChangeReelStatus, canEditReel } from '@/lib/rules';
+import { reelInvite, safe } from '@/lib/notify';
 
 const reelBody = z.object({
   employee_id: z.string().uuid().nullish().transform((v) => v ?? null),
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
     const r = await one<{ id: string }>(`insert into reel_sessions(employee_id,presenter_code,presenter_name,weekday,session_date,topic,status,notes,link,software) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,
       [b.employee_id, b.presenter_code, b.presenter_name, wd, b.session_date, b.topic, b.status, b.notes, b.link, b.software]);
     await audit(null, me.email, 'create', 'reel', r!.id, `Added BIM Reel ${b.session_date} – ${b.presenter_name}`, undefined, b);
-    return ok({ id: r!.id }, 201);
+    const mail = await safe(() => reelInvite({ id: r!.id, employee_id: b.employee_id, session_date: b.session_date, topic: b.topic, software: b.software, link: b.link, status: b.status, presenter_name: b.presenter_name }));
+    return ok({ id: r!.id, mail }, 201);
   });
 }
