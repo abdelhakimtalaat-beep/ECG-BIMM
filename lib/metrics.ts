@@ -279,3 +279,17 @@ export function distinct(values: (string | null)[]): string[] {
 export function fmtArea(n: number): string {
   return Math.round(n).toLocaleString('en-US');
 }
+
+/** Workload strip: pixels per m² so the busiest row (sum of areas + default squares for projects without area) is about `target` px wide. */
+export const DEFAULT_SQ = 24, MIN_SQ = 6;
+export function matrixScale(rows: { projects: { built_up_area?: number | null }[] }[], target = 900) {
+  const area = (p: { built_up_area?: number | null }) => (p.built_up_area && p.built_up_area > 0 ? Number(p.built_up_area) : 0);
+  let k = Infinity;
+  for (const r of rows) {
+    const sumA = r.projects.reduce((s, p) => s + area(p), 0);
+    const fixed = r.projects.filter((p) => !area(p)).length * DEFAULT_SQ + r.projects.length * 4; // missing-area squares + gaps
+    if (sumA > 0) k = Math.min(k, Math.max(target - fixed, target * 0.3) / sumA);
+  }
+  return Number.isFinite(k) ? k : 0;
+}
+export const squareWidth = (p: { built_up_area?: number | null }, k: number) => (p.built_up_area && p.built_up_area > 0 && k > 0 ? Math.max(MIN_SQ, Math.round(Number(p.built_up_area) * k)) : DEFAULT_SQ);

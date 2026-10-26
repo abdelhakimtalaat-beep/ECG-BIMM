@@ -183,3 +183,14 @@ test('project filters: Deltek number, Project Manager, Technical Manager and Cli
   assert.equal(ids({ q: 'acme' }), 'a');                    // free-text search also covers client
   assert.equal(ids({ q: 'd-200' }), 'b');                   // ...and the Deltek number
 });
+
+import { matrixScale, squareWidth, DEFAULT_SQ } from '../lib/metrics.ts';
+test('workload strip: width follows area, default when area missing', () => {
+  const rows = [{ projects: [{ built_up_area: 10000 }, { built_up_area: 30000 }, { built_up_area: null }] }, { projects: [{ built_up_area: 5000 }] }];
+  const k = matrixScale(rows);
+  assert.ok(k > 0);
+  assert.equal(squareWidth({ built_up_area: null }, k), DEFAULT_SQ);
+  assert.ok(squareWidth({ built_up_area: 30000 }, k) > 2.9 * squareWidth({ built_up_area: 10000 }, k));
+  assert.equal(matrixScale([{ projects: [{ built_up_area: null }] }]), 0);
+  assert.equal(squareWidth({ built_up_area: 10000 }, 0), DEFAULT_SQ);
+});
