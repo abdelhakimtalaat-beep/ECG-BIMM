@@ -88,7 +88,16 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
         {edit && <div className="flex gap-2"><button className="btn-primary" disabled={busy} onClick={save}>Save changes</button><button className="btn-secondary" onClick={() => setEdit(null)}>Discard</button></div>}
         {scope === 'none' && <p className="text-xs text-slate-500">You have view-only access to this project.</p>}
 
-        <div className="grid grid-cols-2 gap-3 text-sm"><div><p className="label">BIM Manager</p>{names(mgrs)}</div><div><p className="label">BIM Coordinator</p>{names(coords)}</div>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          {([['manager', 'BIM Manager', mgrs], ['coordinator', 'BIM Coordinator', coords]] as const).map(([role, label, cur]) => (
+            <div key={role}><p className="label">{label}</p>
+              {me.role === 'admin' && cur.length <= 1
+                ? <select className="input" aria-label={label} value={cur[0]?.employee_id ?? ''} onChange={async (ev) => { try { await api(`/api/projects/${p.id}/team`, { method: 'PUT', body: { role, employee_id: ev.target.value || null } }); toast(`${label} updated`); refresh(); load(); } catch (e: any) { toast(e.message, 'err'); } }}>
+                    <option value="">— none —</option>
+                    {data.employees.filter((e) => (e.active || e.id === cur[0]?.employee_id) && (role === 'coordinator' || ['bim_manager', 'department_manager'].includes(e.job_category))).sort((x, y) => x.name.localeCompare(y.name)).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                  </select>
+                : <>{names(cur)}{me.role === 'admin' && <p className="text-xs text-slate-500">Several assigned — manage in the Teams tab.</p>}</>}
+            </div>))}
           {members.length > 0 && <div className="col-span-2"><p className="label">Other team members</p>{names(members)}</div>}</div>
 
         <div><p className="label">Status history</p>{!extra ? <p className="text-sm text-slate-500">Loading…</p> : extra.history.length ? <ul className="space-y-1 text-sm">{extra.history.map((h, i) => <li key={i} className="flex flex-wrap gap-x-2 border-l-2 border-brand-200 pl-3"><span className="text-slate-500">{fmtDate(h.changed_at)}</span><span>{h.old_status ? `${h.old_status} → ` : ''}<b>{h.new_status}</b></span><span className="text-xs text-slate-500">{h.changed_by}{h.reason ? ` · ${h.reason}` : ''}</span></li>)}</ul> : <p className="text-sm text-slate-500">No history.</p>}</div>
