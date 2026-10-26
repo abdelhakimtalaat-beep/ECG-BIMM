@@ -121,7 +121,7 @@ function TaskForm({ area_id, task, onClose, onDone }: { area_id: string; task?: 
   const bad = !!f.start_date && !!f.due_date && f.due_date < f.start_date;
   const save = async () => {
     const body = { title: f.title, start_date: f.start_date || null, due_date: f.due_date || null, assignee_id: f.assignee_id || null, status: f.status };
-    try { const r: any = task ? await api(`/api/tasks/${task.id}`, { method: 'PATCH', body }) : await api('/api/tasks', { body: { ...body, area_id } }); toast(r?.mail === 'sent' ? 'Saved — assignee notified by e-mail' : r?.mail === 'failed' ? 'Saved, but the e-mail could not be sent' : 'Saved'); onDone(); } catch (e: any) { toast(e.message, 'err'); }
+    try { const r: any = task ? await api(`/api/tasks/${task.id}`, { method: 'PATCH', body }) : await api('/api/tasks', { body: { ...body, area_id } }); toast(r?.mail === 'sent' ? 'Saved — assignee notified by e-mail' : r?.mail === 'failed' ? 'Saved, but the e-mail could not be sent' : r?.mail === 'off' ? 'Saved — e-mail notifications are not set up yet (SMTP_USER / SMTP_PASS)' : r?.mail === 'skipped' ? 'Saved — no e-mail sent (no assignee, or the assignee has no e-mail address)' : 'Saved'); onDone(); } catch (e: any) { toast(e.message, 'err'); }
   };
   return <Modal open onClose={onClose} title={task ? 'Edit task' : 'Add task'} footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!f.title.trim() || bad} onClick={save}>Save</button></>}>
     <div className="grid grid-cols-2 gap-3">
