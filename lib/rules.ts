@@ -22,7 +22,7 @@ export const canChangeReelStatus = (role: RoleName | undefined | null) => role =
 export const isAdminRole = (role: RoleName | undefined | null) => role === 'admin';
 
 const ADMIN_ONLY = ['project_no']; // the Workload Factors are editable by everyone who can edit the project
-const ALL = ['project_no', 'typicality', 'function_type', 'coordination_type', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'];
+const ALL = ['project_no', 'typicality', 'function_type', 'coordination_type', 'bim_standards', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'];
 export const PROJECT_FIELDS: Record<Scope, string[]> = {
   full: ALL,
   manager: ALL.filter((f) => !ADMIN_ONLY.includes(f)),

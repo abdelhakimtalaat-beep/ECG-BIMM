@@ -94,3 +94,6 @@ Organization Chart page and can be downloaded only by administrators and BIM Man
 
 ## Update: Workload Factors
 Run `db/migrations/005_workload_factors.sql` in the Supabase SQL Editor BEFORE deploying. Then, in a project's details, the Administrator, and BIM Managers/Coordinators on their assigned projects, set Typicality, Function and Coordination; also run `db/migrations/006_rename_residential.sql` (renames Residential to Residential/Offices/Mixed Use); Workload = Built-up area x Typicality x Function x Coordination (shown in the project, the Projects table and the Teams > Matrix strip). Until all three factors and the area are set, the workload shows "not calculated".
+
+## Update: Villas and BIM Standards
+Run `db/migrations/007_bim_standards.sql` before deploying. Workload now = Built-up area x Typicality x Function x Coordination x BIM Standards; projects need all four factors set to show a workload.

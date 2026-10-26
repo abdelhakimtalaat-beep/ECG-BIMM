@@ -194,10 +194,11 @@ test('workload strip: width follows load, default when not calculated', () => {
   assert.ok(squareWidth({ load: 30000 }, k) > 2.9 * squareWidth({ load: 10000 }, k));
   assert.equal(matrixScale([{ projects: [{ load: null }] }]), 0);
 });
-test('workload formula: area x typicality x function x coordination', () => {
-  assert.equal(projectWorkload({ built_up_area: 10000, typicality: 'Low Typical', function_type: 'Hospital', coordination_type: 'Design Review' }), 10000 * 0.8 * 1.3 * 0.2);
-  assert.equal(projectWorkload({ built_up_area: 42000, typicality: 'No Typical', function_type: 'Residential/Offices/Mixed Use', coordination_type: 'Internal Coordination' }), 42000);
-  assert.equal(projectWorkload({ built_up_area: 42000, typicality: 'No Typical', function_type: 'Residential/Offices/Mixed Use', coordination_type: null }), null);
-  assert.equal(projectWorkload({ built_up_area: null, typicality: 'No Typical', function_type: 'Residential/Offices/Mixed Use', coordination_type: 'Internal Coordination' }), null);
-  assert.equal(projectWorkload({ built_up_area: 1000, typicality: 'High Typical', function_type: 'Landscape', coordination_type: 'Design Review' }), 8);
+test('workload formula: area x typicality x function x coordination x BIM standards', () => {
+  const b = { built_up_area: 10000, typicality: 'Low Typical', function_type: 'Hospital', coordination_type: 'Design Review', bim_standards: 'Aggressive Standards' };
+  assert.equal(projectWorkload(b), Math.round(10000 * 0.8 * 1.3 * 0.2 * 1.3 * 100) / 100);
+  assert.equal(projectWorkload({ ...b, bim_standards: null }), null);
+  assert.equal(projectWorkload({ ...b, bim_standards: 'Normal Standards', function_type: 'Villas', typicality: 'No Typical', coordination_type: 'Internal Coordination' }), 6000);
+  assert.equal(projectWorkload({ ...b, function_type: 'Landscape', bim_standards: 'No Standards', typicality: 'High Typical' }), Math.round(10000 * 0.4 * 0.1 * 0.2 * 0.8 * 100) / 100);
+  assert.equal(projectWorkload({ ...b, built_up_area: null }), null);
 });
