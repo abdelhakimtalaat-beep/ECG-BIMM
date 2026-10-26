@@ -9,5 +9,5 @@ export async function assertTaskEditor(me: Me, managerId: string) {
   if (!canEditTasks(me.role, me.employee_id, managerId, me.role === 'bim_coordinator' ? await loadAsg() : [])) throw new ApiError(403, 'Only this BIM Manager, his BIM Coordinators or the Administrator can change these tasks');
 }
 export function assertSubAreaManager(me: Me, managerId: string) {
-  if (!canManageSubAreas(me.role, me.employee_id, managerId)) throw new ApiError(403, 'Only this BIM Manager or the Administrator can add or remove sub-areas');
+  if (!canManageSubAreas(me.role, me.employee_id, managerId)) throw new ApiError(403, 'Only this BIM Manager or the Administrator can add or remove projects');
 }

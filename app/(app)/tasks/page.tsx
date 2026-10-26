@@ -39,7 +39,7 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="BIM Manager Tasks" subtitle="Each BIM Manager has an area. He adds his projects as sub-areas; he and his BIM Coordinators add and track the tasks. Everyone else can view." />
+      <PageHeader title="BIM Manager Tasks" subtitle="Each BIM Manager has an area. He adds his projects; he and his BIM Coordinators add and track the tasks. Everyone else can view." />
       <div className="card flex flex-wrap items-end gap-3 p-3">
         <Field label="BIM Manager"><select className="input w-52" value={who} onChange={(e) => setWho(e.target.value)}><option value="all">All BIM Managers</option>{managers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></Field>
         <Field label="Status"><select className="input w-40" value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">All statuses</option>{TASK_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></Field>
@@ -59,12 +59,12 @@ export default function TasksPage() {
             <button className="flex w-full flex-wrap items-center gap-3 bg-brand-50 px-4 py-3 text-left" onClick={() => toggle(m.id)} aria-expanded={isOpen}>
               {isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
               <span className="text-base font-semibold text-brand-900">{m.name}</span>
-              <span className="text-xs text-slate-500">{myAreas.length} sub-area{myAreas.length === 1 ? '' : 's'}</span>
+              <span className="text-xs text-slate-500">{myAreas.length} project{myAreas.length === 1 ? '' : 's'}</span>
               <span className="ml-auto flex flex-wrap gap-2 text-xs"><Badge tone="blue">{st.open} open</Badge>{st.overdue > 0 && <Badge tone="red">{st.overdue} overdue</Badge>}<Badge tone="green">{st.done} done</Badge></span>
             </button>
             {isOpen && <div className="space-y-4 p-4">
-              {manage && <div><button className="btn-secondary btn-sm" onClick={() => setAddArea(m.id)}><FolderPlus size={14} />Add project as sub-area</button></div>}
-              {!myAreas.length && <p className="text-sm text-slate-500">No sub-areas yet.{manage ? ' Add one of your projects to start tracking tasks.' : ''}</p>}
+              {manage && <div><button className="btn-secondary btn-sm" onClick={() => setAddArea(m.id)}><FolderPlus size={14} />Add project</button></div>}
+              {!myAreas.length && <p className="text-sm text-slate-500">No projects yet.{manage ? ' Add one of your projects to start tracking tasks.' : ''}</p>}
               {myAreas.map((a) => {
                 const p = pById.get(a.project_id); const rows = tasks.filter((t) => t.area_id === a.id && visible(t));
                 return (
@@ -73,7 +73,7 @@ export default function TasksPage() {
                       <b className="text-sm text-brand-800">{p?.project_no ? `${p.project_no} · ` : ''}{p?.name ?? 'Project'}</b>{p && <StatusBadge status={p.status} />}
                       <span className="ml-auto flex gap-2">
                         {editor && <button className="btn-primary btn-sm" onClick={() => setTaskForm({ area_id: a.id })}><Plus size={14} />Add task</button>}
-                        {manage && <button className="btn-ghost btn-sm text-red-600" aria-label="Remove sub-area" onClick={() => setDelArea(a.id)}><Trash2 size={14} /></button>}
+                        {manage && <button className="btn-ghost btn-sm text-red-600" aria-label="Remove project" onClick={() => setDelArea(a.id)}><Trash2 size={14} /></button>}
                       </span>
                     </div>
                     {!rows.length ? <p className="p-3 text-sm text-slate-500">No tasks{status !== 'all' || assignee !== 'all' ? ' match the filters' : ' yet'}.</p> : (
@@ -96,7 +96,7 @@ export default function TasksPage() {
       {addArea && <AddArea managerId={addArea} onClose={() => setAddArea(null)} onDone={async () => { setAddArea(null); await refresh(); }} />}
       {taskForm && <TaskForm {...taskForm} onClose={() => setTaskForm(null)} onDone={async () => { setTaskForm(null); await refresh(); }} />}
       <Confirm open={!!delTask} title="Delete task" message={`Delete "${delTask?.title}"?`} confirmLabel="Delete" danger onClose={() => setDelTask(null)} onConfirm={() => { const t = delTask!; setDelTask(null); call(() => api(`/api/tasks/${t.id}`, { method: 'DELETE' }), 'Task deleted'); }} />
-      <Confirm open={!!delArea} title="Remove sub-area" message={`Remove this project from the area? Its ${tasks.filter((t) => t.area_id === delArea).length} task(s) will be deleted too.`} confirmLabel="Remove" danger onClose={() => setDelArea(null)} onConfirm={() => { const id = delArea!; setDelArea(null); call(() => api(`/api/task-areas/${id}`, { method: 'DELETE' }), 'Sub-area removed'); }} />
+      <Confirm open={!!delArea} title="Remove project" message={`Remove this project from the area? Its ${tasks.filter((t) => t.area_id === delArea).length} task(s) will be deleted too.`} confirmLabel="Remove" danger onClose={() => setDelArea(null)} onConfirm={() => { const id = delArea!; setDelArea(null); call(() => api(`/api/task-areas/${id}`, { method: 'DELETE' }), 'Project removed'); }} />
     </div>
   );
 }
@@ -105,10 +105,10 @@ function AddArea({ managerId, onClose, onDone }: { managerId: string; onClose: (
   const { data } = useApp(); const toast = useToast(); const [pid, setPid] = useState('');
   const used = new Set((data.task_areas ?? []).filter((a) => a.manager_id === managerId).map((a) => a.project_id));
   const opts = managedProjectIds(managerId, data.assignments).filter((id) => !used.has(id)).map((id) => data.projects.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p).sort((a, b) => (a.project_no ?? '').localeCompare(b.project_no ?? ''));
-  const save = async () => { try { await api('/api/task-areas', { body: { manager_id: managerId, project_id: pid } }); toast('Sub-area added'); onDone(); } catch (e: any) { toast(e.message, 'err'); } };
-  return <Modal open onClose={onClose} title="Add project as sub-area" footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!pid} onClick={save}>Add</button></>}>
+  const save = async () => { try { await api('/api/task-areas', { body: { manager_id: managerId, project_id: pid } }); toast('Project added'); onDone(); } catch (e: any) { toast(e.message, 'err'); } };
+  return <Modal open onClose={onClose} title="Add project" footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!pid} onClick={save}>Add</button></>}>
     <Field label="Project (one of this BIM Manager's projects)"><select className="input" value={pid} onChange={(e) => setPid(e.target.value)}><option value="">— select —</option>{opts.map((p) => <option key={p.id} value={p.id}>{p.project_no ? `${p.project_no} · ` : ''}{p.name}</option>)}</select></Field>
-    {!opts.length && <p className="mt-2 text-sm text-slate-500">All of this BIM Manager's projects are already sub-areas.</p>}
+    {!opts.length && <p className="mt-2 text-sm text-slate-500">All of this BIM Manager's projects are already added.</p>}
   </Modal>;
 }
 
