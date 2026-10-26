@@ -8,6 +8,7 @@ import { Badge, Col, DataTable, Empty, Field, Modal, PageHeader, StatusBadge, us
 import { ProjectDetail, ProjectPhoto } from '@/components/ProjectDetail';
 import { ImportWizard } from '@/components/ImportWizard';
 import { api, download, fmtDate, fmtNum } from '@/lib/client';
+import { projectWorkload } from '@/lib/workload';
 import { hasArea, totalArea } from '@/lib/metrics';
 import { STATUSES, type Project, type Status } from '@/lib/types';
 
@@ -46,6 +47,7 @@ function Inner() {
     { key: 'client', header: 'Client', render: (p) => <span className="block max-w-[14rem] truncate" title={p.client ?? ''}>{p.client ?? '—'}</span>, sort: (p) => (p.client ?? '').toLowerCase(), hideBelow: 'md' },
     { key: 'pm', header: 'Project Manager', render: (p) => p.project_manager ?? '—', sort: (p) => (p.project_manager ?? '').toLowerCase(), hideBelow: 'lg' },
     { key: 'tm', header: 'Technical Manager', render: (p) => p.technical_manager ?? '—', sort: (p) => (p.technical_manager ?? '').toLowerCase(), hideBelow: 'lg' },
+    { key: 'load', header: 'Workload', render: (p) => { const w = projectWorkload(p); return w == null ? '—' : fmtNum(w); }, sort: (p) => projectWorkload(p) ?? -1, hideBelow: 'lg' },
     { key: 'cde', header: 'CDE', render: (p) => p.cde ?? '—', sort: (p) => p.cde, hideBelow: 'md' },
     { key: 'type', header: 'Type', render: (p) => p.type ?? '—', sort: (p) => p.type, hideBelow: 'lg' },
     { key: 'area', header: 'Built-up area', render: (p) => (hasArea(p) ? fmtNum(p.built_up_area) : <span title={p.area_note ?? 'Missing'} className="text-slate-400">{p.area_raw ? `“${p.area_raw}”` : '—'}</span>), sort: (p) => p.built_up_area, className: 'text-right', hideBelow: 'md' },

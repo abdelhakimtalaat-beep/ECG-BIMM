@@ -280,16 +280,17 @@ export function fmtArea(n: number): string {
   return Math.round(n).toLocaleString('en-US');
 }
 
-/** Workload strip: pixels per m² so the busiest row (sum of areas + default squares for projects without area) is about `target` px wide. */
+/** Workload strip: pixels per workload unit so the busiest row is about `target` px wide. Items without a computed `load` keep a default square. */
 export const DEFAULT_SQ = 24, MIN_SQ = 6;
-export function matrixScale(rows: { projects: { built_up_area?: number | null }[] }[], target = 900) {
-  const area = (p: { built_up_area?: number | null }) => (p.built_up_area && p.built_up_area > 0 ? Number(p.built_up_area) : 0);
+type Loaded = { load?: number | null };
+export function matrixScale(rows: { projects: Loaded[] }[], target = 900) {
+  const val = (p: Loaded) => (p.load && p.load > 0 ? Number(p.load) : 0);
   let k = Infinity;
   for (const r of rows) {
-    const sumA = r.projects.reduce((s, p) => s + area(p), 0);
-    const fixed = r.projects.filter((p) => !area(p)).length * DEFAULT_SQ + r.projects.length * 4; // missing-area squares + gaps
-    if (sumA > 0) k = Math.min(k, Math.max(target - fixed, target * 0.3) / sumA);
+    const sum = r.projects.reduce((s, p) => s + val(p), 0);
+    const fixed = r.projects.filter((p) => !val(p)).length * DEFAULT_SQ + r.projects.length * 4; // default squares + gaps
+    if (sum > 0) k = Math.min(k, Math.max(target - fixed, target * 0.3) / sum);
   }
   return Number.isFinite(k) ? k : 0;
 }
-export const squareWidth = (p: { built_up_area?: number | null }, k: number) => (p.built_up_area && p.built_up_area > 0 && k > 0 ? Math.max(MIN_SQ, Math.round(Number(p.built_up_area) * k)) : DEFAULT_SQ);
+export const squareWidth = (p: Loaded, k: number) => (p.load && p.load > 0 && k > 0 ? Math.max(MIN_SQ, Math.round(Number(p.load) * k)) : DEFAULT_SQ);

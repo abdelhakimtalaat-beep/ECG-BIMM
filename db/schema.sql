@@ -108,6 +108,9 @@ alter table projects add column if not exists deltek_number text;       -- upgra
 alter table projects add column if not exists project_manager text;
 alter table projects add column if not exists technical_manager text;
 alter table projects add column if not exists client text;
+alter table projects add column if not exists typicality text;
+alter table projects add column if not exists function_type text;
+alter table projects add column if not exists coordination_type text;
 create index if not exists projects_no_idx on projects(project_no);
 
 create table if not exists project_status_history (

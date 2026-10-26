@@ -3,6 +3,7 @@ import { handle, json, ok } from '@/lib/api';
 import { ApiError, requireUser } from '@/lib/auth';
 import { audit, one, q, tx } from '@/lib/db';
 import { PROJECT_FIELDS, assertScope } from '@/lib/perm';
+import { COORDINATION_OPTIONS, FUNCTION_OPTIONS, TYPICALITY_OPTIONS } from '@/lib/workload';
 
 type Ctx = { params: Promise<{ id: string }> };
 const uuid = z.string().uuid();
@@ -29,6 +30,9 @@ const patch = z.object({
   technical_manager: z.string().trim().max(120).nullable(),
   client: z.string().trim().max(200).nullable(),
   built_up_area: z.number().nonnegative().nullable(),
+  typicality: z.enum(TYPICALITY_OPTIONS as [string, ...string[]]).nullable(),
+  function_type: z.enum(FUNCTION_OPTIONS as [string, ...string[]]).nullable(),
+  coordination_type: z.enum(COORDINATION_OPTIONS as [string, ...string[]]).nullable(),
   status: z.enum(['Not Started', 'In Progress', 'On Hold', 'Closed']),
   notes: z.string().max(5000).nullable(),
   reason: z.string().max(500).optional(),

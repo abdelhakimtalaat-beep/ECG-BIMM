@@ -7,6 +7,7 @@ import { AssignModal } from '@/components/AssignModal';
 import { ProjectDetail } from '@/components/ProjectDetail';
 import { Badge, Empty, PageHeader, StatusBadge, useToast } from '@/components/ui';
 import { download, fmtDateTime, fmtNum } from '@/lib/client';
+import { projectWorkload } from '@/lib/workload';
 import { inconsistencies, personStats, totalArea, hasArea, imbalanceOf, matrixScale, squareWidth } from '@/lib/metrics';
 import { STATUSES, STATUS_COLORS, type Employee, type Project } from '@/lib/types';
 import { STATUS_DOT } from '@/lib/client';
@@ -61,7 +62,7 @@ export default function TeamsPage() {
 
   const rowsMatrix = matrixBy === 'manager' ? teams.map((t) => ({ person: t.m, projects: t.myProjects })) :
     stats.filter((s) => s.role === 'coordinator').map((s) => ({ person: s.employee, projects: [...new Set(data.assignments.filter((a) => a.employee_id === s.employee.id && a.role === 'coordinator' && ids.has(a.project_id)).map((a) => a.project_id))].map((id) => pById.get(id)!).filter(Boolean) }));
-  const mk = matrixScale(rowsMatrix);
+  const mk = matrixScale(rowsMatrix.map((r) => ({ projects: r.projects.map((p) => ({ load: projectWorkload(p) })) })));
 
   return (
     <>
@@ -102,8 +103,8 @@ export default function TeamsPage() {
           <div className="flex flex-wrap gap-3 text-xs">{STATUSES.map((s) => <span key={s} className="flex items-center gap-1"><span className="h-3 w-3 rounded" style={{ background: STATUS_COLORS[s] }} />{s}</span>)}</div></div>
         {!rowsMatrix.length ? <Empty title="Nothing to show" /> : <div className="overflow-x-auto"><table className="w-full border-separate border-spacing-y-1.5"><tbody>{rowsMatrix.map(({ person, projects: ps }) => (
           <tr key={person.id}><th className="w-48 min-w-[11rem] pr-3 text-left align-top text-sm font-medium text-brand-900">{person.name}<span className="block text-xs font-normal text-slate-500">{ps.length} projects</span></th>
-            <td><div className="flex flex-nowrap items-center gap-1">{ps.map((p) => <button key={p.id} onClick={() => setDetail(p.id)} title={`${p.project_no ?? ''} ${p.name} — ${p.status} — ${p.built_up_area ? fmtNum(p.built_up_area) + ' m²' : 'no built-up area'}`} aria-label={`${p.name}, ${p.status}`} className="h-6 shrink-0 rounded transition hover:ring-2 hover:ring-brand-900" style={{ background: STATUS_COLORS[p.status], width: squareWidth(p, mk) }} />)}<span className="ml-2 shrink-0 text-xs text-slate-500">{fmtNum(ps.reduce((a, p) => a + (p.built_up_area || 0), 0))} m²</span></div></td></tr>))}</tbody></table></div>}
-        <p className="mt-3 text-xs text-slate-500">Each block is one project; its length is proportional to the project's built-up area, so the total line length shows the engineer's workload. Projects without a built-up area keep a default-size square. Hover for details; click to open (a project shared by two managers appears in both rows).</p>
+            <td><div className="flex flex-nowrap items-center gap-1">{ps.map((p) => <button key={p.id} onClick={() => setDetail(p.id)} title={`${p.project_no ?? ''} ${p.name} — ${p.status} — ${projectWorkload(p) != null ? 'workload ' + fmtNum(projectWorkload(p)!) : 'workload not calculated'}`} aria-label={`${p.name}, ${p.status}`} className="h-6 shrink-0 rounded transition hover:ring-2 hover:ring-brand-900" style={{ background: STATUS_COLORS[p.status], width: squareWidth({ load: projectWorkload(p) }, mk) }} />)}<span className="ml-2 shrink-0 text-xs text-slate-500">{fmtNum(ps.reduce((a, pr) => a + (projectWorkload(pr) ?? 0), 0))} workload</span></div></td></tr>))}</tbody></table></div>}
+        <p className="mt-3 text-xs text-slate-500">Each block is one project; its length is proportional to the project's Workload (Built-up area × Typicality × Function × Coordination, set by the Administrator), so the total line length shows the engineer's workload. Projects whose workload is not calculated yet keep a default-size square. Hover for details; click to open (a project shared by two managers appears in both rows).</p>
       </div>)}
 
       {tab === 'checks' && (<div className="space-y-5">

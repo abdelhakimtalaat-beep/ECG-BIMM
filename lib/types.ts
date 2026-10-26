@@ -15,7 +15,7 @@ export interface Employee {
 }
 export interface Project {
   id: string; project_no: string | null; name: string; cde: string | null; type: string | null;
-  deltek_number?: string | null; project_manager?: string | null; technical_manager?: string | null; client?: string | null;
+  deltek_number?: string | null; project_manager?: string | null; technical_manager?: string | null; client?: string | null; typicality?: string | null; function_type?: string | null; coordination_type?: string | null;
   built_up_area: number | null; area_raw: string | null; area_note: string | null;
   status_raw: string | null; activity_raw: string | null; status: Status; status_source: 'mapping' | 'manual';
   notes: string | null; photo_id: string | null; source_rows: number[]; created_at: string; updated_at: string;

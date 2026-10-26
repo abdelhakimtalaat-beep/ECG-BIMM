@@ -185,12 +185,19 @@ test('project filters: Deltek number, Project Manager, Technical Manager and Cli
 });
 
 import { matrixScale, squareWidth, DEFAULT_SQ } from '../lib/metrics.ts';
-test('workload strip: width follows area, default when area missing', () => {
-  const rows = [{ projects: [{ built_up_area: 10000 }, { built_up_area: 30000 }, { built_up_area: null }] }, { projects: [{ built_up_area: 5000 }] }];
+import { projectWorkload } from '../lib/workload.ts';
+test('workload strip: width follows load, default when not calculated', () => {
+  const rows = [{ projects: [{ load: 10000 }, { load: 30000 }, { load: null }] }, { projects: [{ load: 5000 }] }];
   const k = matrixScale(rows);
   assert.ok(k > 0);
-  assert.equal(squareWidth({ built_up_area: null }, k), DEFAULT_SQ);
-  assert.ok(squareWidth({ built_up_area: 30000 }, k) > 2.9 * squareWidth({ built_up_area: 10000 }, k));
-  assert.equal(matrixScale([{ projects: [{ built_up_area: null }] }]), 0);
-  assert.equal(squareWidth({ built_up_area: 10000 }, 0), DEFAULT_SQ);
+  assert.equal(squareWidth({ load: null }, k), DEFAULT_SQ);
+  assert.ok(squareWidth({ load: 30000 }, k) > 2.9 * squareWidth({ load: 10000 }, k));
+  assert.equal(matrixScale([{ projects: [{ load: null }] }]), 0);
+});
+test('workload formula: area x typicality x function x coordination', () => {
+  assert.equal(projectWorkload({ built_up_area: 10000, typicality: 'Low Typical', function_type: 'Hospital', coordination_type: 'Design Review' }), 10000 * 0.8 * 1.3 * 0.2);
+  assert.equal(projectWorkload({ built_up_area: 42000, typicality: 'No Typical', function_type: 'Residential', coordination_type: 'Internal Coordination' }), 42000);
+  assert.equal(projectWorkload({ built_up_area: 42000, typicality: 'No Typical', function_type: 'Residential', coordination_type: null }), null);
+  assert.equal(projectWorkload({ built_up_area: null, typicality: 'No Typical', function_type: 'Residential', coordination_type: 'Internal Coordination' }), null);
+  assert.equal(projectWorkload({ built_up_area: 1000, typicality: 'High Typical', function_type: 'Landscape', coordination_type: 'Design Review' }), 8);
 });
