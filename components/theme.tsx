@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-
-const KEY = 'ecg_theme';
+import { THEME_KEY as KEY } from '@/lib/themeBoot';
 export type Theme = 'light' | 'dark';
 const systemDark = () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
 function stored(): Theme | null { try { const v = localStorage.getItem(KEY); return v === 'dark' || v === 'light' ? v : null; } catch { return null; } }
@@ -20,6 +19,4 @@ export function useTheme() {
   };
   return { theme, toggle };
 }
-/** Runs before the first paint (inline in <head>) so the page never flashes white. */
-export const THEME_BOOT = `(function(){try{var t=localStorage.getItem('${KEY}');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark')}catch(e){}})()`;
 export { systemDark, stored };
