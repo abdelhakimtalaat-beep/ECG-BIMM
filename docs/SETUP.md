@@ -111,3 +111,7 @@ Setup (no IT needed): use a Gmail account as the sender.
 
 ## Update: task templates, Pending status, comment, overdue alarm
 Run `db/migrations/009_task_pending_comment.sql` in Supabase BEFORE deploying (renames On Hold to Pending, adds the comment column).
+
+## Update: Wish List and phone installation
+Run `db/migrations/010_wishes.sql` in Supabase BEFORE deploying (creates `wishes` and `wish_votes`).
+Install on a phone: open the portal in the phone browser. iPhone/iPad (Safari): Share > Add to Home Screen. Android (Chrome): menu > Install app. Or use "Install app on this device" in the user menu.

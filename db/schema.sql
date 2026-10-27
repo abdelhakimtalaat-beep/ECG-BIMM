@@ -239,6 +239,25 @@ create table if not exists tasks (
 );
 create index if not exists tasks_area_idx on tasks(area_id);
 
+-- Wish List
+create table if not exists wishes (
+  id          uuid primary key default gen_random_uuid(),
+  title       text not null,
+  description text,
+  area        text,
+  author_id   uuid references users(id) on delete set null,
+  author_name text not null,
+  status      text not null default 'New' check (status in ('New','Under review','Planned','Done','Declined')),
+  admin_note  text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create table if not exists wish_votes (
+  wish_id uuid not null references wishes(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  primary key (wish_id, user_id)
+);
+
 -- ------------------------------------------------------------------ security
 -- The Next.js server is the only database client and enforces roles in code.
 -- Row level security is switched on with no policies so that the Supabase anon /
@@ -247,7 +266,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','wishes','wish_votes'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;

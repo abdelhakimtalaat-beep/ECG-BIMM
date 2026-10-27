@@ -1,0 +1,15 @@
+{
+  "name": "ECG BIM Department Management Portal",
+  "short_name": "ECG BIM",
+  "description": "Projects, teams, workload, tasks and training for the ECG BIM Management Department",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0F55A8",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

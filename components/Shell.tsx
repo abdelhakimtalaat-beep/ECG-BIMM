@@ -3,10 +3,11 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import clsx from 'clsx';
-import { LayoutDashboard, Network, FolderKanban, Users, Gauge, CalendarDays, Settings, ListChecks, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Network, FolderKanban, Users, Gauge, CalendarDays, Settings, ListChecks, Lightbulb, Smartphone, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown } from 'lucide-react';
 import { api, roleLabel } from '@/lib/client';
 import { useApp } from './store';
 import { Field, Modal, useToast } from './ui';
+import { useInstall } from './pwa';
 
 const NAV = [
   { href: '/', label: 'Executive Dashboard', short: 'Dashboard', icon: LayoutDashboard },
@@ -16,11 +17,13 @@ const NAV = [
   { href: '/workload', label: 'BIM Team Workload', short: 'Workload', icon: Gauge },
   { href: '/tasks', label: 'BIM Manager Tasks', short: 'Tasks', icon: ListChecks },
   { href: '/reels', label: 'Weekly BIM Reels Plan', short: 'BIM Reels', icon: CalendarDays },
+  { href: '/wishes', label: 'Wish List', short: 'Wish List', icon: Lightbulb },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname(); const router = useRouter(); const { me, setFilters } = useApp(); const toast = useToast();
   const [collapsed, setCollapsed] = useState(false); const [mobile, setMobile] = useState(false); const [menu, setMenu] = useState(false); const [pw, setPw] = useState(false);
+  const inst = useInstall(); const [help, setHelp] = useState(false);
   const [q, setQ] = useState(''); const [cur, setCur] = useState(''); const [nxt, setNxt] = useState('');
   const items = me.role === 'admin' ? [...NAV, { href: '/admin', label: 'Administration', short: 'Administration', icon: Settings }] : NAV;
   const active = (h: string) => (h === '/' ? path === '/' : path.startsWith(h));
@@ -57,6 +60,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <span className="hidden text-left leading-tight sm:block"><span className="block text-sm font-medium text-slate-800">{me.full_name || me.email}</span><span className="block text-xs text-slate-500">{roleLabel(me.role)}</span></span><ChevronDown size={14} />
             </button>
             {menu && <div className="absolute right-0 z-40 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-xl" onMouseLeave={() => setMenu(false)}>
+              {!inst.standalone && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm hover:bg-slate-50" onClick={async () => { setMenu(false); if (!(inst.ready && (await inst.install()))) setHelp(true); }}><Smartphone size={14} />Install app on this device</button>}
               <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm hover:bg-slate-50" onClick={() => { setMenu(false); setPw(true); }}><KeyRound size={14} />Change password</button>
               <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm hover:bg-slate-50" onClick={logout}><LogOut size={14} />Sign out</button>
             </div>}
@@ -65,6 +69,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 p-4 sm:p-6">{children}</main>
         <footer className="no-print border-t border-slate-200 px-6 py-3 text-xs text-slate-400">ECG BIM Department Management Portal · A Dorsch Global Company</footer>
       </div>
+      <Modal open={help} onClose={() => setHelp(false)} title="Install the portal on your phone" footer={<button className="btn-primary" onClick={() => setHelp(false)}>Got it</button>}>
+        <div className="space-y-3 text-sm text-slate-700">
+          <p><b>iPhone / iPad (Safari):</b> tap the <b>Share</b> button, then <b>Add to Home Screen</b>, then <b>Add</b>.</p>
+          <p><b>Android (Chrome):</b> tap the <b>⋮</b> menu, then <b>Install app</b> (or <b>Add to Home screen</b>).</p>
+          <p><b>Computer (Chrome / Edge):</b> click the install icon at the right end of the address bar.</p>
+          <p className="text-xs text-slate-500">Open the portal in the phone's browser first. The shortcut opens it full screen like an app.</p>
+        </div>
+      </Modal>
       <Modal open={pw} onClose={() => setPw(false)} title="Change password" footer={<><button className="btn-secondary" onClick={() => setPw(false)}>Cancel</button>
         <button className="btn-primary" onClick={async () => { try { await api('/api/auth/password', { body: { current: cur, next: nxt } }); toast('Password changed'); setPw(false); setCur(''); setNxt(''); } catch (e: any) { toast(e.message, 'err'); } }}>Save</button></>}>
         <div className="space-y-3"><Field label="Current password"><input type="password" className="input" value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" /></Field>
