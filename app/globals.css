@@ -3,20 +3,43 @@
 @tailwind utilities;
 
 :root { --brand: #0F55A8; --navy: #0B2545; }
+:root { --surface: 255 255 255; --slate-50: 248 250 252; --slate-100: 241 245 249; --slate-200: 226 232 240; --slate-300: 203 213 225; --slate-400: 148 163 184; --slate-500: 100 116 139; --slate-600: 71 85 105; --slate-700: 51 65 85; --slate-800: 30 41 59; --slate-900: 15 23 42; --brand-50: 238 245 253; --brand-100: 220 234 250; --brand-200: 185 213 244; --brand-300: 141 185 234; --brand-400: 79 143 219; --brand-500: 31 111 201; --brand-600: 15 85 168; --brand-700: 11 68 136; --brand-800: 10 52 105; --brand-900: 11 37 69; }
+.dark { --surface: 17 26 44; --slate-50: 11 18 32; --slate-100: 26 36 56; --slate-200: 38 51 73; --slate-300: 51 65 85; --slate-400: 100 116 139; --slate-500: 148 163 184; --slate-600: 169 182 201; --slate-700: 203 213 225; --slate-800: 226 232 240; --slate-900: 241 245 249; --brand-50: 18 33 58; --brand-100: 24 44 77; --brand-200: 36 62 104; --brand-300: 78 120 178; --brand-400: 79 143 219; --brand-500: 62 130 216; --brand-600: 31 111 201; --brand-700: 15 85 168; --brand-800: 147 187 235; --brand-900: 220 234 250; }
+.dark { color-scheme: dark; }
+@media print { .dark { --surface: 255 255 255; --slate-50: 248 250 252; --slate-100: 241 245 249; --slate-200: 226 232 240; --slate-300: 203 213 225; --slate-400: 148 163 184; --slate-500: 100 116 139; --slate-600: 71 85 105; --slate-700: 51 65 85; --slate-800: 30 41 59; --slate-900: 15 23 42; --brand-50: 238 245 253; --brand-100: 220 234 250; --brand-200: 185 213 244; --brand-300: 141 185 234; --brand-400: 79 143 219; --brand-500: 31 111 201; --brand-600: 15 85 168; --brand-700: 11 68 136; --brand-800: 10 52 105; --brand-900: 11 37 69; } .dark { color-scheme: light; } }
 html, body { height: 100%; }
 body { @apply bg-slate-50 text-slate-800 antialiased; font-feature-settings: 'tnum'; }
 @layer components {
   .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:opacity-50 disabled:cursor-not-allowed; }
   .btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700; }
-  .btn-secondary { @apply btn bg-white text-slate-700 border border-slate-300 hover:bg-slate-50; }
+  .btn-secondary { @apply btn bg-surface text-slate-700 border border-slate-300 hover:bg-slate-50; }
   .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
   .btn-ghost { @apply btn text-slate-600 hover:bg-slate-100; }
   .btn-sm { @apply px-2.5 py-1.5 text-xs; }
-  .input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 disabled:bg-slate-100; }
+  .input { @apply w-full rounded-lg border border-slate-300 bg-surface px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200 disabled:bg-slate-100; }
   .label { @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500; }
-  .card { @apply rounded-xl border border-slate-200 bg-white shadow-card; }
+  .card { @apply rounded-xl border border-slate-200 bg-surface shadow-card; }
   .th { @apply whitespace-nowrap bg-brand-50 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-brand-800; }
   .td { @apply px-3 py-2 text-sm; }
 }
 .recharts-wrapper { outline: none; }
 @media print { .no-print { display: none !important; } }
+
+/* ---- dark mode refinements (palette itself is swapped through the CSS variables above) ---- */
+.dark .bg-white { background-color: rgb(var(--surface)); }
+.dark .shadow-card { box-shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.35); }
+.dark .bg-red-50 { background-color: rgba(239,68,68,.12); } .dark .bg-red-100 { background-color: rgba(239,68,68,.2); }
+.dark .bg-amber-50 { background-color: rgba(245,158,11,.12); } .dark .bg-amber-100 { background-color: rgba(245,158,11,.2); }
+.dark .bg-emerald-50 { background-color: rgba(16,185,129,.12); } .dark .bg-emerald-100 { background-color: rgba(16,185,129,.2); }
+.dark .bg-orange-100 { background-color: rgba(249,115,22,.2); }
+.dark .border-red-200 { border-color: rgba(239,68,68,.35); } .dark .border-amber-200 { border-color: rgba(245,158,11,.35); }
+.dark .text-red-600, .dark .text-red-700, .dark .text-red-800 { color: #fca5a5; }
+.dark .text-amber-600, .dark .text-amber-700, .dark .text-amber-800, .dark .text-amber-900 { color: #fcd34d; }
+.dark .text-emerald-600, .dark .text-emerald-700, .dark .text-emerald-800, .dark .text-emerald-900 { color: #6ee7b7; }
+.dark .recharts-text, .dark .recharts-legend-item-text { fill: #94a3b8 !important; color: #94a3b8 !important; }
+.dark .recharts-cartesian-grid line { stroke: #263349 !important; }
+.dark .recharts-default-tooltip { background-color: #111a2c !important; border-color: #263349 !important; }
+.dark .recharts-tooltip-cursor { fill: rgba(255,255,255,.06) !important; }
+.dark input[type='checkbox'] { accent-color: #3e82d8; }
+.dark .text-emerald-950 { color: #a7f3d0; } .dark .text-amber-950 { color: #fde68a; } .dark .text-orange-950 { color: #fed7aa; }
+.dark .bg-orange-100 { background-color: rgba(249,115,22,.2); }

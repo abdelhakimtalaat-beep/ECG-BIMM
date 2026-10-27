@@ -118,3 +118,7 @@ Install on a phone: open the portal in the phone browser. iPhone/iPad (Safari): 
 
 ## Update: project location and photo cropping
 Run `db/migrations/011_project_location.sql` in Supabase BEFORE deploying (adds `projects.country` and `projects.city`). Photos of engineers and projects now open a crop window (drag, zoom, choose the frame) before they are uploaded.
+
+## Update: dark mode, Scope factor, Minimum Standards
+Run `db/migrations/012_scope_minimum_standards.sql` in Supabase BEFORE deploying (adds `projects.scope_items`, renames No Standards to Minimum Standards). Dark mode: the moon/sun button in the top bar; it follows the device setting until you choose.
+Workload = Built-up area x Typicality x Function x Coordination x BIM Standards x Scope, where Scope is the sum of the ticked disciplines (Architecture 0.3, Structure 0.2, MEP 0.5, Infrastructure 0.2, Landscape 0.2).

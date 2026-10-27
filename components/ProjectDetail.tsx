@@ -6,7 +6,7 @@ import { canEditProject } from '@/lib/can';
 import { upcomingReels } from '@/lib/metrics';
 import { COUNTRIES } from '@/lib/countries';
 import { ImageCropper } from './ImageCropper';
-import { BIM_STANDARDS, BIM_STANDARDS_OPTIONS, COORDINATION, COORDINATION_OPTIONS, FUNCTION_OPTIONS, FUNCTION_TYPES, TYPICALITY, TYPICALITY_OPTIONS, projectWorkload } from '@/lib/workload';
+import { SCOPE, SCOPE_OPTIONS, BIM_STANDARDS, BIM_STANDARDS_OPTIONS, COORDINATION, COORDINATION_OPTIONS, FUNCTION_OPTIONS, FUNCTION_TYPES, TYPICALITY, TYPICALITY_OPTIONS, projectWorkload } from '@/lib/workload';
 import { STATUSES, type Project, type Status } from '@/lib/types';
 import { useApp } from './store';
 import { Badge, Confirm, Drawer, Field, StatusBadge, useToast } from './ui';
@@ -31,7 +31,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const asg = useMemo(() => data.assignments.filter((a) => a.project_id === id), [data.assignments, id]);
   const mgrs = asg.filter((a) => a.role === 'manager'), coords = asg.filter((a) => a.role === 'coordinator'), members = asg.filter((a) => a.role === 'member');
   const scope = canEditProject(me, mgrs.map((a) => a.employee_id), coords.map((a) => a.employee_id));
-  const can = (f: string) => ({ full: ['project_no', 'typicality', 'function_type', 'coordination_type', 'bim_standards', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'built_up_area', 'status', 'notes'], manager: ['typicality', 'function_type', 'coordination_type', 'bim_standards', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'built_up_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
+  const can = (f: string) => ({ full: ['project_no', 'typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'built_up_area', 'status', 'notes'], manager: ['typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'built_up_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
   const team = new Set(asg.map((a) => a.employee_id));
   const related = useMemo(() => upcomingReels(data.reels, today).filter((r) => r.employee_id && team.has(r.employee_id)), [data.reels, today, team]);
 
@@ -89,8 +89,11 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
           {([['typicality', 'Typicality', TYPICALITY_OPTIONS, TYPICALITY], ['function_type', 'Function', FUNCTION_OPTIONS, FUNCTION_TYPES], ['coordination_type', 'Coordination', COORDINATION_OPTIONS, COORDINATION], ['bim_standards', 'BIM Standards', BIM_STANDARDS_OPTIONS, BIM_STANDARDS]] as const).map(([k, label, opts, fac]) => (
             <Field key={k} label={label}><select className="input" disabled={!can(k)} value={(k in E ? E[k] : (p as any)[k]) ?? ''} onChange={(e) => setEdit({ ...E, [k]: e.target.value })}>
               <option value="">— not set —</option>{opts.map((o) => <option key={o} value={o}>{o} ({(fac as any)[o]})</option>)}</select></Field>))}
-          <div className="col-span-2 rounded-lg bg-brand-50 p-3 text-sm"><span className="text-slate-600">Workload = Built-up area × Typicality × Function × Coordination × BIM Standards = </span>
-            <b className="text-brand-900">{(() => { const w = projectWorkload({ built_up_area: 'built_up_area' in E ? Number(E.built_up_area) : p.built_up_area, typicality: 'typicality' in E ? E.typicality : p.typicality, function_type: 'function_type' in E ? E.function_type : p.function_type, coordination_type: 'coordination_type' in E ? E.coordination_type : p.coordination_type, bim_standards: 'bim_standards' in E ? E.bim_standards : p.bim_standards }); return w == null ? 'not calculated (area and all four factors are required)' : fmtNum(w); })()}</b></div>
+          <div className="col-span-2"><p className="label">Scope (tick one or more)</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">{SCOPE_OPTIONS.map((o) => { const cur: string[] = ('scope_items' in E ? E.scope_items : p.scope_items) ?? []; return (
+              <label key={o} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" disabled={!can('scope_items')} checked={cur.includes(o)} onChange={(e) => setEdit({ ...E, scope_items: e.target.checked ? [...cur, o] : cur.filter((x) => x !== o) })} />{o} <span className="text-xs text-slate-500">({SCOPE[o]})</span></label>); })}</div></div>
+          <div className="col-span-2 rounded-lg bg-brand-50 p-3 text-sm"><span className="text-slate-600">Workload = Built-up area × Typicality × Function × Coordination × BIM Standards × Scope = </span>
+            <b className="text-brand-900">{(() => { const w = projectWorkload({ built_up_area: 'built_up_area' in E ? Number(E.built_up_area) : p.built_up_area, typicality: 'typicality' in E ? E.typicality : p.typicality, function_type: 'function_type' in E ? E.function_type : p.function_type, coordination_type: 'coordination_type' in E ? E.coordination_type : p.coordination_type, bim_standards: 'bim_standards' in E ? E.bim_standards : p.bim_standards, scope_items: 'scope_items' in E ? E.scope_items : p.scope_items }); return w == null ? 'not calculated (area, the four factors and at least one Scope item are required)' : fmtNum(w); })()}</b></div>
           <Field label="Status" hint={`Workbook: ${p.status_raw ?? '—'}${p.activity_raw ? ' / ' + p.activity_raw : ''}`}>
             <select className="input" disabled={!can('status')} value={'status' in E ? E.status : p.status} onChange={(e) => setEdit({ ...E, status: e.target.value as Status })}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></Field>
           <div className="col-span-2"><Field label="Notes"><textarea rows={2} className="input" disabled={!can('notes')} value={('notes' in E ? E.notes : p.notes) ?? ''} onChange={(e) => setEdit({ ...E, notes: e.target.value })} /></Field></div>

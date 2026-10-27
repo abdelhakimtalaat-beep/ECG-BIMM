@@ -48,7 +48,7 @@ export function Modal({ open, onClose, title, children, wide, footer }: { open: 
   useEffect(() => { if (!open) return; const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-brand-900/50 p-4 sm:p-8" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:p-8" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div role="dialog" aria-modal="true" aria-label={title} className={clsx('card w-full', wide ? 'max-w-3xl' : 'max-w-lg')}>
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3"><h2 className="text-base font-semibold text-brand-900">{title}</h2><button className="btn-ghost btn-sm" onClick={onClose} aria-label="Close"><X size={16} /></button></div>
         <div className="p-5">{children}</div>
@@ -61,7 +61,7 @@ export function Drawer({ open, onClose, title, children, width = 'max-w-xl' }: {
   useEffect(() => { if (!open) return; const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-brand-900/40" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 z-40 flex justify-end bg-black/40" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <aside role="dialog" aria-label={title} className={clsx('flex h-full w-full flex-col bg-white shadow-2xl', width)}>
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3"><h2 className="truncate text-base font-semibold text-brand-900">{title}</h2><button className="btn-ghost btn-sm" onClick={onClose} aria-label="Close"><X size={16} /></button></div>
         <div className="flex-1 overflow-y-auto p-5">{children}</div>

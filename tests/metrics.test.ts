@@ -195,11 +195,14 @@ test('workload strip: width follows load, default when not calculated', () => {
   assert.equal(matrixScale([{ projects: [{ load: null }] }]), 0);
 });
 test('workload formula: area x typicality x function x coordination x BIM standards', () => {
-  const b = { built_up_area: 10000, typicality: 'Low Typical', function_type: 'Hospital', coordination_type: 'Design Review', bim_standards: 'Aggressive Standards' };
-  assert.equal(projectWorkload(b), Math.round(10000 * 0.8 * 1.3 * 0.2 * 1.3 * 100) / 100);
+  const b = { built_up_area: 10000, typicality: 'Low Typical', function_type: 'Hospital', coordination_type: 'Design Review', bim_standards: 'Aggressive Standards', scope_items: ['Architecture', 'MEP'] };
+  assert.equal(projectWorkload(b), Math.round(10000 * 0.8 * 1.3 * 0.2 * 1.3 * 0.8 * 100) / 100);
   assert.equal(projectWorkload({ ...b, bim_standards: null }), null);
-  assert.equal(projectWorkload({ ...b, bim_standards: 'Normal Standards', function_type: 'Villas', typicality: 'No Typical', coordination_type: 'Internal Coordination' }), 6000);
-  assert.equal(projectWorkload({ ...b, function_type: 'Landscape', bim_standards: 'No Standards', typicality: 'High Typical' }), Math.round(10000 * 0.4 * 0.1 * 0.2 * 0.8 * 100) / 100);
+  assert.equal(projectWorkload({ ...b, bim_standards: 'Normal Standards', function_type: 'Villas', typicality: 'No Typical', coordination_type: 'Internal Coordination', scope_items: ['Architecture', 'Structure', 'MEP'] }), 6000);
+  assert.equal(projectWorkload({ ...b, scope_items: [] }), null);
+  assert.equal(projectWorkload({ ...b, scope_items: null }), null);
+  assert.equal(projectWorkload({ ...b, bim_standards: 'Minimum Standards', scope_items: ['Landscape'] }), Math.round(10000 * 0.8 * 1.3 * 0.2 * 0.8 * 0.2 * 100) / 100);
+  assert.equal(projectWorkload({ ...b, function_type: 'Landscape', bim_standards: 'Minimum Standards', typicality: 'High Typical', scope_items: ['Architecture', 'Structure', 'MEP', 'Infrastructure', 'Landscape'] }), Math.round(10000 * 0.4 * 0.1 * 0.2 * 0.8 * 1.4 * 100) / 100);
   assert.equal(projectWorkload({ ...b, built_up_area: null }), null);
 });
 

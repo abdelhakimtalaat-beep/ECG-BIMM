@@ -12,7 +12,7 @@ import { isAdmin } from '@/lib/can';
 import { ImageCropper } from '@/components/ImageCropper';
 
 const CAT_STYLE: Record<string, string> = {
-  department_manager: 'bg-brand-900 text-white border-brand-900',
+  department_manager: 'bg-[#0B2545] text-white border-[#0B2545]',
   bim_manager: 'bg-brand-600 text-white border-brand-700',
   bim_coordinator: 'bg-brand-100 text-brand-900 border-brand-300',
   bim_specialist: 'bg-white text-brand-900 border-brand-400',

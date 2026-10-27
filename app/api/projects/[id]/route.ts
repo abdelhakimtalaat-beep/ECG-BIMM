@@ -3,7 +3,7 @@ import { handle, json, ok } from '@/lib/api';
 import { ApiError, requireUser } from '@/lib/auth';
 import { audit, one, q, tx } from '@/lib/db';
 import { PROJECT_FIELDS, assertScope } from '@/lib/perm';
-import { BIM_STANDARDS_OPTIONS, COORDINATION_OPTIONS, FUNCTION_OPTIONS, TYPICALITY_OPTIONS } from '@/lib/workload';
+import { SCOPE_OPTIONS, BIM_STANDARDS_OPTIONS, COORDINATION_OPTIONS, FUNCTION_OPTIONS, TYPICALITY_OPTIONS } from '@/lib/workload';
 
 type Ctx = { params: Promise<{ id: string }> };
 const uuid = z.string().uuid();
@@ -36,6 +36,7 @@ const patch = z.object({
   function_type: z.enum(FUNCTION_OPTIONS as [string, ...string[]]).nullable(),
   coordination_type: z.enum(COORDINATION_OPTIONS as [string, ...string[]]).nullable(),
   bim_standards: z.enum(BIM_STANDARDS_OPTIONS as [string, ...string[]]).nullable(),
+  scope_items: z.array(z.enum(SCOPE_OPTIONS as [string, ...string[]])).max(10).nullable().transform((v) => (v && v.length ? [...new Set(v)] : null)),
   status: z.enum(['Not Started', 'In Progress', 'On Hold', 'Closed']),
   notes: z.string().max(5000).nullable(),
   reason: z.string().max(500).optional(),
