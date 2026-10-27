@@ -16,8 +16,8 @@ export async function POST(req: Request) {
     const projects = ds.projects.filter((p) => !ids || ids.has(p.id));
     const emp = new Map(ds.employees.map((e) => [e.id, e]));
     const people = (pid: string, role: string) => ds.assignments.filter((a) => a.project_id === pid && a.role === role).map((a) => emp.get(a.employee_id)?.name).filter(Boolean).join(' / ');
-    const head = ['Project No.', 'Project Name', 'Deltek Number', 'Client', 'Project Manager', 'Technical Manager', 'CDE', 'Type', 'Built-Up Area', 'Status', 'Original Status', 'Original Activity Flag', 'BIM Manager', 'BIM Coordinator', 'Area Note', 'Notes', 'Last Updated'];
-    const rows = projects.map((p) => [p.project_no, p.name, p.deltek_number, p.client, p.project_manager, p.technical_manager, p.cde, p.type, p.built_up_area, p.status, p.status_raw, p.activity_raw, people(p.id, 'manager'), people(p.id, 'coordinator'), p.area_note, p.notes, fmtDate(p.updated_at)]);
+    const head = ['Project No.', 'Project Name', 'Deltek Number', 'Client', 'Country', 'City', 'Project Manager', 'Technical Manager', 'CDE', 'Type', 'Built-Up Area', 'Status', 'Original Status', 'Original Activity Flag', 'BIM Manager', 'BIM Coordinator', 'Area Note', 'Notes', 'Last Updated'];
+    const rows = projects.map((p) => [p.project_no, p.name, p.deltek_number, p.client, p.country, p.city, p.project_manager, p.technical_manager, p.cde, p.type, p.built_up_area, p.status, p.status_raw, p.activity_raw, people(p.id, 'manager'), people(p.id, 'coordinator'), p.area_note, p.notes, fmtDate(p.updated_at)]);
     if (b.format === 'csv') {
       const csv = '\uFEFF' + [head, ...rows].map((r) => r.map(csvEscape).join(',')).join('\r\n');
       return new Response(csv, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="ecg-bim-projects.csv"' } });

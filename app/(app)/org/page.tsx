@@ -9,6 +9,7 @@ import { chainToRoot } from '@/lib/metrics';
 import { CARD_H, CARD_W, descendants, layoutTree, type OrgMode } from '@/lib/orgLayout';
 import type { Employee } from '@/lib/types';
 import { isAdmin } from '@/lib/can';
+import { ImageCropper } from '@/components/ImageCropper';
 
 const CAT_STYLE: Record<string, string> = {
   department_manager: 'bg-brand-900 text-white border-brand-900',
@@ -40,6 +41,9 @@ async function uploadCv(id: string, f: File) {
   if (!/\.(pdf|docx?)$/i.test(f.name)) throw new Error('Choose a PDF, DOC or DOCX file');
   await api(`/api/employees/${id}/cv`, { raw: f, headers: { 'Content-Type': 'application/octet-stream', 'x-filename': encodeURIComponent(f.name) } });
 }
+async function uploadPhotoBlob(id: string, blob: Blob, name: string) {
+  await api(`/api/employees/${id}/photo`, { raw: blob, headers: { 'Content-Type': 'image/jpeg', 'x-filename': encodeURIComponent(name) } });
+}
 async function uploadPhoto(id: string, f: File) {
   const blob = await resizeImage(f);
   await api(`/api/employees/${id}/photo`, { raw: blob, headers: { 'Content-Type': 'image/jpeg', 'x-filename': encodeURIComponent(f.name) } });
@@ -56,6 +60,7 @@ export default function OrgPage() {
   const [colorBy, setColorBy] = useState<'location' | 'role'>('location');
   const [view, setView] = useState({ x: 20, y: 20, k: 0.9 });
   const photoInput = useRef<HTMLInputElement>(null);
+  const [cropFor, setCropFor] = useState<{ id: string; file: File } | null>(null);
   const cvInput = useRef<HTMLInputElement>(null);
   const canOpenCv = (e: { id: string }) => me.role === 'admin' || me.role === 'bim_manager' || me.employee_id === e.id; // own CV always
   const canUpload = (e: { id: string }) => admin || me.employee_id === e.id; // each engineer: own photo and CV
@@ -207,7 +212,7 @@ export default function OrgPage() {
               {canUpload(detail) && <div className="flex flex-wrap gap-2 pt-1">
                 <button className="btn-secondary btn-sm" onClick={() => photoInput.current?.click()}><ImagePlus size={14} />{detail.photo_id ? 'Replace photo' : 'Add photo'}</button>
                 {admin && detail.photo_id && <button className="btn-secondary btn-sm" aria-label="Remove photo" onClick={async () => { try { await api(`/api/employees/${detail.id}/photo`, { method: 'DELETE' }); toast('Photo removed'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }}><Trash2 size={14} /></button>}
-                <input ref={photoInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={async (ev) => { const f = ev.target.files?.[0]; ev.target.value = ''; if (!f) return; try { await uploadPhoto(detail.id, f); toast('Photo saved'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
+                <input ref={photoInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={async (ev) => { const f = ev.target.files?.[0]; ev.target.value = ''; if (f) setCropFor({ id: detail.id, file: f }); }} />
               </div>}</div>
           </div>
           <div className="rounded-lg border border-slate-200 p-3 text-sm">
@@ -241,6 +246,7 @@ export default function OrgPage() {
       <Confirm open={!!confirmDeact} onClose={() => setConfirmDeact(null)} danger title="Deactivate employee" confirmLabel="Deactivate"
         message={<>Deactivate <b>{confirmDeact?.name}</b>? They stay in the chart (greyed out) and keep their history. {confirmDeact && data.assignments.some((a) => a.employee_id === confirmDeact.id) ? 'They still have project assignments — reassign those on the Teams page.' : ''}</>}
         onConfirm={async () => { try { await api(`/api/employees/${confirmDeact!.id}`, { method: 'PATCH', body: { active: false } }); toast('Deactivated'); setConfirmDeact(null); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
+      {cropFor && <ImageCropper file={cropFor.file} title="Crop photo" outWidth={600} aspects={[{ label: 'Square', value: 1 }]} onCancel={() => setCropFor(null)} onDone={async (b, n) => { const id = cropFor.id; setCropFor(null); try { await uploadPhotoBlob(id, b, n); toast('Photo saved'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />}
       {editing && <EmployeeForm init={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />}
     </>
   );
@@ -251,6 +257,7 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
   const [f, setF] = useState({ employee_code: init.employee_code ?? '', name: init.name ?? '', job_title: init.job_title ?? '', job_category: init.job_category ?? 'bim_coordinator', discipline: init.discipline ?? '', year_value: init.year_value ?? ('' as any), team_location: init.team_location ?? '', email: init.email ?? '', notes: init.notes ?? '', reports_to: init.reports_to ?? '' });
   const [busy, setBusy] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
+  const [cropNew, setCropNew] = useState<File | null>(null);
   const preview = useMemo(() => (photo ? URL.createObjectURL(photo) : init.photo_id ? `/api/files/${init.photo_id}` : null), [photo, init.photo_id]);
   const titles = [...new Set(data.employees.map((e) => e.job_title))];
   const blockedIds = init.id ? new Set([init.id, ...descendants(layoutTree(data.employees.map((e) => ({ id: e.id, reports_to: e.reports_to })), new Set()).kids, init.id)]) : new Set<string>();
@@ -267,6 +274,7 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
     } catch (e: any) { toast(e.message, 'err'); setBusy(false); }
   };
   return (
+    <>
     <Modal open onClose={onClose} wide title={init._new ? 'Add employee' : `Edit ${init.name}`} footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={busy || !f.name || !f.job_title} onClick={save}>Save</button></>}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Name"><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
@@ -280,10 +288,12 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
         <Field label="Reports to"><select className="input" value={f.reports_to} onChange={(e) => setF({ ...f, reports_to: e.target.value })}><option value="">(nobody — top of chart)</option>{data.employees.filter((e) => !blockedIds.has(e.id)).map((e) => <option key={e.id} value={e.id}>{e.name} — {e.job_title}</option>)}</select></Field>
         <div className="flex items-center gap-4 sm:col-span-2">
           {preview ? <img src={preview} alt="Selected photo" className="h-24 w-24 rounded-xl object-cover ring-1 ring-slate-200" /> : <span className="flex h-24 w-24 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-400">No photo</span>}
-          <Field label="Photo (optional)" hint="PNG, JPEG or WebP. It is resized automatically."><input type="file" accept="image/png,image/jpeg,image/webp" className="text-sm" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} /></Field>
+          <Field label="Photo (optional)" hint="PNG, JPEG or WebP. It is resized automatically."><input type="file" accept="image/png,image/jpeg,image/webp" className="text-sm" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; if (f) setCropNew(f); }} /></Field>
         </div>
         <div className="sm:col-span-2"><Field label="Notes"><textarea className="input" rows={2} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
       </div>
     </Modal>
+    {cropNew && <ImageCropper file={cropNew} title="Crop photo" outWidth={600} aspects={[{ label: 'Square', value: 1 }]} onCancel={() => setCropNew(null)} onDone={(b, n) => { setPhoto(new File([b], n, { type: 'image/jpeg' })); setCropNew(null); }} />}
+    </>
   );
 }

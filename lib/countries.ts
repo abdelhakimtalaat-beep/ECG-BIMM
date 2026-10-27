@@ -1,0 +1,2 @@
+// Suggestions for the project Country field (free text is still allowed).
+export const COUNTRIES = ['Saudi Arabia', 'Egypt', 'United Arab Emirates', 'Qatar', 'Kuwait', 'Bahrain', 'Oman', 'Jordan', 'Iraq', 'Lebanon', 'Libya', 'Morocco', 'Algeria', 'Tunisia', 'Sudan', 'Yemen', 'Turkey', 'United Kingdom', 'United States', 'Germany', 'France', 'Italy', 'India', 'Pakistan', 'China', 'Singapore', 'Malaysia', 'Australia', 'Canada', 'South Africa', 'Nigeria', 'Kenya'];

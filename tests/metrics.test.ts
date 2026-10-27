@@ -202,3 +202,19 @@ test('workload formula: area x typicality x function x coordination x BIM standa
   assert.equal(projectWorkload({ ...b, function_type: 'Landscape', bim_standards: 'No Standards', typicality: 'High Typical' }), Math.round(10000 * 0.4 * 0.1 * 0.2 * 0.8 * 100) / 100);
   assert.equal(projectWorkload({ ...b, built_up_area: null }), null);
 });
+
+import { baseScale, centered, clampOffset, sourceRect, zoomAt } from '../lib/crop.ts';
+test('crop geometry: cover, clamp, zoom and source rectangle', () => {
+  // 400x200 image in a 100x100 frame: scale 0.5 -> 200x100, centred horizontally
+  assert.equal(baseScale(400, 200, 100, 100), 0.5);
+  const c = centered(400, 200, 100, 100);
+  assert.deepEqual([c.x, c.y], [-50, 0]);
+  assert.deepEqual(sourceRect(400, 200, 100, 100, c), { sx: 100, sy: 0, sw: 200, sh: 200 });
+  assert.deepEqual(clampOffset(400, 200, 100, 100, 1, 50, 30), { x: 0, y: 0 });      // cannot drag past the edge
+  assert.deepEqual(clampOffset(400, 200, 100, 100, 1, -500, -40), { x: -100, y: 0 });
+  const z = zoomAt(400, 200, 100, 100, c, 2, 50, 50);                                // zoom around the frame centre
+  const r = sourceRect(400, 200, 100, 100, z);
+  assert.equal(r.sw, 100); assert.equal(r.sx + r.sw / 2, 200);                       // still centred on the image centre
+  assert.equal(zoomAt(400, 200, 100, 100, c, 99, 0, 0).zoom, 5);
+  assert.equal(zoomAt(400, 200, 100, 100, c, 0.1, 0, 0).zoom, 1);
+});

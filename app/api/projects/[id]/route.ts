@@ -29,6 +29,8 @@ const patch = z.object({
   project_manager: z.string().trim().max(120).nullable(),
   technical_manager: z.string().trim().max(120).nullable(),
   client: z.string().trim().max(200).nullable(),
+  country: z.string().trim().max(80).nullable(),
+  city: z.string().trim().max(80).nullable(),
   built_up_area: z.number().nonnegative().nullable(),
   typicality: z.enum(TYPICALITY_OPTIONS as [string, ...string[]]).nullable(),
   function_type: z.enum(FUNCTION_OPTIONS as [string, ...string[]]).nullable(),

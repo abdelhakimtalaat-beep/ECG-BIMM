@@ -9,6 +9,7 @@ import { ProjectDetail, ProjectPhoto } from '@/components/ProjectDetail';
 import { ImportWizard } from '@/components/ImportWizard';
 import { api, download, fmtDate, fmtNum } from '@/lib/client';
 import { projectWorkload } from '@/lib/workload';
+import { COUNTRIES } from '@/lib/countries';
 import { hasArea, totalArea } from '@/lib/metrics';
 import { STATUSES, type Project, type Status } from '@/lib/types';
 
@@ -48,6 +49,7 @@ function Inner() {
     { key: 'pm', header: 'Project Manager', render: (p) => p.project_manager ?? '—', sort: (p) => (p.project_manager ?? '').toLowerCase(), hideBelow: 'lg' },
     { key: 'tm', header: 'Technical Manager', render: (p) => p.technical_manager ?? '—', sort: (p) => (p.technical_manager ?? '').toLowerCase(), hideBelow: 'lg' },
     { key: 'load', header: 'Workload', render: (p) => { const w = projectWorkload(p); return w == null ? '—' : fmtNum(w); }, sort: (p) => projectWorkload(p) ?? -1, hideBelow: 'lg' },
+    { key: 'loc', header: 'Location', render: (p) => [p.city, p.country].filter(Boolean).join(', ') || '—', sort: (p) => [p.city, p.country].filter(Boolean).join(', ').toLowerCase(), hideBelow: 'lg' },
     { key: 'cde', header: 'CDE', render: (p) => p.cde ?? '—', sort: (p) => p.cde, hideBelow: 'md' },
     { key: 'type', header: 'Type', render: (p) => p.type ?? '—', sort: (p) => p.type, hideBelow: 'lg' },
     { key: 'area', header: 'Built-up area', render: (p) => (hasArea(p) ? fmtNum(p.built_up_area) : <span title={p.area_note ?? 'Missing'} className="text-slate-400">{p.area_raw ? `“${p.area_raw}”` : '—'}</span>), sort: (p) => p.built_up_area, className: 'text-right', hideBelow: 'md' },
@@ -92,16 +94,18 @@ function Inner() {
 
 function NewProject({ onClose }: { onClose: () => void }) {
   const { data, refresh } = useApp(); const toast = useToast();
-  const [f, setF] = useState<any>({ project_no: '', name: '', cde: 'ACC', type: 'BIM', built_up_area: '', deltek_number: '', client: '', project_manager: '', technical_manager: '', status: 'Not Started', manager_id: '', coordinator_id: '', notes: '' });
+  const [f, setF] = useState<any>({ project_no: '', name: '', cde: 'ACC', type: 'BIM', built_up_area: '', deltek_number: '', client: '', country: '', city: '', project_manager: '', technical_manager: '', status: 'Not Started', manager_id: '', coordinator_id: '', notes: '' });
   const people = (c: string) => data.employees.filter((e) => e.active && e.job_category === c);
   return (
     <Modal open onClose={onClose} wide title="New project" footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!f.name.trim()} onClick={async () => {
-      try { await api('/api/projects', { body: { project_no: f.project_no || null, name: f.name, cde: f.cde || null, type: f.type || null, deltek_number: f.deltek_number || null, client: f.client || null, project_manager: f.project_manager || null, technical_manager: f.technical_manager || null, built_up_area: f.built_up_area === '' ? null : Number(f.built_up_area), status: f.status, notes: f.notes || null, manager_id: f.manager_id || null, coordinator_ids: f.coordinator_id ? [f.coordinator_id] : [] } }); toast('Project created'); await refresh(); onClose(); } catch (e: any) { toast(e.message, 'err'); } }}>Create</button></>}>
+      try { await api('/api/projects', { body: { project_no: f.project_no || null, name: f.name, cde: f.cde || null, type: f.type || null, deltek_number: f.deltek_number || null, client: f.client || null, country: f.country || null, city: f.city || null, project_manager: f.project_manager || null, technical_manager: f.technical_manager || null, built_up_area: f.built_up_area === '' ? null : Number(f.built_up_area), status: f.status, notes: f.notes || null, manager_id: f.manager_id || null, coordinator_ids: f.coordinator_id ? [f.coordinator_id] : [] } }); toast('Project created'); await refresh(); onClose(); } catch (e: any) { toast(e.message, 'err'); } }}>Create</button></>}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Project number" hint="Optional — projects without a number are allowed."><input className="input" value={f.project_no} onChange={(e) => setF({ ...f, project_no: e.target.value })} /></Field>
         <Field label="Project name"><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
         <Field label="Deltek number"><input className="input" value={f.deltek_number} onChange={(e) => setF({ ...f, deltek_number: e.target.value })} /></Field>
         <Field label="Client"><input className="input" value={f.client} onChange={(e) => setF({ ...f, client: e.target.value })} /></Field>
+        <Field label="Country"><input list="ecg-countries" className="input" value={f.country} onChange={(e) => setF({ ...f, country: e.target.value })} /><datalist id="ecg-countries">{COUNTRIES.map((c) => <option key={c} value={c} />)}</datalist></Field>
+        <Field label="City"><input className="input" value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} /></Field>
         <Field label="Project Manager"><input className="input" value={f.project_manager} onChange={(e) => setF({ ...f, project_manager: e.target.value })} /></Field>
         <Field label="Technical Manager"><input className="input" value={f.technical_manager} onChange={(e) => setF({ ...f, technical_manager: e.target.value })} /></Field>
         <Field label="CDE"><input className="input" list="cdes" value={f.cde} onChange={(e) => setF({ ...f, cde: e.target.value })} /><datalist id="cdes"><option>ACC</option><option>Server</option></datalist></Field>

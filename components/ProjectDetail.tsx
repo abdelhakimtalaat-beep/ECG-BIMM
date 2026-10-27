@@ -4,6 +4,8 @@ import { Building2, FileDown, ImagePlus, Trash2 } from 'lucide-react';
 import { api, fmtDate, fmtDateTime, fmtNum } from '@/lib/client';
 import { canEditProject } from '@/lib/can';
 import { upcomingReels } from '@/lib/metrics';
+import { COUNTRIES } from '@/lib/countries';
+import { ImageCropper } from './ImageCropper';
 import { BIM_STANDARDS, BIM_STANDARDS_OPTIONS, COORDINATION, COORDINATION_OPTIONS, FUNCTION_OPTIONS, FUNCTION_TYPES, TYPICALITY, TYPICALITY_OPTIONS, projectWorkload } from '@/lib/workload';
 import { STATUSES, type Project, type Status } from '@/lib/types';
 import { useApp } from './store';
@@ -20,6 +22,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const [extra, setExtra] = useState<{ history: any[]; notes: any[] } | null>(null);
   const [edit, setEdit] = useState<Record<string, any> | null>(null);
   const [note, setNote] = useState(''); const [busy, setBusy] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [confirmDel, setConfirmDel] = useState(false); const file = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => { if (id) { try { setExtra(await api(`/api/projects/${id}`)); } catch {} } }, [id]);
@@ -28,7 +31,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const asg = useMemo(() => data.assignments.filter((a) => a.project_id === id), [data.assignments, id]);
   const mgrs = asg.filter((a) => a.role === 'manager'), coords = asg.filter((a) => a.role === 'coordinator'), members = asg.filter((a) => a.role === 'member');
   const scope = canEditProject(me, mgrs.map((a) => a.employee_id), coords.map((a) => a.employee_id));
-  const can = (f: string) => ({ full: ['project_no', 'typicality', 'function_type', 'coordination_type', 'bim_standards', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], manager: ['typicality', 'function_type', 'coordination_type', 'bim_standards', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
+  const can = (f: string) => ({ full: ['project_no', 'typicality', 'function_type', 'coordination_type', 'bim_standards', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'built_up_area', 'status', 'notes'], manager: ['typicality', 'function_type', 'coordination_type', 'bim_standards', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'built_up_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
   const team = new Set(asg.map((a) => a.employee_id));
   const related = useMemo(() => upcomingReels(data.reels, today).filter((r) => r.employee_id && team.has(r.employee_id)), [data.reels, today, team]);
 
@@ -42,8 +45,8 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
       await api(`/api/projects/${p.id}`, { method: 'PATCH', body }); toast('Saved'); setEdit(null); await refresh(); load();
     } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); }
   };
-  const upload = async (f: File) => {
-    try { await api(`/api/projects/${p.id}/photo`, { raw: f, headers: { 'Content-Type': f.type, 'x-filename': encodeURIComponent(f.name) } }); toast('Photo updated'); refresh(); }
+  const upload = async (f: Blob, name: string) => {
+    try { await api(`/api/projects/${p.id}/photo`, { raw: f, headers: { 'Content-Type': 'image/jpeg', 'x-filename': encodeURIComponent(name) } }); toast('Photo updated'); refresh(); }
     catch (e: any) { toast(e.message, 'err'); }
   };
   const exportPdf = async () => {
@@ -64,10 +67,10 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const inp = (k: string, type = 'text') => <input type={type} className="input" disabled={!can(k)} value={(k in E ? E[k] : (p as any)[k]) ?? ''} onChange={(e) => setEdit({ ...E, [k]: e.target.value })} />;
 
   return (
-    <Drawer open onClose={onClose} title={`${p.project_no ? p.project_no + ' · ' : ''}${p.name}`} width="max-w-2xl">
+    <><Drawer open onClose={onClose} title={`${p.project_no ? p.project_no + ' · ' : ''}${p.name}`} width="max-w-2xl">
       <div className="space-y-5">
         <div className="relative overflow-hidden rounded-xl border border-slate-200"><ProjectPhoto project={p} className="h-48 w-full" />
-          {(scope !== 'none') && <div className="absolute bottom-2 right-2 flex gap-1"><input ref={file} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+          {(scope !== 'none') && <div className="absolute bottom-2 right-2 flex gap-1"><input ref={file} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) setCropFile(f); }} />
             <button className="btn-secondary btn-sm" onClick={() => file.current?.click()}><ImagePlus size={14} />{p.photo_id ? 'Replace' : 'Upload'} photo</button>
             {p.photo_id && <button className="btn-secondary btn-sm" aria-label="Remove photo" onClick={async () => { await api(`/api/projects/${p.id}/photo`, { method: 'DELETE' }); refresh(); }}><Trash2 size={14} /></button>}</div>}</div>
 
@@ -78,6 +81,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Project number">{inp('project_no')}</Field><Field label="Project name">{inp('name')}</Field>
           <Field label="Deltek number">{inp('deltek_number')}</Field><Field label="Client">{inp('client')}</Field>
+          <Field label="Country"><input list="ecg-countries" className="input" disabled={!can('country')} placeholder="e.g. Saudi Arabia" value={('country' in E ? E.country : p.country) ?? ''} onChange={(e) => setEdit({ ...E, country: e.target.value })} /><datalist id="ecg-countries">{COUNTRIES.map((c) => <option key={c} value={c} />)}</datalist></Field><Field label="City">{inp('city')}</Field>
           <Field label="Project Manager">{inp('project_manager')}</Field><Field label="Technical Manager">{inp('technical_manager')}</Field>
           <Field label="CDE">{inp('cde')}</Field><Field label="Type">{inp('type')}</Field>
           <Field label="Built-up area" hint={p.area_note ? `Source: ${p.area_raw} — ${p.area_note}` : undefined}>{inp('built_up_area', 'number')}</Field>
@@ -121,5 +125,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
       <Confirm open={confirmDel} danger title="Delete project" confirmLabel="Delete permanently" onClose={() => setConfirmDel(false)} message={<>Permanently delete <b>{p.name}</b> with its assignments, history and comments? To keep the record, set its status to Closed instead.</>}
         onConfirm={async () => { try { await api(`/api/projects/${p.id}`, { method: 'DELETE' }); toast('Deleted'); setConfirmDel(false); onClose(); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
     </Drawer>
+    {cropFile && <ImageCropper file={cropFile} title="Crop project photo" outWidth={1200} aspects={[{ label: '16:9', value: 16 / 9 }, { label: '4:3', value: 4 / 3 }, { label: 'Square', value: 1 }]} onCancel={() => setCropFile(null)} onDone={async (b, n) => { setCropFile(null); await upload(b, n); }} />}
+    </>
   );
 }

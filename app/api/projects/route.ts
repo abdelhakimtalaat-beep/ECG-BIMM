@@ -12,6 +12,8 @@ const projectBody = z.object({
   project_manager: z.string().trim().max(120).nullish().transform((v) => v || null),
   technical_manager: z.string().trim().max(120).nullish().transform((v) => v || null),
   client: z.string().trim().max(200).nullish().transform((v) => v || null),
+  country: z.string().trim().max(80).nullish().transform((v) => v || null),
+  city: z.string().trim().max(80).nullish().transform((v) => v || null),
   built_up_area: z.number().nonnegative().nullish().transform((v) => v ?? null),
   status: z.enum(['Not Started', 'In Progress', 'On Hold', 'Closed']).default('Not Started'),
   notes: z.string().max(5000).nullish().transform((v) => v || null),
@@ -24,8 +26,8 @@ export async function POST(req: Request) {
     const me = await requireUser(['admin']);
     const b = projectBody.parse(await json(req));
     const id = await tx(async (c) => {
-      const r = await c.query(`insert into projects(project_no,name,cde,type,built_up_area,status,status_source,notes,deltek_number,project_manager,technical_manager,client) values($1,$2,$3,$4,$5,$6,'manual',$7,$8,$9,$10,$11) returning id`,
-        [b.project_no, b.name, b.cde, b.type, b.built_up_area, b.status, b.notes, b.deltek_number, b.project_manager, b.technical_manager, b.client]);
+      const r = await c.query(`insert into projects(project_no,name,cde,type,built_up_area,status,status_source,notes,deltek_number,project_manager,technical_manager,client,country,city) values($1,$2,$3,$4,$5,$6,'manual',$7,$8,$9,$10,$11,$12,$13) returning id`,
+        [b.project_no, b.name, b.cde, b.type, b.built_up_area, b.status, b.notes, b.deltek_number, b.project_manager, b.technical_manager, b.client, b.country, b.city]);
       const pid = r.rows[0].id as string;
       await c.query(`insert into project_status_history(project_id,old_status,new_status,reason,changed_by) values($1,null,$2,'Created in portal',$3)`, [pid, b.status, me.email]);
       if (b.manager_id) await c.query(`insert into project_assignments(project_id,employee_id,role) values($1,$2,'manager')`, [pid, b.manager_id]);

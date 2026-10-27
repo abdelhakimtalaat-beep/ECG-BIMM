@@ -115,3 +115,6 @@ Run `db/migrations/009_task_pending_comment.sql` in Supabase BEFORE deploying (r
 ## Update: Wish List and phone installation
 Run `db/migrations/010_wishes.sql` in Supabase BEFORE deploying (creates `wishes` and `wish_votes`).
 Install on a phone: open the portal in the phone browser. iPhone/iPad (Safari): Share > Add to Home Screen. Android (Chrome): menu > Install app. Or use "Install app on this device" in the user menu.
+
+## Update: project location and photo cropping
+Run `db/migrations/011_project_location.sql` in Supabase BEFORE deploying (adds `projects.country` and `projects.city`). Photos of engineers and projects now open a crop window (drag, zoom, choose the frame) before they are uploaded.

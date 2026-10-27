@@ -112,6 +112,8 @@ alter table projects add column if not exists typicality text;
 alter table projects add column if not exists function_type text;
 alter table projects add column if not exists coordination_type text;
 alter table projects add column if not exists bim_standards text;
+alter table projects add column if not exists country text;
+alter table projects add column if not exists city text;
 create index if not exists projects_no_idx on projects(project_no);
 
 create table if not exists project_status_history (
