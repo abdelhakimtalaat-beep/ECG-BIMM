@@ -14,7 +14,7 @@ import { STATUS_DOT } from '@/lib/client';
 
 export default function TeamsPage() {
   const { me, data, projects, emp, filters } = useApp(); const toast = useToast();
-  const [tab, setTab] = useState<'hierarchy' | 'matrix' | 'checks'>('hierarchy');
+  const [tab, setTab] = useState<'hierarchy' | 'matrix' | 'checks'>('matrix');
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [matrixBy, setMatrixBy] = useState<'manager' | 'coordinator'>('manager');
   const [detail, setDetail] = useState<string | null>(null); const [assign, setAssign] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export default function TeamsPage() {
         actions={<><button className="btn-secondary" onClick={exportXlsx}><FileSpreadsheet size={16} />Excel</button><button className="btn-secondary" onClick={exportPdf}><FileDown size={16} />PDF</button></>} />
       <FilterBar show={['q', 'manager', 'coordinator', 'status', 'deltek', 'client', 'pm', 'tm', 'cde', 'type']} />
       <div className="mb-4 flex gap-1 border-b border-slate-200" role="tablist">
-        {([['hierarchy', 'Team hierarchy'], ['matrix', 'Matrix'], ['checks', `Checks (${unassignedMgr.length + issues.length + dupes.length})`]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{l}</button>)}
+        {([['matrix', 'Matrix'], ['hierarchy', 'Team hierarchy'], ['checks', `Checks (${unassignedMgr.length + issues.length + dupes.length})`]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{l}</button>)}
       </div>
 
       {tab === 'hierarchy' && (<div className="space-y-3">

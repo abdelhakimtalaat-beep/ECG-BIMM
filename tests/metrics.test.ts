@@ -200,6 +200,7 @@ test('workload formula: area x typicality x function x coordination x BIM standa
   assert.equal(projectWorkload({ ...b, bim_standards: null }), null);
   assert.equal(projectWorkload({ ...b, bim_standards: 'Normal Standards', function_type: 'Villas', typicality: 'No Typical', coordination_type: 'Internal Coordination', scope_items: ['Architecture', 'Structure', 'MEP'] }), 6000);
   assert.equal(projectWorkload({ ...b, scope_items: [] }), null);
+  assert.equal(projectWorkload({ ...b, function_type: 'Residential/Offices/Mixed Use/Other', typicality: 'No Typical', coordination_type: 'Internal Coordination', bim_standards: 'Normal Standards', scope_items: ['Lead Consultant'] }), 2000);
   assert.equal(projectWorkload({ ...b, scope_items: null }), null);
   assert.equal(projectWorkload({ ...b, bim_standards: 'Minimum Standards', scope_items: ['Landscape'] }), Math.round(10000 * 0.8 * 1.3 * 0.2 * 0.8 * 0.2 * 100) / 100);
   assert.equal(projectWorkload({ ...b, function_type: 'Landscape', bim_standards: 'Minimum Standards', typicality: 'High Typical', scope_items: ['Architecture', 'Structure', 'MEP', 'Infrastructure', 'Landscape'] }), Math.round(10000 * 0.4 * 0.1 * 0.2 * 0.8 * 1.4 * 100) / 100);

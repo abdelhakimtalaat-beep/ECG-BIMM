@@ -122,3 +122,6 @@ Run `db/migrations/011_project_location.sql` in Supabase BEFORE deploying (adds 
 ## Update: dark mode, Scope factor, Minimum Standards
 Run `db/migrations/012_scope_minimum_standards.sql` in Supabase BEFORE deploying (adds `projects.scope_items`, renames No Standards to Minimum Standards). Dark mode: the moon/sun button in the top bar; it follows the device setting until you choose.
 Workload = Built-up area x Typicality x Function x Coordination x BIM Standards x Scope, where Scope is the sum of the ticked disciplines (Architecture 0.3, Structure 0.2, MEP 0.5, Infrastructure 0.2, Landscape 0.2).
+
+## Update: Lead Consultant scope, Function Other, Matrix first
+Run `db/migrations/013_function_other.sql` in Supabase BEFORE deploying (renames the Function option to Residential/Offices/Mixed Use/Other). Scope gains Lead Consultant (0.2). The Teams tab now opens on Matrix.
