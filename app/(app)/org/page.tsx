@@ -228,7 +228,7 @@ export default function OrgPage() {
               <span className="self-center text-xs text-slate-400">PDF, DOC or DOCX, up to 4 MB</span></div>}
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            {[['Employee ID', detail.employee_code ?? 'Not supplied'], ['Email', detail.email ?? '—'], ['Role', detail.job_title], ['Category', CAT_LABEL[detail.job_category]], ['Discipline', detail.discipline ?? '—'], ['Year (as supplied)', detail.year_value ?? '—'], ['Team location', detail.team_location ?? '—'],
+            {[['Employee ID', detail.employee_code ?? 'Not supplied'], ['Email', detail.email ?? '—'], ['Mobile', detail.mobile ?? '—'], ['Ext.', detail.ext ?? '—'], ['Role', detail.job_title], ['Category', CAT_LABEL[detail.job_category]], ['Discipline', detail.discipline ?? '—'], ['Year (as supplied)', detail.year_value ?? '—'], ['Team location', detail.team_location ?? '—'],
               ['Reports to', detail.reports_to ? emp.get(detail.reports_to)?.name : '—'], ['Status', detail.active ? 'Active' : 'Inactive']].map(([k, v]) => <div key={String(k)}><p className="label">{k}</p><p>{v}</p></div>)}
           </div>
           {detail.notes && <p className="rounded bg-slate-50 p-3 text-sm">{detail.notes}</p>}
@@ -254,7 +254,7 @@ export default function OrgPage() {
 
 function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { _new?: boolean }; onClose: () => void; onSaved: () => void }) {
   const { data } = useApp(); const toast = useToast();
-  const [f, setF] = useState({ employee_code: init.employee_code ?? '', name: init.name ?? '', job_title: init.job_title ?? '', job_category: init.job_category ?? 'bim_coordinator', discipline: init.discipline ?? '', year_value: init.year_value ?? ('' as any), team_location: init.team_location ?? '', email: init.email ?? '', notes: init.notes ?? '', reports_to: init.reports_to ?? '' });
+  const [f, setF] = useState({ employee_code: init.employee_code ?? '', name: init.name ?? '', job_title: init.job_title ?? '', job_category: init.job_category ?? 'bim_coordinator', discipline: init.discipline ?? '', year_value: init.year_value ?? ('' as any), team_location: init.team_location ?? '', email: init.email ?? '', mobile: init.mobile ?? '', ext: init.ext ?? '', notes: init.notes ?? '', reports_to: init.reports_to ?? '' });
   const [busy, setBusy] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [cropNew, setCropNew] = useState<File | null>(null);
@@ -264,7 +264,7 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
   const save = async () => {
     setBusy(true);
     try {
-      const body: any = { employee_code: f.employee_code || null, name: f.name, job_title: f.job_title, job_category: f.job_category, discipline: f.discipline || null, year_value: f.year_value === '' ? null : Number(f.year_value), team_location: f.team_location || null, email: f.email.trim() || null, notes: f.notes || null, reports_to: f.reports_to || null };
+      const body: any = { employee_code: f.employee_code || null, name: f.name, job_title: f.job_title, job_category: f.job_category, discipline: f.discipline || null, year_value: f.year_value === '' ? null : Number(f.year_value), team_location: f.team_location || null, email: f.email.trim() || null, mobile: f.mobile.trim() || null, ext: f.ext.trim() || null, notes: f.notes || null, reports_to: f.reports_to || null };
       let id = init.id as string | undefined;
       if (init._new) id = (await api<{ id: string }>('/api/employees', { body })).id; else await api(`/api/employees/${init.id}`, { method: 'PATCH', body });
       let photoErr = '';
@@ -284,6 +284,8 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
         <Field label="Discipline"><input className="input" value={f.discipline} onChange={(e) => setF({ ...f, discipline: e.target.value })} /></Field>
         <Field label="Year (as shown on the chart)"><input type="number" className="input" value={f.year_value} onChange={(e) => setF({ ...f, year_value: e.target.value as any })} /></Field>
         <Field label="Email" hint="Work e-mail. It becomes the sign-in name when a portal user is created for this person."><input type="email" className="input" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
+        <Field label="Mobile no."><input type="tel" className="input" value={f.mobile} onChange={(e) => setF({ ...f, mobile: e.target.value })} /></Field>
+        <Field label="Ext. no."><input className="input" value={f.ext} onChange={(e) => setF({ ...f, ext: e.target.value })} /></Field>
         <Field label="Team location"><input className="input" placeholder="NC / SV / Alex" value={f.team_location} onChange={(e) => setF({ ...f, team_location: e.target.value })} /></Field>
         <Field label="Reports to"><select className="input" value={f.reports_to} onChange={(e) => setF({ ...f, reports_to: e.target.value })}><option value="">(nobody — top of chart)</option>{data.employees.filter((e) => !blockedIds.has(e.id)).map((e) => <option key={e.id} value={e.id}>{e.name} — {e.job_title}</option>)}</select></Field>
         <div className="flex items-center gap-4 sm:col-span-2">

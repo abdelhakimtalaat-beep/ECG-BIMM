@@ -125,3 +125,6 @@ Workload = Built-up area x Typicality x Function x Coordination x BIM Standards 
 
 ## Update: Lead Consultant scope, Function Other, Matrix first
 Run `db/migrations/013_function_other.sql` in Supabase BEFORE deploying (renames the Function option to Residential/Offices/Mixed Use/Other). Scope gains Lead Consultant (0.2). The Teams tab now opens on Matrix.
+
+## Update: editable workload factors, Contacts tab, mobile/ext
+Run `db/migrations/014_contacts_mobile.sql` in Supabase BEFORE deploying. Administration > Workload factors lets the Administrator edit factor values, add options, and remove unused ones. The new Contacts tab lists colleagues outside the BIM Department (anyone can add; creator or Administrator edits/deletes). Engineers now have Mobile no. and Ext. no. in the Org Chart (edited by the Administrator).

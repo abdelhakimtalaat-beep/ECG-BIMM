@@ -1,9 +1,10 @@
 import { q } from './db';
 import type { Dataset, Settings } from './types';
+import { mergeFactors } from './workload';
 
 export async function loadDataset(): Promise<Dataset> {
   const [employees, projects, assignments, reels, settingsRows, mappings, history, task_areas, tasks] = await Promise.all([
-    q(`select e.id,e.employee_code,e.name,e.job_title,e.job_category,e.discipline,e.year_value,e.team_location,e.active,e.notes,e.photo_id,e.cv_id,(select a.filename from attachments a where a.id=e.cv_id) as cv_filename,e.email,
+    q(`select e.id,e.employee_code,e.name,e.job_title,e.job_category,e.discipline,e.year_value,e.team_location,e.active,e.notes,e.photo_id,e.cv_id,(select a.filename from attachments a where a.id=e.cv_id) as cv_filename,e.email,e.mobile,e.ext,
               r.manager_id as reports_to
        from employees e left join reporting_relationships r on r.employee_id=e.id and r.valid_to is null
        order by e.name`),
@@ -23,6 +24,7 @@ export async function loadDataset(): Promise<Dataset> {
     capacity: { max_projects_per_coordinator: null, max_projects_per_manager: null, max_area_per_coordinator: null, max_area_per_manager: null,
       hours_per_project: null, available_hours_per_person: null, imbalance_ratio: 1.5, count_statuses: ['In Progress', 'Not Started'], ...(s.capacity || {}) },
     alerts: { reel_reminder_days: 7, outlier_area: 5000000, ...(s.alerts || {}) },
+    factors: mergeFactors(s.factors),
   };
   return { employees, projects, assignments, reels, settings, mappings, history, task_areas, tasks } as Dataset;
 }

@@ -222,3 +222,14 @@ test('crop geometry: cover, clamp, zoom and source rectangle', () => {
   assert.equal(zoomAt(400, 200, 100, 100, c, 99, 0, 0).zoom, 5);
   assert.equal(zoomAt(400, 200, 100, 100, c, 0.1, 0, 0).zoom, 1);
 });
+
+import { mergeFactors, DEFAULT_FACTORS } from '../lib/workload.ts';
+test('editable factors: stored group overrides defaults, custom option works', () => {
+  assert.deepEqual(mergeFactors(undefined), DEFAULT_FACTORS);
+  const f = mergeFactors({ typicality: { 'No Typical': 2, Custom: 0.5 } });
+  assert.equal(f.typicality.Custom, 0.5);
+  assert.equal(f.function_type.Hospital, 1.3);
+  const b: any = { built_up_area: 1000, typicality: 'Custom', function_type: 'Hospital', coordination_type: 'Internal Coordination', bim_standards: 'Normal Standards', scope_items: ['MEP'] };
+  assert.equal(projectWorkload(b, f), Math.round(1000 * 0.5 * 1.3 * 1 * 1 * 0.5 * 100) / 100);
+  assert.equal(projectWorkload(b), null);
+});

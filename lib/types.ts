@@ -1,3 +1,4 @@
+import type { Factors } from './workload';
 export type Role = 'admin' | 'bim_manager' | 'bim_coordinator' | 'viewer';
 export type Status = 'Not Started' | 'In Progress' | 'On Hold' | 'Closed';
 export const STATUSES: Status[] = ['Not Started', 'In Progress', 'On Hold', 'Closed'];
@@ -11,7 +12,7 @@ export interface Employee {
   id: string; employee_code: string | null; name: string; job_title: string;
   job_category: 'department_manager' | 'bim_manager' | 'bim_coordinator' | 'bim_specialist' | 'rd_engineer' | 'other';
   discipline: string | null; year_value: number | null; team_location: string | null; active: boolean; notes: string | null;
-  reports_to: string | null; photo_id?: string | null; cv_id?: string | null; cv_filename?: string | null; email?: string | null;
+  reports_to: string | null; photo_id?: string | null; cv_id?: string | null; cv_filename?: string | null; email?: string | null; mobile?: string | null; ext?: string | null;
 }
 export interface Project {
   id: string; project_no: string | null; name: string; cde: string | null; type: string | null;
@@ -32,7 +33,7 @@ export interface Capacity {
   hours_per_project: number | null; available_hours_per_person: number | null;
   imbalance_ratio: number; count_statuses: Status[];
 }
-export interface Settings { capacity: Capacity; alerts: { reel_reminder_days: number; outlier_area: number } }
+export interface Settings { capacity: Capacity; alerts: { reel_reminder_days: number; outlier_area: number }; factors: Factors }
 export interface StatusMapping { id: string; source_status: string; activity_flag: string; target_status: Status; note: string | null }
 export interface HistoryRow { project_id: string; old_status: Status | null; new_status: Status; changed_at: string; changed_by: string | null }
 export interface TaskArea { id: string; manager_id: string; project_id: string }

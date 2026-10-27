@@ -48,7 +48,7 @@ function Inner() {
     { key: 'client', header: 'Client', render: (p) => <span className="block max-w-[14rem] truncate" title={p.client ?? ''}>{p.client ?? '—'}</span>, sort: (p) => (p.client ?? '').toLowerCase(), hideBelow: 'md' },
     { key: 'pm', header: 'Project Manager', render: (p) => p.project_manager ?? '—', sort: (p) => (p.project_manager ?? '').toLowerCase(), hideBelow: 'lg' },
     { key: 'tm', header: 'Technical Manager', render: (p) => p.technical_manager ?? '—', sort: (p) => (p.technical_manager ?? '').toLowerCase(), hideBelow: 'lg' },
-    { key: 'load', header: 'Workload', render: (p) => { const w = projectWorkload(p); return w == null ? '—' : fmtNum(w); }, sort: (p) => projectWorkload(p) ?? -1, hideBelow: 'lg' },
+    { key: 'load', header: 'Workload', render: (p) => { const w = projectWorkload(p, data.settings.factors); return w == null ? '—' : fmtNum(w); }, sort: (p) => projectWorkload(p, data.settings.factors) ?? -1, hideBelow: 'lg' },
     { key: 'loc', header: 'Location', render: (p) => [p.city, p.country].filter(Boolean).join(', ') || '—', sort: (p) => [p.city, p.country].filter(Boolean).join(', ').toLowerCase(), hideBelow: 'lg' },
     { key: 'cde', header: 'CDE', render: (p) => p.cde ?? '—', sort: (p) => p.cde, hideBelow: 'md' },
     { key: 'type', header: 'Type', render: (p) => p.type ?? '—', sort: (p) => p.type, hideBelow: 'lg' },

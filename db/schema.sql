@@ -261,6 +261,23 @@ create table if not exists wish_votes (
   primary key (wish_id, user_id)
 );
 
+-- Contacts directory and engineer phone numbers
+alter table employees add column if not exists mobile text;
+alter table employees add column if not exists ext text;
+create table if not exists contacts (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  department text,
+  job_title  text,
+  email      text,
+  mobile     text,
+  ext        text,
+  notes      text,
+  created_by text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 -- ------------------------------------------------------------------ security
 -- The Next.js server is the only database client and enforces roles in code.
 -- Row level security is switched on with no policies so that the Supabase anon /
@@ -269,7 +286,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','wishes','wish_votes'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','wishes','wish_votes','contacts'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;

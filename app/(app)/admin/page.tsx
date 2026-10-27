@@ -7,8 +7,9 @@ import { ImportWizard } from '@/components/ImportWizard';
 import { Badge, Field, Modal, PageHeader, Spinner, useToast } from '@/components/ui';
 import { api, fmtDate, roleLabel } from '@/lib/client';
 import { STATUSES, type Role } from '@/lib/types';
+import { DEFAULT_FACTORS, FACTOR_GROUPS, FACTOR_TITLES, type Factors } from '@/lib/workload';
 
-const TABS = [['users', 'Users & roles'], ['status', 'Status mapping'], ['quality', 'Data quality'], ['import', 'Import & history'], ['audit', 'Audit log'], ['brand', 'Branding & backup']] as const;
+const TABS = [['users', 'Users & roles'], ['factors', 'Workload factors'], ['status', 'Status mapping'], ['quality', 'Data quality'], ['import', 'Import & history'], ['audit', 'Audit log'], ['brand', 'Branding & backup']] as const;
 
 export default function AdminPage() {
   const { me } = useApp(); const router = useRouter();
@@ -19,7 +20,7 @@ export default function AdminPage() {
     <>
       <PageHeader title="Administration" subtitle="Users, status mapping, data quality, imports and audit trail. Visible to the Department Manager / Administrator only." />
       <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-200" role="tablist">{TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{l}</button>)}</div>
-      {tab === 'users' && <Users />}{tab === 'status' && <StatusMapping />}{tab === 'quality' && <Quality />}{tab === 'import' && <Imports />}{tab === 'audit' && <Audit />}{tab === 'brand' && <Brand />}
+      {tab === 'users' && <Users />}{tab === 'factors' && <Factors />}{tab === 'status' && <StatusMapping />}{tab === 'quality' && <Quality />}{tab === 'import' && <Imports />}{tab === 'audit' && <Audit />}{tab === 'brand' && <Brand />}
     </>
   );
 }
@@ -41,7 +42,7 @@ function Users() {
   const choices = data.employees.filter((e) => e.active && e.email && !taken.has(e.email.toLowerCase())).sort((a, b) => a.email!.localeCompare(b.email!));
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between"><p className="max-w-3xl text-sm text-slate-600">Roles are enforced on the server. <b>BIM Managers</b> can edit the Projects tab and the BIM Reels; <b>BIM Coordinators</b> can edit the BIM Reels; everything else is read-only for them. Only the Administrator changes the org chart, assignments, workload settings and users.</p><button className="btn-primary" onClick={() => setAdding(true)}><Plus size={16} />Add user</button></div>
+      <div className="mb-3 flex items-center justify-between"><p className="max-w-3xl text-sm text-slate-600">Roles are enforced on the server. <b>BIM Managers</b> and <b>BIM Coordinators</b> can edit only the projects they are assigned to, the planned BIM Reels, and the tasks of their area; everything else is read-only for them. Only the Administrator adds projects, changes the org chart, assignments, reel statuses, workload factors and users.</p><button className="btn-primary" onClick={() => setAdding(true)}><Plus size={16} />Add user</button></div>
       <div className="card overflow-x-auto"><table className="w-full text-left"><thead><tr>{['Email', 'Name', 'Role', 'Linked employee', 'Active', 'Last sign-in', ''].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead><tbody>{d.map((u) => (
         <tr key={u.id} className="border-t border-slate-100"><td className="td">{u.email}</td><td className="td">{u.full_name ?? '—'}</td>
           <td className="td"><select className="input w-56" value={u.role} onChange={(e) => patch(u.id, { role: e.target.value })}>{(['admin', 'bim_manager', 'bim_coordinator', 'viewer'] as Role[]).map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</select></td>
@@ -124,6 +125,33 @@ function Brand() {
         <div className="flex flex-wrap gap-2"><label className="btn-secondary cursor-pointer">Upload logo<input type="file" hidden accept="image/png,image/jpeg,image/webp" onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; try { await api('/api/logo', { raw: f, headers: { 'Content-Type': f.type } }); toast('Logo updated'); setV(v + 1); } catch (x: any) { toast(x.message, 'err'); } }} /></label>
           <button className="btn-ghost" onClick={async () => { try { await api('/api/logo', { method: 'DELETE' }); toast('Restored the supplied logo'); setV(v + 1); } catch (x: any) { toast(x.message, 'err'); } }}>Restore supplied logo</button></div></section>
       <section className="card p-5"><h3 className="mb-1 font-semibold text-brand-900">Backups</h3><p className="text-sm text-slate-600">All data lives in your Postgres database. On Supabase, enable daily backups (Project → Database → Backups; Point-in-time recovery on paid plans) and keep a periodic <code>pg_dump</code> copy. See <code>docs/SETUP.md</code> → “Backup and recovery”.</p></section>
+    </div>
+  );
+}
+
+function Factors() {
+  const { data, refresh } = useApp(); const toast = useToast();
+  const [f, setF] = useState<Factors>(() => JSON.parse(JSON.stringify(data.settings.factors)));
+  const [nw, setNw] = useState<Record<string, { n: string; v: string }>>({});
+  const save = async (next: Factors) => { try { await api('/api/settings', { method: 'PUT', body: { factors: next } }); setF(next); toast('Workload factors saved. All workloads are recalculated.'); await refresh(); } catch (e: any) { toast(e.message, 'err'); } };
+  const setVal = (g: string, k: string, v: string) => setF({ ...f, [g]: { ...f[g as keyof Factors], [k]: v === '' ? ('' as any) : Number(v) } });
+  const remove = (g: string, k: string) => { const { [k]: _, ...rest } = f[g as keyof Factors]; setF({ ...f, [g]: rest }); };
+  const add = (g: string) => { const x = nw[g]; if (!x?.n.trim() || x.v === '' || isNaN(Number(x.v))) return toast('Enter a name and a number', 'err'); if (x.n.trim() in f[g as keyof Factors]) return toast('That option already exists', 'err'); setF({ ...f, [g]: { ...f[g as keyof Factors], [x.n.trim()]: Number(x.v) } }); setNw({ ...nw, [g]: { n: '', v: '' } }); };
+  const bad = FACTOR_GROUPS.some((g) => Object.values(f[g]).some((v) => typeof v !== 'number' || isNaN(v) || v < 0));
+  return (
+    <div className="space-y-4">
+      <p className="max-w-3xl text-sm text-slate-600">Workload = Built-up area × Typicality × Function × Coordination × BIM Standards × Scope (sum of the ticked items). Changing a value recalculates the workload of every project immediately. To rename an option, add the new name and remove the old one; an option still used by a project cannot be removed.</p>
+      <div className="grid gap-4 lg:grid-cols-2">{FACTOR_GROUPS.map((g) => (
+        <div key={g} className="card p-4"><h3 className="mb-2 font-semibold text-brand-900">{FACTOR_TITLES[g]}</h3>
+          <table className="w-full text-sm"><tbody>{Object.entries(f[g]).map(([k, v]) => (
+            <tr key={k} className="border-t border-slate-100"><td className="py-1.5 pr-2">{k}</td>
+              <td className="w-28"><input type="number" step="0.05" min="0" className="input" aria-label={`${k} factor`} value={v as any} onChange={(e) => setVal(g, k, e.target.value)} /></td>
+              <td className="w-10 text-right"><button className="btn-secondary btn-sm" aria-label={`Remove ${k}`} onClick={() => remove(g, k)}><Trash2 size={14} /></button></td></tr>))}</tbody></table>
+          <div className="mt-3 flex gap-2"><input className="input" placeholder="New option" value={nw[g]?.n ?? ''} onChange={(e) => setNw({ ...nw, [g]: { n: e.target.value, v: nw[g]?.v ?? '' } })} />
+            <input type="number" step="0.05" min="0" className="input w-24" placeholder="Value" value={nw[g]?.v ?? ''} onChange={(e) => setNw({ ...nw, [g]: { n: nw[g]?.n ?? '', v: e.target.value } })} />
+            <button className="btn-secondary" onClick={() => add(g)}><Plus size={16} />Add</button></div></div>))}</div>
+      <div className="flex gap-2"><button className="btn-primary" disabled={bad} onClick={() => save(f)}>Save factors</button>
+        <button className="btn-secondary" onClick={() => { if (confirm('Reset all factors to the original defaults?')) save(JSON.parse(JSON.stringify(DEFAULT_FACTORS))); }}>Reset to defaults</button></div>
     </div>
   );
 }
