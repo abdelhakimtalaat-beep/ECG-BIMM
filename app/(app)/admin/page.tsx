@@ -35,7 +35,7 @@ function useLoad<T>(url: string) {
 function Users() {
   const { data } = useApp(); const toast = useToast(); const { d, err, load } = useLoad<any[]>('/api/users'); const [adding, setAdding] = useState(false);
   const [f, setF] = useState({ password: '', role: 'bim_coordinator' as Role, employee_id: '' });
-  const suggest = (cat?: string): Role => (cat === 'department_manager' ? 'admin' : cat === 'bim_manager' ? 'bim_manager' : 'bim_coordinator');
+  const suggest = (cat?: string): Role => (cat === 'department_manager' ? 'admin' : cat === 'bim_manager' ? 'bim_manager' : cat === 'bim_specialist' ? 'bim_specialist' : cat === 'rd_engineer' ? 'rd_engineer' : 'bim_coordinator');
   const patch = async (id: string, body: any) => { try { await api(`/api/users/${id}`, { method: 'PATCH', body }); toast('Updated'); load(); } catch (e: any) { toast(e.message, 'err'); } };
   if (err) return <p className="text-red-600">{err}</p>; if (!d) return <Spinner />;
   const taken = new Set(d.map((u) => String(u.email).toLowerCase()));
@@ -45,7 +45,7 @@ function Users() {
       <div className="mb-3 flex items-center justify-between"><p className="max-w-3xl text-sm text-slate-600">Roles are enforced on the server. <b>BIM Managers</b> and <b>BIM Coordinators</b> can edit only the projects they are assigned to, the planned BIM Reels, and the tasks of their area; everything else is read-only for them. Only the Administrator adds projects, changes the org chart, assignments, reel statuses, workload factors and users.</p><button className="btn-primary" onClick={() => setAdding(true)}><Plus size={16} />Add user</button></div>
       <div className="card overflow-x-auto"><table className="w-full text-left"><thead><tr>{['Email', 'Name', 'Role', 'Linked employee', 'Active', 'Last sign-in', ''].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead><tbody>{d.map((u) => (
         <tr key={u.id} className="border-t border-slate-100"><td className="td">{u.email}</td><td className="td">{u.full_name ?? '—'}</td>
-          <td className="td"><select className="input w-56" value={u.role} onChange={(e) => patch(u.id, { role: e.target.value })}>{(['admin', 'bim_manager', 'bim_coordinator', 'viewer'] as Role[]).map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</select></td>
+          <td className="td"><select className="input w-56" value={u.role} onChange={(e) => patch(u.id, { role: e.target.value })}>{(['admin', 'bim_manager', 'bim_coordinator', 'bim_specialist', 'rd_engineer', 'viewer'] as Role[]).map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</select></td>
           <td className="td"><select className="input w-48" value={u.employee_id ?? ''} onChange={(e) => patch(u.id, { employee_id: e.target.value || null })}><option value="">—</option>{data.employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></td>
           <td className="td"><input type="checkbox" checked={u.active} onChange={(e) => patch(u.id, { active: e.target.checked })} aria-label={`Active: ${u.email}`} /></td><td className="td text-xs text-slate-500">{u.last_login_at ? fmtDate(u.last_login_at) : 'never'}</td>
           <td className="td"><button className="btn-secondary btn-sm" onClick={() => { const pw = prompt('New temporary password (min. 10 characters). The user must change it at next sign-in.'); if (pw) patch(u.id, { password: pw }); }}>Reset password</button></td></tr>))}</tbody></table></div>
@@ -54,7 +54,7 @@ function Users() {
           <Field label="Engineer (sign-in e-mail)" hint={choices.length ? 'Only engineers that have an e-mail and no user yet are listed.' : 'Every engineer with an e-mail already has a user.'}>
             <select className="input" value={f.employee_id} onChange={(e) => { const emp = data.employees.find((x) => x.id === e.target.value); setF({ ...f, employee_id: e.target.value, role: suggest(emp?.job_category) }); }}>
               <option value="">— select —</option>{choices.map((e) => <option key={e.id} value={e.id}>{e.email} — {e.name}</option>)}</select></Field>
-          <Field label="Role"><select className="input" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value as Role })}>{(['admin', 'bim_manager', 'bim_coordinator', 'viewer'] as Role[]).map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</select></Field>
+          <Field label="Role"><select className="input" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value as Role })}>{(['admin', 'bim_manager', 'bim_coordinator', 'bim_specialist', 'rd_engineer', 'viewer'] as Role[]).map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</select></Field>
           <Field label="Temporary password" hint="At least 10 characters; the user is asked to change it at first sign-in."><input type="text" className="input" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></Field></div></Modal>
     </div>
   );

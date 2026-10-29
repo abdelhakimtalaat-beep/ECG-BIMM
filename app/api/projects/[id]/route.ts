@@ -38,6 +38,8 @@ const patch = z.object({
   coordination_type: z.string().trim().max(80).nullable(),
   bim_standards: z.string().trim().max(80).nullable(),
   scope_items: z.array(z.string().max(80)).max(30).nullable().transform((v) => (v && v.length ? [...new Set(v)] : null)),
+  scope_site: z.array(z.string().max(80)).max(30).nullable().transform((v) => (v && v.length ? [...new Set(v)] : null)),
+  plot_area: z.number().nonnegative().nullable(),
   status: z.enum(['Not Started', 'In Progress', 'On Hold', 'Closed']),
   notes: z.string().max(5000).nullable(),
   reason: z.string().max(500).optional(),
@@ -54,10 +56,11 @@ export async function PATCH(req: Request, ctx: Ctx) {
     const forbidden = keys.filter((k) => !allowed.includes(k));
     if (forbidden.length) throw new ApiError(403, `You cannot change: ${forbidden.join(', ')}`);
     if (!keys.length) throw new ApiError(400, 'Nothing to update');
-    if (keys.some((k) => ['typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items'].includes(k))) {
+    if (keys.some((k) => ['typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'scope_site'].includes(k))) {
       const fac: any = await loadFactors();
       for (const g of ['typicality', 'function_type', 'coordination_type', 'bim_standards'] as const) { const v = (b as any)[g]; if (v && !(v in fac[g])) throw new ApiError(400, `Unknown ${g.replace('_type', '')} option: ${v}`); }
-      for (const v of (b.scope_items ?? [])) if (!(v in fac.scope_items)) throw new ApiError(400, `Unknown scope option: ${v}`);
+      for (const v of (b.scope_items ?? [])) if (!(v in fac.scope_items)) throw new ApiError(400, `Unknown buildings scope option: ${v}`);
+      for (const v of (b.scope_site ?? [])) if (!(v in fac.scope_site)) throw new ApiError(400, `Unknown site work scope option: ${v}`);
     }
     await tx(async (c) => {
       const before = (await c.query('select * from projects where id=$1 for update', [id])).rows[0];

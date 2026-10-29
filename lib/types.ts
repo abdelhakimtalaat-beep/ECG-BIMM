@@ -1,5 +1,5 @@
 import type { Factors } from './workload';
-export type Role = 'admin' | 'bim_manager' | 'bim_coordinator' | 'viewer';
+export type Role = 'admin' | 'bim_manager' | 'bim_coordinator' | 'viewer' | 'rd_engineer' | 'bim_specialist';
 export type Status = 'Not Started' | 'In Progress' | 'On Hold' | 'Closed';
 export const STATUSES: Status[] = ['Not Started', 'In Progress', 'On Hold', 'Closed'];
 export const STATUS_COLORS: Record<Status, string> = {
@@ -16,7 +16,7 @@ export interface Employee {
 }
 export interface Project {
   id: string; project_no: string | null; name: string; cde: string | null; type: string | null;
-  deltek_number?: string | null; project_manager?: string | null; technical_manager?: string | null; client?: string | null; typicality?: string | null; function_type?: string | null; coordination_type?: string | null; bim_standards?: string | null; scope_items?: string[] | null; country?: string | null; revit_version?: string | null; city?: string | null;
+  deltek_number?: string | null; project_manager?: string | null; technical_manager?: string | null; client?: string | null; typicality?: string | null; function_type?: string | null; coordination_type?: string | null; bim_standards?: string | null; scope_items?: string[] | null; scope_site?: string[] | null; plot_area?: number | null; country?: string | null; revit_version?: string | null; city?: string | null;
   built_up_area: number | null; area_raw: string | null; area_note: string | null;
   status_raw: string | null; activity_raw: string | null; status: Status; status_source: 'mapping' | 'manual';
   notes: string | null; photo_id: string | null; source_rows: number[]; created_at: string; updated_at: string;
@@ -36,10 +36,11 @@ export interface Capacity {
 export interface Settings { capacity: Capacity; alerts: { reel_reminder_days: number; outlier_area: number }; factors: Factors }
 export interface StatusMapping { id: string; source_status: string; activity_flag: string; target_status: Status; note: string | null }
 export interface HistoryRow { project_id: string; old_status: Status | null; new_status: Status; changed_at: string; changed_by: string | null }
-export interface TaskArea { id: string; manager_id: string; project_id: string }
-export interface Task { id: string; area_id: string; title: string; start_date: string | null; due_date: string | null; assignee_id: string | null; status: string; comment: string | null; created_at: string; updated_at: string }
+export interface TaskArea { id: string; manager_id: string | null; team_id: string | null; project_id: string }
+export interface Team { id: string; name: string; member_ids: string[] }
+export interface Task { id: string; area_id: string; title: string; start_date: string | null; due_date: string | null; assignee_id: string | null; status: string; comment: string | null; building_no: string | null; created_at: string; updated_at: string }
 export interface Dataset {
-  employees: Employee[]; projects: Project[]; assignments: Assignment[]; reels: Reel[]; task_areas?: TaskArea[]; tasks?: Task[];
+  employees: Employee[]; projects: Project[]; assignments: Assignment[]; reels: Reel[]; task_areas?: TaskArea[]; tasks?: Task[]; teams?: Team[];
   settings: Settings; mappings: StatusMapping[]; history: HistoryRow[];
 }
 export interface Me { id: string; email: string; full_name: string | null; role: Role; employee_id: string | null }

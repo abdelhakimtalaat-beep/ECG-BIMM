@@ -35,3 +35,22 @@ test('Pending replaces On Hold; Pending needs a comment; templates', () => {
   assert.equal(commentMissing('Pending', 'waiting for client'), false); assert.equal(commentMissing('In Progress', ''), false);
   assert.deepEqual([...TASK_TEMPLATES], ['Prepare BEP', 'Update BEP', 'MIDP', 'P-Info', 'Coordination Section', 'Clash Report', 'Visual Review']);
 });
+
+import { canEditTeamTasks, canManageTeams } from '../lib/tasks.ts';
+test('teams: admin manages; members and admin edit', () => {
+  assert.equal(canManageTeams('admin'), true); assert.equal(canManageTeams('bim_manager'), false);
+  assert.equal(canEditTeamTasks('admin', null, []), true);
+  assert.equal(canEditTeamTasks('bim_coordinator', 'e1', ['e1', 'e2']), true);
+  assert.equal(canEditTeamTasks('bim_manager', 'e9', ['e1']), false);
+  assert.equal(canEditTeamTasks('viewer', null, ['e1']), false);
+});
+
+import { canChangeTemplate, canSeeTemplate, newTemplateStatus, mailtoLink, outlookWebLink } from '../lib/emailTemplates.ts';
+test('email templates: who sees / changes / how links are built', () => {
+  assert.equal(newTemplateStatus('admin'), 'approved'); assert.equal(newTemplateStatus('bim_coordinator'), 'pending');
+  const pend = { status: 'pending', requested_by: 'a@x.com' }, ok = { status: 'approved', requested_by: 'a@x.com' };
+  assert.equal(canSeeTemplate(pend, 'viewer', 'b@x.com'), false); assert.equal(canSeeTemplate(pend, 'viewer', 'a@x.com'), true); assert.equal(canSeeTemplate(pend, 'admin', 'z'), true); assert.equal(canSeeTemplate(ok, 'viewer', 'b@x.com'), true);
+  assert.equal(canChangeTemplate(pend, 'viewer', 'a@x.com'), true); assert.equal(canChangeTemplate(ok, 'viewer', 'a@x.com'), false); assert.equal(canChangeTemplate(ok, 'admin', 'z'), true);
+  assert.equal(mailtoLink('Hi & bye', 'a\nb'), 'mailto:?subject=Hi%20%26%20bye&body=a%0D%0Ab');
+  assert.ok(outlookWebLink('S', 'B').startsWith('https://outlook.office.com/mail/deeplink/compose?subject=S&body=B'));
+});

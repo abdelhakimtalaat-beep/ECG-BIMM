@@ -202,8 +202,8 @@ test('workload formula: area x typicality x function x coordination x BIM standa
   assert.equal(projectWorkload({ ...b, scope_items: [] }), null);
   assert.equal(projectWorkload({ ...b, function_type: 'Residential/Offices/Mixed Use/Other', typicality: 'No Typical', coordination_type: 'Internal Coordination', bim_standards: 'Normal Standards', scope_items: ['Lead Consultant'] }), 2000);
   assert.equal(projectWorkload({ ...b, scope_items: null }), null);
-  assert.equal(projectWorkload({ ...b, bim_standards: 'Minimum Standards', scope_items: ['Landscape'] }), Math.round(10000 * 0.8 * 1.3 * 0.2 * 0.8 * 0.2 * 100) / 100);
-  assert.equal(projectWorkload({ ...b, function_type: 'Landscape', bim_standards: 'Minimum Standards', typicality: 'High Typical', scope_items: ['Architecture', 'Structure', 'MEP', 'Infrastructure', 'Landscape'] }), Math.round(10000 * 0.4 * 0.1 * 0.2 * 0.8 * 1.4 * 100) / 100);
+  assert.equal(projectWorkload({ ...b, bim_standards: 'Minimum Standards', scope_items: ['Lead Consultant'] }), Math.round(10000 * 0.8 * 1.3 * 0.2 * 0.8 * 0.2 * 100) / 100);
+  assert.equal(projectWorkload({ ...b, function_type: 'Landscape', bim_standards: 'Minimum Standards', typicality: 'High Typical', scope_items: ['Architecture', 'Structure', 'MEP'] }), Math.round(10000 * 0.4 * 0.1 * 0.2 * 0.8 * 1.0 * 100) / 100);
   assert.equal(projectWorkload({ ...b, built_up_area: null }), null);
 });
 
@@ -232,4 +232,17 @@ test('editable factors: stored group overrides defaults, custom option works', (
   const b: any = { built_up_area: 1000, typicality: 'Custom', function_type: 'Hospital', coordination_type: 'Internal Coordination', bim_standards: 'Normal Standards', scope_items: ['MEP'] };
   assert.equal(projectWorkload(b, f), Math.round(1000 * 0.5 * 1.3 * 1 * 1 * 0.5 * 100) / 100);
   assert.equal(projectWorkload(b), null);
+});
+
+test('workload: buildings part + site part', () => {
+  const b: any = { built_up_area: 10000, plot_area: 5000, typicality: 'No Typical', function_type: 'Hospital', coordination_type: 'Internal Coordination', bim_standards: 'Normal Standards', scope_items: ['Architecture'], scope_site: ['Infrastructure', 'Landscape'] };
+  const bld = 10000 * 1 * 1.3 * 1 * 1 * 0.3, site = 5000 * 1.3 * 1 * 1 * 0.4;
+  assert.equal(projectWorkload(b), Math.round((bld + site) * 100) / 100);
+  assert.equal(projectWorkload({ ...b, scope_site: [] }), Math.round(bld * 100) / 100);
+  assert.equal(projectWorkload({ ...b, scope_items: [], built_up_area: null }), Math.round(site * 100) / 100);
+  assert.equal(projectWorkload({ ...b, plot_area: null }), Math.round(bld * 100) / 100);
+  assert.equal(projectWorkload({ ...b, typicality: null }), Math.round(site * 100) / 100);
+  assert.equal(projectWorkload({ ...b, coordination_type: null }), null);
+  assert.equal(projectWorkload({ ...b, scope_items: null, scope_site: null }), null);
+  assert.equal(projectWorkload({ ...b, scope_site: ['Lead Consultant'] }), Math.round((bld + 5000 * 1.3 * 0.2) * 100) / 100);
 });

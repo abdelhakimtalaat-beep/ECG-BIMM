@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import clsx from 'clsx';
-import { LayoutDashboard, Network, FolderKanban, Users, Gauge, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown } from 'lucide-react';
 import { api, roleLabel } from '@/lib/client';
 import { useApp } from './store';
 import { Field, Modal, useToast } from './ui';
@@ -14,19 +14,20 @@ const NAV = [
   { href: '/', label: 'Executive Dashboard', short: 'Dashboard', icon: LayoutDashboard },
   { href: '/org', label: 'Department Organization Chart', short: 'Org Chart', icon: Network },
   { href: '/projects', label: 'Projects Portfolio', short: 'Projects', icon: FolderKanban },
-  { href: '/teams', label: 'BIM Teams & Project Assignments', short: 'Teams & Assignments', icon: Users },
-  { href: '/workload', label: 'BIM Team Workload', short: 'Workload', icon: Gauge },
+  { href: '/teams', label: 'Teams and Workload', short: 'Teams and Workload', icon: Users },
   { href: '/tasks', label: 'BIM Manager Tasks', short: 'Tasks', icon: ListChecks },
   { href: '/reels', label: 'Weekly BIM Reels Plan', short: 'BIM Reels', icon: CalendarDays },
   { href: '/contacts', label: 'Other Departments Contacts', short: 'Contacts', icon: Contact },
+  { href: '/email-templates', label: 'Emails Template', short: 'Emails Template', icon: Mail },
   { href: '/wishes', label: 'Wish List', short: 'Wish List', icon: Lightbulb },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
-  const path = usePathname(); const router = useRouter(); const { me, setFilters } = useApp(); const toast = useToast();
+  const path = usePathname(); const router = useRouter(); const { me, data: appData, setFilters } = useApp(); const toast = useToast();
   const [collapsed, setCollapsed] = useState(false); const [mobile, setMobile] = useState(false); const [menu, setMenu] = useState(false); const [pw, setPw] = useState(false);
   const th = useTheme(); const inst = useInstall(); const [help, setHelp] = useState(false);
   const [q, setQ] = useState(''); const [cur, setCur] = useState(''); const [nxt, setNxt] = useState('');
+  const myPhoto = me.employee_id ? appData?.employees.find((e) => e.id === me.employee_id)?.photo_id : null;
   const items = me.role === 'admin' ? [...NAV, { href: '/admin', label: 'Administration', short: 'Administration', icon: Settings }] : NAV;
   const active = (h: string) => (h === '/' ? path === '/' : path.startsWith(h));
   const logout = async () => { await api('/api/auth/logout', { method: 'POST', body: {} }); router.push('/login'); };
@@ -59,7 +60,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <button className="btn-ghost btn-sm ml-auto" onClick={th.toggle} aria-label={th.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={th.theme === 'dark' ? 'Light mode' : 'Dark mode'}>{th.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button>
           <div className="relative">
             <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-100" onClick={() => setMenu(!menu)} aria-expanded={menu}>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">{(me.full_name || me.email)[0].toUpperCase()}</span>
+              {myPhoto ? <img src={`/api/files/${myPhoto}`} alt="" className="h-8 w-8 rounded-full object-cover" /> : <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">{(me.full_name || me.email)[0].toUpperCase()}</span>}
               <span className="hidden text-left leading-tight sm:block"><span className="block text-sm font-medium text-slate-800">{me.full_name || me.email}</span><span className="block text-xs text-slate-500">{roleLabel(me.role)}</span></span><ChevronDown size={14} />
             </button>
             {menu && <div className="absolute right-0 z-40 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-xl" onMouseLeave={() => setMenu(false)}>

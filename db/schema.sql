@@ -116,6 +116,8 @@ alter table projects add column if not exists scope_items text[];
 alter table projects add column if not exists country text;
 alter table projects add column if not exists city text;
 alter table projects add column if not exists revit_version text;
+alter table projects add column if not exists plot_area numeric;
+alter table projects add column if not exists scope_site text[];
 create index if not exists projects_no_idx on projects(project_no);
 
 create table if not exists project_status_history (
@@ -220,14 +222,28 @@ create table if not exists data_issues (
 );
 
 -- Tasks tab
+create table if not exists teams (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null unique,
+  created_by text,
+  created_at timestamptz not null default now()
+);
+create table if not exists team_members (
+  team_id     uuid not null references teams(id) on delete cascade,
+  employee_id uuid not null references employees(id) on delete cascade,
+  primary key (team_id, employee_id)
+);
 create table if not exists task_areas (
   id          uuid primary key default gen_random_uuid(),
-  manager_id  uuid not null references employees(id) on delete cascade,
+  manager_id  uuid references employees(id) on delete cascade,
+  team_id     uuid references teams(id) on delete cascade,
   project_id  uuid not null references projects(id) on delete cascade,
   created_by  text,
   created_at  timestamptz not null default now(),
-  unique (manager_id, project_id)
+  unique (manager_id, project_id),
+  constraint task_areas_owner_check check (num_nonnulls(manager_id, team_id) = 1)
 );
+create unique index if not exists task_areas_team_project_uq on task_areas(team_id, project_id) where team_id is not null;
 create table if not exists tasks (
   id          uuid primary key default gen_random_uuid(),
   area_id     uuid not null references task_areas(id) on delete cascade,
@@ -237,11 +253,26 @@ create table if not exists tasks (
   assignee_id uuid references employees(id) on delete set null,
   status      text not null default 'Not Started' check (status in ('Not Started','In Progress','Pending','Completed')),
   comment     text,
+  building_no text,
   created_by  text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
 create index if not exists tasks_area_idx on tasks(area_id);
+
+-- Emails Template
+create table if not exists email_templates (
+  id             uuid primary key default gen_random_uuid(),
+  title          text not null,
+  body           text not null,
+  status         text not null default 'approved' check (status in ('approved','pending','rejected')),
+  requested_by   text,
+  requested_name text,
+  review_note    text,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+create index if not exists email_templates_status_idx on email_templates(status);
 
 -- Wish List
 create table if not exists wishes (
@@ -287,8 +318,12 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','wishes','wish_votes','contacts'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','wishes','wish_votes','contacts'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;
 end $$;
+
+-- Roles added later (see migration 019)
+alter type app_role add value if not exists 'rd_engineer';
+alter type app_role add value if not exists 'bim_specialist';

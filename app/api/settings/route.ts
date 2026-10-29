@@ -23,7 +23,7 @@ export async function PUT(req: Request) {
     if (b.factors) { // an option that projects still use cannot be removed
       const f = b.factors as Record<string, Record<string, number>>;
       for (const g of FACTOR_GROUPS) {
-        const used = await q<{ v: string }>(g === 'scope_items' ? `select distinct unnest(scope_items) v from projects where scope_items is not null` : `select distinct ${g} v from projects where ${g} is not null`);
+        const used = await q<{ v: string }>(g === 'scope_items' || g === 'scope_site' ? `select distinct unnest(${g}) v from projects where ${g} is not null` : `select distinct ${g} v from projects where ${g} is not null`);
         const gone = used.map((u) => u.v).filter((v) => !(v in f[g]));
         if (gone.length) throw new ApiError(400, `"${gone[0]}" is used by projects and cannot be removed`);
       }

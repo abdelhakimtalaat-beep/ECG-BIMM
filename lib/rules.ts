@@ -3,8 +3,8 @@
 //   admin            (Department Manager)  everything: adds/imports projects, assignments, org chart, users, reel statuses
 //   bim_manager      edits only projects where he is the assigned BIM Manager (not Project No.) and Planned BIM Reels; the rest is read-only
 //   bim_coordinator  edits only projects where he is the assigned BIM Coordinator (same fields as a BIM Manager) and Planned BIM Reels; the rest is read-only
-//   viewer           read-only
-export type RoleName = 'admin' | 'bim_manager' | 'bim_coordinator' | 'viewer';
+//   viewer, rd_engineer (R&D BIM Engineer), bim_specialist (BIM Specialist)   read-only
+export type RoleName = 'admin' | 'bim_manager' | 'bim_coordinator' | 'viewer' | 'rd_engineer' | 'bim_specialist';
 export type Scope = 'full' | 'manager' | 'coordinator' | 'none';
 
 /** isAssigned: the user holds the matching assignment (manager for bim_manager, coordinator for bim_coordinator) on the project. */
@@ -22,7 +22,7 @@ export const canChangeReelStatus = (role: RoleName | undefined | null) => role =
 export const isAdminRole = (role: RoleName | undefined | null) => role === 'admin';
 
 const ADMIN_ONLY = ['project_no']; // the Workload Factors are editable by everyone who can edit the project
-const ALL = ['project_no', 'typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'country', 'city', 'revit_version', 'status', 'notes'];
+const ALL = ['project_no', 'typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'scope_site', 'plot_area', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'built_up_area', 'country', 'city', 'revit_version', 'status', 'notes'];
 export const PROJECT_FIELDS: Record<Scope, string[]> = {
   full: ALL,
   manager: ALL.filter((f) => !ADMIN_ONLY.includes(f)),

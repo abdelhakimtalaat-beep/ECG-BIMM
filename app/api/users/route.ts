@@ -13,7 +13,7 @@ export async function GET() {
 export async function POST(req: Request) {
   return handle(async () => {
     const me = await requireUser(['admin']);
-    const b = z.object({ employee_id: z.string().uuid(), password: z.string(), role: z.enum(['admin', 'bim_manager', 'bim_coordinator', 'viewer']) }).parse(await json(req));
+    const b = z.object({ employee_id: z.string().uuid(), password: z.string(), role: z.enum(['admin', 'bim_manager', 'bim_coordinator', 'viewer', 'rd_engineer', 'bim_specialist']) }).parse(await json(req));
     checkPassword(b.password);
     const e = await one<{ name: string; email: string | null }>('select name,email from employees where id=$1', [b.employee_id]);
     if (!e) throw new ApiError(404, 'Employee not found');

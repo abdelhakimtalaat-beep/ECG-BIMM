@@ -75,13 +75,13 @@ function Inner() {
         <button className="btn-primary btn-sm" disabled={!bulk} onClick={() => setConfirmBulk(true)}>Apply</button><button className="btn-ghost btn-sm" onClick={() => setSel(new Set())}>Clear selection</button></div>}
 
       {!projects.length ? <Empty title="No projects match" hint="Adjust or reset the filters." /> : view === 'table'
-        ? <DataTable rows={sorted} cols={cols} rowKey={(p) => p.id} onRow={(p) => open(p.id)} selectable={me.role !== 'viewer'} selected={sel} onSelect={setSel} pageSize={25} />
-        : <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{sorted.slice(0, 60).map((p) => (
+        ? <DataTable rows={sorted} cols={cols} rowKey={(p) => p.id} onRow={(p) => open(p.id)} selectable={['admin', 'bim_manager', 'bim_coordinator'].includes(me.role)} selected={sel} onSelect={setSel} pageSize={Math.max(25, sorted.length)} />
+        : <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{sorted.map((p) => (
             <button key={p.id} onClick={() => open(p.id)} className="card overflow-hidden text-left transition hover:shadow-lg"><ProjectPhoto project={p} className="h-36 w-full" />
               <div className="space-y-2 p-4"><div className="flex items-start justify-between gap-2"><h3 className="font-semibold leading-snug text-brand-900">{p.name}</h3><StatusBadge status={p.status} className="shrink-0" /></div>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs"><dt className="text-slate-500">Project no.</dt><dd>{p.project_no ?? '—'}</dd><dt className="text-slate-500">Built-up area</dt><dd>{hasArea(p) ? fmtNum(p.built_up_area) : '—'}</dd>
                   <dt className="text-slate-500">BIM Manager</dt><dd className="truncate">{mgrOf.m.get(p.id) ?? '—'}</dd><dt className="text-slate-500">BIM Coordinator</dt><dd className="truncate">{mgrOf.c.get(p.id) ?? '—'}</dd><dt className="text-slate-500">Deltek no.</dt><dd className="truncate">{p.deltek_number ?? '—'}</dd><dt className="text-slate-500">Client</dt><dd className="truncate">{p.client ?? '—'}</dd><dt className="text-slate-500">Project Manager</dt><dd className="truncate">{p.project_manager ?? '—'}</dd><dt className="text-slate-500">Technical Manager</dt><dd className="truncate">{p.technical_manager ?? '—'}</dd><dt className="text-slate-500">CDE · Type</dt><dd>{p.cde ?? '—'} · {p.type ?? '—'}</dd><dt className="text-slate-500">Last updated</dt><dd>{fmtDate(p.updated_at)}</dd></dl></div></button>))}
-            {sorted.length > 60 && <p className="col-span-full text-center text-sm text-slate-500">Showing the first 60 cards. Use the table view or filters to see all {sorted.length}.</p>}</div>}
+            </div>}
 
       <ProjectDetail id={openId} onClose={() => open(null)} />
       <Modal open={confirmBulk} onClose={() => setConfirmBulk(false)} title="Confirm bulk status update" footer={<><button className="btn-secondary" onClick={() => setConfirmBulk(false)}>Cancel</button><button className="btn-primary" onClick={runBulk}>Change {sel.size} project(s) to {bulk}</button></>}>

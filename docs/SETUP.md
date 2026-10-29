@@ -128,3 +128,13 @@ Run `db/migrations/013_function_other.sql` in Supabase BEFORE deploying (renames
 
 ## Update: editable workload factors, Contacts tab, mobile/ext
 Run `db/migrations/014_contacts_mobile.sql` in Supabase BEFORE deploying. Administration > Workload factors lets the Administrator edit factor values, add options, and remove unused ones. The new Contacts tab lists colleagues outside the BIM Department (anyone can add; creator or Administrator edits/deletes). Engineers now have Mobile no. and Ext. no. in the Org Chart (edited by the Administrator).
+
+## Update: Tasks teams and Building No.
+Run `db/migrations/016_task_teams.sql` in Supabase BEFORE deploying. The Administrator can add teams (Tasks tab > Add team), choose their members, and delete them. Team members add projects and tasks for the team. Every task has a Building No. field.
+
+## Update: Teams and Workload, Emails Template, Plot Area, roles
+Run in Supabase, in order, BEFORE deploying: `017_plot_area_scope_site.sql` (Plot Area; Scope split into Buildings scope and Site work scope — Infrastructure and Landscape of existing projects move to Site work), `018_email_templates.sql`, `019_more_roles.sql` (R&D BIM Engineer and BIM Specialist roles, read-only like Viewer).
+- Workload = (Built-up area × Typicality × Function × Coordination × BIM Standards × Buildings scope) + (Plot Area × Function × Coordination × BIM Standards × Site work scope).
+- The Workload tab was merged into Teams and Workload (tabs: Capacity, Workload, Checks); /workload redirects there.
+- Emails Template: the Administrator publishes templates; other users send requests that the Administrator approves or rejects; anybody opens an approved template in Outlook (desktop or web) or copies it.
+- Your own account picture in the top bar is your Org Chart photo.

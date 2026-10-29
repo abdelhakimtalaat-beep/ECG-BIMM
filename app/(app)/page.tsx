@@ -138,7 +138,7 @@ export default function Dashboard() {
                 </button>
               </li>))}
           </ul>)}
-        <p className="mt-3 text-xs text-slate-500">Thresholds come from <Link className="text-brand-600 underline" href="/workload">Team Workload → Capacity settings</Link>. Where none are configured the portal shows relative comparisons only.</p>
+        <p className="mt-3 text-xs text-slate-500">Thresholds come from <Link className="text-brand-600 underline" href="/teams">Teams and Workload → Workload → Capacity settings</Link>. Where none are configured the portal shows relative comparisons only.</p>
       </section>
     </>
   );

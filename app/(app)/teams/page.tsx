@@ -8,6 +8,7 @@ import { ProjectDetail } from '@/components/ProjectDetail';
 import { Badge, Empty, PageHeader, StatusBadge, useToast } from '@/components/ui';
 import { download, fmtDateTime, fmtNum } from '@/lib/client';
 import { projectWorkload } from '@/lib/workload';
+import { WorkloadPanel } from '@/components/WorkloadPanel';
 import { inconsistencies, personStats, totalArea, hasArea, imbalanceOf, matrixScale, squareWidth } from '@/lib/metrics';
 import { STATUSES, STATUS_COLORS, type Employee, type Project } from '@/lib/types';
 import { STATUS_DOT } from '@/lib/client';
@@ -15,7 +16,7 @@ import { STATUS_DOT } from '@/lib/client';
 const STRIP_ORDER = ['In Progress', 'On Hold', 'Not Started', 'Closed'];
 export default function TeamsPage() {
   const { me, data, projects, emp, filters } = useApp(); const toast = useToast();
-  const [tab, setTab] = useState<'hierarchy' | 'matrix' | 'checks'>('matrix');
+  const [tab, setTab] = useState<'matrix' | 'workload' | 'checks'>('matrix');
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [matrixBy, setMatrixBy] = useState<'manager' | 'coordinator'>('manager');
   const [detail, setDetail] = useState<string | null>(null); const [assign, setAssign] = useState<string | null>(null);
@@ -61,52 +62,34 @@ export default function TeamsPage() {
   };
   const exportXlsx = async () => { try { await download('/api/export/projects', { ids: projects.map((p) => p.id), format: 'xlsx', filters: filtersToText(filters, emp) }, 'ecg-bim-assignments.xlsx'); } catch (e: any) { toast(e.message, 'err'); } };
 
+  const ratio = data.settings.capacity.imbalance_ratio;
+  const verdict = (s: (typeof stats)[number]) => (s.capacityPct != null ? (s.capacityPct > 100 ? 'over' : s.capacityPct < 40 ? 'under' : 'ok') : ({ high: 'over', low: 'under', balanced: 'ok' } as const)[imbalanceOf(s, stats, ratio)]);
   const rowsMatrix = matrixBy === 'manager' ? teams.map((t) => ({ person: t.m, projects: t.myProjects })) :
     stats.filter((s) => s.role === 'coordinator').map((s) => ({ person: s.employee, projects: [...new Set(data.assignments.filter((a) => a.employee_id === s.employee.id && a.role === 'coordinator' && ids.has(a.project_id)).map((a) => a.project_id))].map((id) => pById.get(id)!).filter(Boolean) }));
   const mk = matrixScale(rowsMatrix.map((r) => ({ projects: r.projects.map((p) => ({ load: projectWorkload(p, data.settings.factors) })) })));
 
   return (
     <>
-      <PageHeader title="BIM Teams & Project Assignments" subtitle="Department Manager → BIM Manager → BIM Coordinator → Projects. Click a project for details; every assignment change is audited."
+      <PageHeader title="Teams and Workload" subtitle="Capacity of every BIM Manager and BIM Coordinator, the workload analysis, and assignment checks. Click a project for details; every assignment change is audited."
         actions={<><button className="btn-secondary" onClick={exportXlsx}><FileSpreadsheet size={16} />Excel</button><button className="btn-secondary" onClick={exportPdf}><FileDown size={16} />PDF</button></>} />
       <FilterBar show={['q', 'manager', 'coordinator', 'status', 'deltek', 'client', 'pm', 'tm', 'cde', 'type']} />
       <div className="mb-4 flex gap-1 border-b border-slate-200" role="tablist">
-        {([['matrix', 'Matrix'], ['hierarchy', 'Team hierarchy'], ['checks', `Checks (${unassignedMgr.length + issues.length + dupes.length})`]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{l}</button>)}
+        {([['matrix', 'Capacity'], ['workload', 'Workload'], ['checks', `Checks (${unassignedMgr.length + issues.length + dupes.length})`]] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{l}</button>)}
       </div>
-
-      {tab === 'hierarchy' && (<div className="space-y-3">
-        {dm && <div className="card flex items-center justify-between bg-[#0B2545] p-4 text-white"><div><p className="text-xs uppercase tracking-wide text-[#B9D5F4]">BIM Department Manager</p><p className="font-semibold">{dm.name} <span className="text-sm font-normal text-brand-200">{dm.employee_code}</span></p></div><div className="text-right text-sm"><p>{projects.length} projects · {teams.length} teams</p><p className="text-brand-200">{fmtNum(totalArea(projects))} built-up area</p></div></div>}
-        {!teams.length && <Empty title="No teams for the current filters" />}
-        {teams.map((t) => { const isOpen = open.has(t.m.id); const by = { 'Not Started': 0, 'In Progress': 0, 'On Hold': 0, Closed: 0 } as Record<string, number>; t.myProjects.forEach((p) => by[p.status]++); const im = t.stat ? imbalanceOf(t.stat, stats, data.settings.capacity.imbalance_ratio) : 'balanced';
-          return (
-            <section key={t.m.id} className="card overflow-hidden">
-              <button className="flex w-full flex-wrap items-center gap-x-6 gap-y-2 bg-brand-50 px-4 py-3 text-left" onClick={() => toggle(t.m.id)} aria-expanded={isOpen}>
-                {isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                <span className="min-w-[12rem] flex-1"><span className="block font-semibold text-brand-900">{t.m.name} <span className="text-xs font-normal text-slate-500">{t.m.employee_code ?? 'ID not supplied'}</span></span><span className="text-xs text-slate-500">{t.m.job_title}{t.m.team_location ? ` (${t.m.team_location})` : ''}</span></span>
-                <span className="text-sm"><b>{t.myProjects.length}</b> projects</span><span className="text-sm"><b>{fmtNum(totalArea(t.myProjects))}</b> area</span><StatusBar by={by} />
-                <span className="text-xs text-slate-600">{t.coordinators.length} coordinator(s) · {t.reports.length} reporting</span>
-                {t.stat && <span className="text-xs">{t.stat.active} active{t.stat.capacityPct != null && <b className={t.stat.capacityPct > 100 ? 'text-red-600' : ''}> · {t.stat.capacityPct}%</b>}</span>}
-                {im !== 'balanced' && <Badge tone={im === 'high' ? 'amber' : 'blue'}>{im === 'high' ? 'above peers' : 'below peers'}</Badge>}
-              </button>
-              {isOpen && <div className="space-y-4 p-4">
-                {t.reports.length > 0 && <p className="text-xs text-slate-500">Reporting to {t.m.name}: {t.reports.map((r) => `${r.name} (${r.job_title})`).join(', ')}</p>}
-                {t.coordinators.map(({ c, projects: ps }) => { const cb = { 'Not Started': 0, 'In Progress': 0, 'On Hold': 0, Closed: 0 } as Record<string, number>; ps.forEach((p) => cb[p.status]++);
-                  const rep = c.reports_to && c.reports_to !== t.m.id ? emp.get(c.reports_to)?.name : null;
-                  return (<div key={c.id} className="rounded-lg border border-slate-200 p-3"><div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1"><b className="text-sm text-brand-800">{c.name}</b><span className="text-xs text-slate-500">{c.employee_code ?? 'ID not supplied'} · BIM Coordinator</span><span className="text-xs">{ps.length} projects · {fmtNum(totalArea(ps))} area</span><StatusBar by={cb} />{rep && <Badge tone="amber" title="The org chart says this person reports to someone else">reports to {rep} in org chart</Badge>}</div>
-                    <div className="flex flex-wrap gap-1.5">{ps.map(chip)}</div></div>); })}
-                {t.noCoord.length > 0 && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3"><p className="mb-2 text-sm font-medium text-amber-800">No BIM Coordinator assigned ({t.noCoord.length})</p><div className="flex flex-wrap gap-1.5">{t.noCoord.map((p) => chip(p))}</div></div>}
-              </div>}
-            </section>); })}
-      </div>)}
 
       {tab === 'matrix' && (<div className="card p-4">
         <div className="mb-3 flex flex-wrap items-center gap-3"><div className="flex overflow-hidden rounded-lg border border-slate-300 text-sm">{(['manager', 'coordinator'] as const).map((k) => <button key={k} className={`px-3 py-1.5 ${matrixBy === k ? 'bg-brand-600 text-white' : 'bg-white'}`} onClick={() => setMatrixBy(k)}>By {k === 'manager' ? 'BIM Manager' : 'BIM Coordinator'}</button>)}</div>
           <div className="flex flex-wrap gap-3 text-xs">{STRIP_ORDER.map((s) => <span key={s} className="flex items-center gap-1"><span className="h-3 w-3 rounded" style={{ background: STATUS_COLORS[s] }} />{s}</span>)}</div></div>
-        {!rowsMatrix.length ? <Empty title="Nothing to show" /> : <div className="overflow-x-auto"><table className="w-full border-separate border-spacing-y-1.5"><tbody>{rowsMatrix.map(({ person, projects: ps }) => (
+        {!rowsMatrix.length ? <Empty title="Nothing to show" /> : <div className="overflow-x-auto"><table className="w-full border-separate border-spacing-y-1.5"><thead><tr><th className="th rounded-l">{matrixBy === 'manager' ? 'BIM Manager' : 'BIM Coordinator'}</th><th className="th">Projects (length = workload)</th><th className="th text-center">Reports</th><th className="th text-center">Capacity</th><th className="th rounded-r">Indicator</th></tr></thead><tbody>{rowsMatrix.map(({ person, projects: ps }) => { const st = stats.find((x) => x.employee.id === person.id && x.role === matrixBy); const vd = st ? verdict(st) : 'ok'; return (
           <tr key={person.id}><th className="w-48 min-w-[11rem] pr-3 text-left align-top text-sm font-medium text-brand-900">{person.name}<span className="block text-xs font-normal text-slate-500">{ps.length} projects</span></th>
-            <td><div className="flex flex-nowrap items-center gap-1">{[...ps].sort((x, y) => STRIP_ORDER.indexOf(x.status) - STRIP_ORDER.indexOf(y.status)).map((p) => <button key={p.id} onClick={() => setDetail(p.id)} title={`${p.project_no ?? ''} ${p.name} — ${p.status} — ${projectWorkload(p, data.settings.factors) != null ? 'workload ' + fmtNum(projectWorkload(p, data.settings.factors)!) : 'workload not calculated'}`} aria-label={`${p.name}, ${p.status}`} className="h-6 shrink-0 rounded transition hover:ring-2 hover:ring-brand-900" style={{ background: STATUS_COLORS[p.status], width: squareWidth({ load: projectWorkload(p, data.settings.factors) }, mk) }} />)}<span className="ml-2 shrink-0 text-xs text-slate-500">{fmtNum(ps.reduce((a, pr) => a + (projectWorkload(pr, data.settings.factors) ?? 0), 0))} workload</span></div></td></tr>))}</tbody></table></div>}
-        <p className="mt-3 text-xs text-slate-500">Each block is one project; its length is proportional to the project's Workload (Built-up area × Typicality × Function × Coordination × BIM Standards × Scope, set by the Administrator), so the total line length shows the engineer's workload. Projects whose workload is not calculated yet keep a default-size square. Hover for details; click to open (a project shared by two managers appears in both rows).</p>
+            <td><div className="flex flex-nowrap items-center gap-1">{[...ps].sort((x, y) => STRIP_ORDER.indexOf(x.status) - STRIP_ORDER.indexOf(y.status)).map((p) => <button key={p.id} onClick={() => setDetail(p.id)} title={`${p.project_no ?? ''} ${p.name} — ${p.status} — ${projectWorkload(p, data.settings.factors) != null ? 'workload ' + fmtNum(projectWorkload(p, data.settings.factors)!) : 'workload not calculated'}`} aria-label={`${p.name}, ${p.status}`} className="h-6 shrink-0 rounded transition hover:ring-2 hover:ring-brand-900" style={{ background: STATUS_COLORS[p.status], width: squareWidth({ load: projectWorkload(p, data.settings.factors) }, mk) }} />)}<span className="ml-2 shrink-0 text-xs text-slate-500">{fmtNum(ps.reduce((a, pr) => a + (projectWorkload(pr, data.settings.factors) ?? 0), 0))} workload</span></div></td>
+            <td className="whitespace-nowrap px-3 text-center align-middle text-sm">{st ? st.reports : '—'}</td>
+            <td className="whitespace-nowrap px-3 text-center align-middle">{st ? (st.capacityPct != null ? <b className={`text-base ${st.capacityPct > 100 ? 'text-red-600' : 'text-violet-700 dark:text-violet-300'}`} title={st.capacityBasis ?? ''}>{st.capacityPct}%</b> : <b className="text-base text-violet-700 dark:text-violet-300" title="Relative to the average of peers with the same role (1.0 = average)">{st.relative == null ? '—' : st.relative.toFixed(2) + '×'}</b>) : '—'}</td>
+            <td className="whitespace-nowrap px-3 align-middle">{vd === 'over' ? <Badge tone={st?.capacityPct != null && st.capacityPct > 100 ? 'red' : 'amber'}>{st?.capacityPct != null ? 'overloaded' : 'above peers'}</Badge> : vd === 'under' ? <Badge tone="blue">{st?.capacityPct != null ? 'under-utilised' : 'below peers'}</Badge> : <Badge>in range</Badge>}</td></tr>); })}</tbody></table></div>}
+        <p className="mt-3 text-xs text-slate-500">Each block is one project; its length is proportional to the project's Workload (set by the Administrator in Administration → Workload factors), so the total line length shows the engineer's workload. Projects whose workload is not calculated yet keep a default-size square. Hover for details; click to open (a project shared by two managers appears in both rows).</p>
       </div>)}
+
+      {tab === 'workload' && <WorkloadPanel />}
 
       {tab === 'checks' && (<div className="space-y-5">
         <Check title="Projects without a BIM Manager" items={unassignedMgr.map((p) => ({ k: p.id, node: <div className="flex items-center justify-between gap-2"><span>{p.project_no} {p.name}</span><span className="flex gap-2"><StatusBadge status={p.status} />{me.role === 'admin' && <button className="btn-secondary btn-sm" onClick={() => setAssign(p.id)}>Assign</button>}</span></div> }))} none="Every project has a BIM Manager." />

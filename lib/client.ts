@@ -35,7 +35,7 @@ export const STATUS_BG: Record<Status, string> = {
   'On Hold': 'bg-amber-100 text-amber-800 ring-amber-300', Closed: 'bg-emerald-100 text-emerald-800 ring-emerald-300',
 };
 export const STATUS_DOT: Record<Status, string> = { 'Not Started': '#9AA5B1', 'In Progress': '#1F6FC9', 'On Hold': '#E8A317', Closed: '#2E9E5B' };
-export function roleLabel(r: string) { return ({ admin: 'Department Manager / Administrator', bim_manager: 'BIM Manager', bim_coordinator: 'BIM Coordinator', viewer: 'Project Manager / Viewer' } as any)[r] || r; }
+export function roleLabel(r: string) { return ({ admin: 'Department Manager / Administrator', bim_manager: 'BIM Manager', bim_coordinator: 'BIM Coordinator', viewer: 'Project Manager / Viewer', rd_engineer: 'R&D BIM Engineer', bim_specialist: 'BIM Specialist' } as any)[r] || r; }
 
 // Shrinks a chosen photo in the browser (max side 480 px, JPEG) so profile pictures stay small in the database.
 export async function resizeImage(file: File, max = 480): Promise<Blob> {

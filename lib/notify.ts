@@ -14,9 +14,9 @@ export async function safe(fn: () => Promise<boolean>): Promise<MailResult> {
 const person = (id: string | null) => (id ? one<{ name: string; email: string | null }>('select name,email from employees where id=$1', [id]) : Promise.resolve(null));
 const nowSeq = () => Math.floor(Date.now() / 1000);
 
-interface TaskLite { id: string; title: string; start_date: string | null; due_date: string | null; status: string; assignee_id: string | null; area_id: string; comment?: string | null }
+interface TaskLite { id: string; title: string; start_date: string | null; due_date: string | null; status: string; assignee_id: string | null; area_id: string; comment?: string | null; building_no?: string | null }
 async function taskCtx(areaId: string) {
-  return one<{ pname: string; mname: string }>('select p.name pname,(select name from employees where id=a.manager_id) mname from task_areas a join projects p on p.id=a.project_id where a.id=$1', [areaId]);
+  return one<{ pname: string; mname: string }>(`select p.name pname,coalesce((select name from employees where id=a.manager_id),(select 'Team: '||name from teams where id=a.team_id)) mname from task_areas a join projects p on p.id=a.project_id where a.id=$1`, [areaId]);
 }
 /** New or changed task -> invitation to the assignee. Returns false when nothing was sent (no assignee, no e-mail). */
 export async function taskInvite(t: TaskLite, by: string): Promise<boolean> {
@@ -25,7 +25,7 @@ export async function taskInvite(t: TaskLite, by: string): Promise<boolean> {
   const done = t.status === 'Completed';
   const when = t.start_date || t.due_date;
   const summary = `${done ? '[Completed] ' : ''}Task: ${t.title} — ${c?.pname ?? ''}`;
-  const lines = [`Hello ${a.name},`, '', 'A task assigned to you was created or updated in the ECG BIM Portal.', '', `Task: ${t.title}`, `Project: ${c?.pname ?? '—'}`, `BIM Manager: ${c?.mname ?? '—'}`,
+  const lines = [`Hello ${a.name},`, '', 'A task assigned to you was created or updated in the ECG BIM Portal.', '', `Task: ${t.title}`, `Project: ${c?.pname ?? '—'}`, ...(t.building_no ? [`Building No.: ${t.building_no}`] : []), `BIM Manager / Team: ${c?.mname ?? '—'}`,
     `Start date: ${t.start_date ?? '—'}`, `Due date: ${t.due_date ?? '—'}`, `Status: ${t.status}`, ...(t.comment ? [`Comment: ${t.comment}`] : []), `Updated by: ${by}`];
   await sendMail({ to: a.email, subject: `${done ? 'Completed' : 'Task'}: ${t.title}`, text: lines.join('\n'),
     ics: when ? { method: 'REQUEST', content: buildIcs({ uid: `task-${t.id}@${DOMAIN}`, seq: nowSeq(), method: 'REQUEST', summary, description: lines.slice(4, lines.length - 1).join('\n'), start: when, end: t.due_date ?? when, organizerEmail: org.email, organizerName: org.name, attendeeEmail: a.email, attendeeName: a.name }) } : undefined });
