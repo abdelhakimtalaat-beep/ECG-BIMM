@@ -8,7 +8,7 @@ export async function loadDataset(): Promise<Dataset> {
               r.manager_id as reports_to
        from employees e left join reporting_relationships r on r.employee_id=e.id and r.valid_to is null
        order by e.name`),
-    q(`select id,project_no,name,cde,type,deltek_number,project_manager,technical_manager,client,typicality,function_type,coordination_type,bim_standards,scope_items,country,city,built_up_area::float8 as built_up_area,area_raw,area_note,status_raw,activity_raw,status,status_source,notes,photo_id,source_rows,created_at,updated_at
+    q(`select id,project_no,name,cde,type,deltek_number,project_manager,technical_manager,client,typicality,function_type,coordination_type,bim_standards,scope_items,country,city,revit_version,built_up_area::float8 as built_up_area,area_raw,area_note,status_raw,activity_raw,status,status_source,notes,photo_id,source_rows,created_at,updated_at
        from projects order by project_no nulls last, name`),
     q(`select id,project_id,employee_id,role,package,source_row from project_assignments`),
     q(`select id,employee_id,presenter_code,presenter_name,weekday,session_date::text as session_date,topic,software,status,notes,link,attachment_id from reel_sessions order by session_date,presenter_name`),

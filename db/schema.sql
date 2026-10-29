@@ -115,6 +115,7 @@ alter table projects add column if not exists bim_standards text;
 alter table projects add column if not exists scope_items text[];
 alter table projects add column if not exists country text;
 alter table projects add column if not exists city text;
+alter table projects add column if not exists revit_version text;
 create index if not exists projects_no_idx on projects(project_no);
 
 create table if not exists project_status_history (

@@ -104,7 +104,7 @@ export function SearchBox({ value, onChange, placeholder }: { value: string; onC
 }
 
 // ----------------------------------------------------------------- table
-export interface Col<T> { key: string; header: string; render?: (r: T) => React.ReactNode; sort?: (r: T) => string | number | null; className?: string; hideBelow?: 'md' | 'lg' }
+export interface Col<T> { key: string; header: string; render?: (r: T) => React.ReactNode; sort?: (r: T) => string | number | null; className?: string; hideBelow?: 'md' | 'lg'; frozen?: boolean }
 export function DataTable<T>({ rows, cols, rowKey, onRow, pageSize = 25, empty, selectable, selected, onSelect, initialSort }: {
   rows: T[]; cols: Col<T>[]; rowKey: (r: T) => string; onRow?: (r: T) => void; pageSize?: number; empty?: React.ReactNode;
   selectable?: boolean; selected?: Set<string>; onSelect?: (s: Set<string>) => void; initialSort?: { key: string; dir: 'asc' | 'desc' };
@@ -122,12 +122,12 @@ export function DataTable<T>({ rows, cols, rowKey, onRow, pageSize = 25, empty, 
   const allOn = selectable && view.length > 0 && view.every((r) => selected?.has(rowKey(r)));
   return (
     <div className="card overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="max-h-[calc(100vh-13rem)] overflow-auto">
         <table className="w-full text-left">
           <thead><tr>
             {selectable && <th className="th w-8"><input type="checkbox" aria-label="Select page" checked={!!allOn} onChange={() => { const s = new Set(selected); view.forEach((r) => (allOn ? s.delete(rowKey(r)) : s.add(rowKey(r)))); onSelect?.(s); }} /></th>}
             {cols.map((c) => (
-              <th key={c.key} className={clsx('th', c.hideBelow === 'md' && 'hidden md:table-cell', c.hideBelow === 'lg' && 'hidden lg:table-cell', c.sort && 'cursor-pointer select-none')} onClick={() => c.sort && setSort(sort?.key === c.key ? { key: c.key, dir: sort.dir === 'asc' ? 'desc' : 'asc' } : { key: c.key, dir: 'asc' })} aria-sort={sort?.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}>
+              <th key={c.key} className={clsx('th sticky top-0', c.frozen ? 'left-0 z-30' : 'z-20', c.hideBelow === 'md' && 'hidden md:table-cell', c.hideBelow === 'lg' && 'hidden lg:table-cell', c.sort && 'cursor-pointer select-none')} onClick={() => c.sort && setSort(sort?.key === c.key ? { key: c.key, dir: sort.dir === 'asc' ? 'desc' : 'asc' } : { key: c.key, dir: 'asc' })} aria-sort={sort?.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}>
                 <span className="inline-flex items-center gap-1">{c.header}{sort?.key === c.key && (sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}</span>
               </th>))}
           </tr></thead>
@@ -135,7 +135,7 @@ export function DataTable<T>({ rows, cols, rowKey, onRow, pageSize = 25, empty, 
             {view.map((r, i) => (
               <tr key={rowKey(r)} className={clsx('border-t border-slate-100', i % 2 ? 'bg-slate-50/60' : 'bg-white', onRow && 'cursor-pointer hover:bg-brand-50')} onClick={() => onRow?.(r)}>
                 {selectable && <td className="td" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label="Select row" checked={!!selected?.has(rowKey(r))} onChange={() => { const s = new Set(selected); s.has(rowKey(r)) ? s.delete(rowKey(r)) : s.add(rowKey(r)); onSelect?.(s); }} /></td>}
-                {cols.map((c) => <td key={c.key} className={clsx('td', c.className, c.hideBelow === 'md' && 'hidden md:table-cell', c.hideBelow === 'lg' && 'hidden lg:table-cell')}>{c.render ? c.render(r) : String((r as any)[c.key] ?? '—')}</td>)}
+                {cols.map((c) => <td key={c.key} style={c.frozen ? { background: 'rgb(var(--surface))' } : undefined} className={clsx('td', c.frozen && 'sticky left-0 z-10 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]', c.className, c.hideBelow === 'md' && 'hidden md:table-cell', c.hideBelow === 'lg' && 'hidden lg:table-cell')}>{c.render ? c.render(r) : String((r as any)[c.key] ?? '—')}</td>)}
               </tr>))}
           </tbody>
         </table>

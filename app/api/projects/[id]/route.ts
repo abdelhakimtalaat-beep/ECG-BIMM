@@ -31,6 +31,7 @@ const patch = z.object({
   client: z.string().trim().max(200).nullable(),
   country: z.string().trim().max(80).nullable(),
   city: z.string().trim().max(80).nullable(),
+  revit_version: z.enum(['2020', '2021', '2022', '2023', '2024', '2025', '2026', '2027']).nullable(),
   built_up_area: z.number().nonnegative().nullable(),
   typicality: z.string().trim().max(80).nullable(),
   function_type: z.string().trim().max(80).nullable(),
