@@ -12,6 +12,7 @@ import { inconsistencies, personStats, totalArea, hasArea, imbalanceOf, matrixSc
 import { STATUSES, STATUS_COLORS, type Employee, type Project } from '@/lib/types';
 import { STATUS_DOT } from '@/lib/client';
 
+const STRIP_ORDER = ['In Progress', 'On Hold', 'Not Started', 'Closed'];
 export default function TeamsPage() {
   const { me, data, projects, emp, filters } = useApp(); const toast = useToast();
   const [tab, setTab] = useState<'hierarchy' | 'matrix' | 'checks'>('matrix');
@@ -100,10 +101,10 @@ export default function TeamsPage() {
 
       {tab === 'matrix' && (<div className="card p-4">
         <div className="mb-3 flex flex-wrap items-center gap-3"><div className="flex overflow-hidden rounded-lg border border-slate-300 text-sm">{(['manager', 'coordinator'] as const).map((k) => <button key={k} className={`px-3 py-1.5 ${matrixBy === k ? 'bg-brand-600 text-white' : 'bg-white'}`} onClick={() => setMatrixBy(k)}>By {k === 'manager' ? 'BIM Manager' : 'BIM Coordinator'}</button>)}</div>
-          <div className="flex flex-wrap gap-3 text-xs">{STATUSES.map((s) => <span key={s} className="flex items-center gap-1"><span className="h-3 w-3 rounded" style={{ background: STATUS_COLORS[s] }} />{s}</span>)}</div></div>
+          <div className="flex flex-wrap gap-3 text-xs">{STRIP_ORDER.map((s) => <span key={s} className="flex items-center gap-1"><span className="h-3 w-3 rounded" style={{ background: STATUS_COLORS[s] }} />{s}</span>)}</div></div>
         {!rowsMatrix.length ? <Empty title="Nothing to show" /> : <div className="overflow-x-auto"><table className="w-full border-separate border-spacing-y-1.5"><tbody>{rowsMatrix.map(({ person, projects: ps }) => (
           <tr key={person.id}><th className="w-48 min-w-[11rem] pr-3 text-left align-top text-sm font-medium text-brand-900">{person.name}<span className="block text-xs font-normal text-slate-500">{ps.length} projects</span></th>
-            <td><div className="flex flex-nowrap items-center gap-1">{ps.map((p) => <button key={p.id} onClick={() => setDetail(p.id)} title={`${p.project_no ?? ''} ${p.name} — ${p.status} — ${projectWorkload(p, data.settings.factors) != null ? 'workload ' + fmtNum(projectWorkload(p, data.settings.factors)!) : 'workload not calculated'}`} aria-label={`${p.name}, ${p.status}`} className="h-6 shrink-0 rounded transition hover:ring-2 hover:ring-brand-900" style={{ background: STATUS_COLORS[p.status], width: squareWidth({ load: projectWorkload(p, data.settings.factors) }, mk) }} />)}<span className="ml-2 shrink-0 text-xs text-slate-500">{fmtNum(ps.reduce((a, pr) => a + (projectWorkload(pr, data.settings.factors) ?? 0), 0))} workload</span></div></td></tr>))}</tbody></table></div>}
+            <td><div className="flex flex-nowrap items-center gap-1">{[...ps].sort((x, y) => STRIP_ORDER.indexOf(x.status) - STRIP_ORDER.indexOf(y.status)).map((p) => <button key={p.id} onClick={() => setDetail(p.id)} title={`${p.project_no ?? ''} ${p.name} — ${p.status} — ${projectWorkload(p, data.settings.factors) != null ? 'workload ' + fmtNum(projectWorkload(p, data.settings.factors)!) : 'workload not calculated'}`} aria-label={`${p.name}, ${p.status}`} className="h-6 shrink-0 rounded transition hover:ring-2 hover:ring-brand-900" style={{ background: STATUS_COLORS[p.status], width: squareWidth({ load: projectWorkload(p, data.settings.factors) }, mk) }} />)}<span className="ml-2 shrink-0 text-xs text-slate-500">{fmtNum(ps.reduce((a, pr) => a + (projectWorkload(pr, data.settings.factors) ?? 0), 0))} workload</span></div></td></tr>))}</tbody></table></div>}
         <p className="mt-3 text-xs text-slate-500">Each block is one project; its length is proportional to the project's Workload (Built-up area × Typicality × Function × Coordination × BIM Standards × Scope, set by the Administrator), so the total line length shows the engineer's workload. Projects whose workload is not calculated yet keep a default-size square. Hover for details; click to open (a project shared by two managers appears in both rows).</p>
       </div>)}
 
