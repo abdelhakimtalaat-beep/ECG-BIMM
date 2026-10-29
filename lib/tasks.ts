@@ -26,3 +26,7 @@ export const isOverdue = (t: { due_date: string | null; status: string }, today:
 export function taskStats(tasks: { due_date: string | null; status: string }[], today: string) {
   return { total: tasks.length, done: tasks.filter((t) => t.status === 'Completed').length, open: tasks.filter((t) => t.status !== 'Completed').length, overdue: tasks.filter((t) => isOverdue(t, today)).length };
 }
+
+/** Admin-created teams: the Administrator manages the team and its members; members (and the Administrator) add projects and edit tasks. */
+export const canManageTeams = (role: string | undefined) => role === 'admin';
+export const canEditTeamTasks = (role: string | undefined, employeeId: string | null | undefined, memberIds: string[]) => role === 'admin' || (!!employeeId && memberIds.includes(employeeId));

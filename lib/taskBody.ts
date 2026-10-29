@@ -8,6 +8,7 @@ export const taskBody = z.object({
   due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
   assignee_id: z.string().uuid().nullable(),
   status: z.enum(TASK_STATUSES),
+  building_no: z.string().trim().max(60).nullish().transform((v) => v || null),
   comment: z.string().trim().max(2000).nullable(),
 });
 export function checkComment(status: string, comment: string | null | undefined) {
