@@ -39,8 +39,8 @@ function Inner() {
   }, [projects, sort, mgrOf]);
 
   const cols: Col<Project>[] = [
-    { key: 'no', header: 'Project No.', render: (p) => <span className="whitespace-nowrap">{p.project_no ?? <Badge tone="amber">missing</Badge>}{p.project_no && (sharedNo.get(p.project_no.toLowerCase()) || 0) > 1 && <span title="This project number is shared by several project records (packages or duplicates)"> <Badge tone="amber">shared</Badge></span>}</span>, sort: (p) => p.project_no },
-    { key: 'name', header: 'Project name', render: (p) => <span className="font-medium text-brand-900">{p.name}</span>, sort: (p) => p.name.toLowerCase(), className: 'min-w-[16rem]', frozen: true },
+    { key: 'no', header: 'Project No.', render: (p) => <span className="whitespace-nowrap">{p.project_no ?? <Badge tone="amber">missing</Badge>}{p.project_no && (sharedNo.get(p.project_no.toLowerCase()) || 0) > 1 && <span title="This project number is shared by several project records (packages or duplicates)"> <Badge tone="amber">shared</Badge></span>}</span>, sort: (p) => p.project_no, frozen: true },
+    { key: 'name', header: 'Project name', render: (p) => <span className="font-medium text-brand-900">{p.name}</span>, sort: (p) => p.name.toLowerCase(), className: 'min-w-[16rem]' },
     { key: 'status', header: 'Status', render: (p) => <StatusBadge status={p.status} />, sort: (p) => p.status },
     { key: 'mgr', header: 'BIM Manager', render: (p) => mgrOf.m.get(p.id) ?? <Badge tone="red">none</Badge>, sort: (p) => mgrOf.m.get(p.id) ?? '' },
     { key: 'coord', header: 'BIM Coordinator', render: (p) => mgrOf.c.get(p.id) ?? '—', sort: (p) => mgrOf.c.get(p.id) ?? '', hideBelow: 'md' },
