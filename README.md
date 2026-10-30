@@ -1,62 +1,39 @@
-# ECG BIM Department Management Portal
+# BIM Clash Matrix — منصة تعاونية (Supabase + Vercel + GitHub)
 
-Web platform for the ECG BIM Management Department: organization chart, project portfolio, teams & assignments,
-workload analysis, weekly BIM Reels plan and an executive dashboard — all on one persistent database.
+تحوّل مصفوفة Clash بصيغة Excel إلى Search Sets واختبارات Clash Detective لـ Navisworks، مع تعديل جماعي لحظي.
 
-**Stack:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS · Recharts · PostgreSQL (Supabase) · server-side
-role-based access · deployable on Vercel. Source code lives on GitHub.
-
-> **Keep the GitHub repository PRIVATE.** `data/source/` and `db/seed.sql` contain the department's real project and
-> employee data.
-
-## Verification status — read this first
-
-This code was written in an environment where the npm registry was blocked, so **`npm install` and `next build` have never
-been run on it**. What *was* verified:
-
-| Check | Result |
+| الجزء | الدور |
 |---|---|
-| Calculation library (`lib/metrics.ts`, `lib/importer.ts`, `lib/orgLayout.ts`) — 23 unit tests | Pass (`npm test`, needs only Node 22) |
-| `db/schema.sql` + `db/seed.sql` on PostgreSQL 16 | Loads cleanly; counts match the workbook (21 employees, 119 projects, 263 assignments, 16 reels) |
-| Key SQL used by the API run directly in `psql` | Pass |
-| Real data pushed through the metrics library | Sensible results (per-manager counts match the workbook) |
-| TypeScript check of all app code against stubbed external packages | No errors in the project's own types |
-| **Not verified:** `next build`, rendering in a browser, API routes with a live database, exports, PDF generation | **Do this first** |
+| **Vercel** | يستضيف الموقع الثابت (HTML + JavaScript بدون build أو مكتبات) |
+| **Supabase** | الحسابات، قاعدة البيانات، الصلاحيات (RLS)، التحديث اللحظي، سجل التدقيق |
+| **GitHub** | الكود، الاختبارات التلقائية (CI)، ونشر Vercel عند كل push |
 
-First run on your machine: `npm install && npm run typecheck && npm run build`. If anything fails, send the error output
-and it will be fixed — expect a few small issues (typings of third-party packages, Tailwind class typos, etc.).
+ابدأ من [`docs/SETUP-AR.md`](docs/SETUP-AR.md).
 
-## Quick start (local)
+## ما تم التحقق منه فعلاً
+- **منطق المصفوفة** (قراءة xlsx، التوليد، التفاوتات الدقيقة، التحقق، كتابة XML، ZIP): اختبارات `node --test` ناجحة على ملف عيّنة **اصطناعي**.
+- **قاعدة البيانات**: ملف `supabase/migrations/0001_schema.sql` شُغّل على **Postgres 16 حقيقي** مع اختبارات للصلاحيات: غريب لا يرى شيئاً، مشاهد لا يكتب بأي طريق، تعارض النسخ يُرفض، التدقيق يسجّل الفاعل والإجراء، وحماية آخر admin. (استُبدل نظام Auth الخاص بـ Supabase بمحاكٍ بسيط لأن Supabase نفسه غير متاح هنا.)
+- **المزامنة والدمج**: اختبارات على خادم تطوير يحاكي سلوك قاعدة البيانات: تعديلان متزامنان، حقل متعارض، حذف، مشاهد، انقطاع الشبكة.
+- **الواجهة**: اختبار متصفح (Chromium) بثلاثة أشخاص: استيراد، توليد 26 اختباراً، دعوة أعضاء، وصول تعديل شخص للآخر دون تحديث الصفحة، حضور، مشاهد معطّل، سجل تدقيق، نسخة مسمّاة، استعادة الجلسة.
 
-```bash
-npm install
-cp .env.example .env            # set DATABASE_URL and SESSION_SECRET
-psql "$DATABASE_URL" -f db/schema.sql
-psql "$DATABASE_URL" -f db/seed.sql      # once, on an empty database
-npm run dev                      # http://localhost:3000  → /setup creates the first administrator
-```
+## ما لم يُتحقق منه
+- **اتصال Supabase الحقيقي**: `web/js/backend/supabase.js` مكتوب وفق توثيق supabase-js v2 ولم يُشغَّل على مشروع Supabase حقيقي (الشبكة محجوبة هنا). أول تشغيل قد يكشف تفاصيل صغيرة (أسماء مفاتيح، سلوك البريد، سياسة Realtime...).
+- **Realtime** على Supabase الحقيقي، وعرض الحضور (Presence) عليه.
+- **سياسة الأمان CSP** في `vercel.json` لم تُجرَّب على Vercel؛ إذا منعت شيئاً فعدّلها.
+- **صيغة XML الخاصة بـ Navisworks غير مُتحقَّق منها** (كُتبت من الذاكرة، معلَّمة UNVERIFIED): لم يُستورد أي ملف إلى Navisworks. استخدم صفحة التصدير لمقارنة البنية بملفات حقيقية صدّرتها بنفسك، ثم جرّب الاستيراد وأعد فتح الملف.
+- الإضافة داخل Navisworks (`addin/`) هيكل فقط غير مترجم.
+- ملف Excel حقيقي بتنسيق مختلف قد يحتاج ضبطاً في الاستيراد.
 
-Deployment on Supabase + Vercel: see [docs/SETUP.md](docs/SETUP.md). Day-to-day use: [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
-Assumptions and open data questions: [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md). What the import found in your files:
-[db/reconciliation.md](db/reconciliation.md).
+## حدود معروفة
+- كيان "المصفوفة" يُحفظ كسجل واحد؛ المصفوفات الضخمة جداً (آلاف الخلايا) قد تتجاوز حد حمولة Realtime فيُجلب بدلاً من ذلك بطلب منفصل (مُعالَج في الكود، غير مُختبر على Supabase).
+- الخطة المجانية في Supabase تُوقف المشاريع غير النشطة بعد أسبوع من الخمول.
+- إعادة استيراد Excel من شخصين في اللحظة نفسها تنتج دمجاً تلقائياً قد يحتاج مراجعة.
 
-## Project layout
+## الأوامر
+`npm test` · `npm run test:sql` (يحتاج Postgres) · `python3 web/tests/e2e.py` (يحتاج playwright وhttp-server) · `npm run dev`
 
-```
-app/(app)/            pages: dashboard, org, projects, teams, workload, reels, admin
-app/api/              route handlers (all authorisation is enforced here)
-components/           shell, filter bar, charts, project detail, assignment + import dialogs
-lib/metrics.ts        every KPI / workload / alert / simulation calculation (unit tested)
-lib/perm.ts           server-side project scope rules      lib/can.ts  UI mirror of the same rules
-lib/importer.ts       Excel/CSV parsing helpers (unit tested)
-db/schema.sql         tables, constraints, row-level security
-db/seed.sql           data loaded from the supplied org chart, workbook and Reel Plan
-scripts/              build_seed.py / build_seed_sql.py — regenerate the seed from data/source
-data/source/          the original files you supplied
-tests/                node --test unit tests
-```
+## Navisworks XML format (updated)
 
-## Regenerating the seed
-
-`npm run seed:build` re-reads `data/source/*` (needs Python 3 with `openpyxl`) and rewrites `db/seed.json`,
-`db/seed.sql` and `db/reconciliation.md`. Only needed if the source files change before the first load.
+The writer now follows the structure of one **genuine** Navisworks Manage 2026 batch export (`exchange > batchtest > clashtests + selectionsets`, folders as `viewfolder`, locators `lcop_selection_set_tree/<folder>/<set>`, tolerance in the file unit rounded to 10 decimals, `flags` with bit 64 starting a new OR-group).
+Search sets can be learned from such a file with **Search sets → Import from Navisworks XML** (this also teaches the internal property names).
+Still **unverified**: our output has not been imported into Navisworks by this tool; the meaning of flag bits other than 64 is copied as found; GUIDs are generated by this tool.
