@@ -29,3 +29,8 @@ export const PROJECT_FIELDS: Record<Scope, string[]> = {
   coordinator: [],
   none: [],
 };
+
+/** Who changes the BIM Coordinators of a project: the Administrator, or the BIM Manager assigned to that project. Only the Administrator changes the BIM Manager or other members. */
+export const canManageCoordinators = (role: RoleName | undefined | null, isProjectManager: boolean) => role === 'admin' || (role === 'bim_manager' && isProjectManager);
+export const canChangeAssignmentRole = (role: RoleName | undefined | null, isProjectManager: boolean, assignmentRole: string) =>
+  role === 'admin' || (assignmentRole === 'coordinator' && canManageCoordinators(role, isProjectManager));

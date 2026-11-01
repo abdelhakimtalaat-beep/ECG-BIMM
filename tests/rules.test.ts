@@ -47,3 +47,15 @@ test('workload factors are editable by those who can edit the project; Project N
   assert.ok(PROJECT_FIELDS.manager.includes('typicality') && PROJECT_FIELDS.manager.includes('function_type') && PROJECT_FIELDS.manager.includes('coordination_type'));
   assert.ok(!PROJECT_FIELDS.manager.includes('project_no'));
 });
+
+import { canManageCoordinators, canChangeAssignmentRole } from '../lib/rules.ts';
+test('BIM Manager changes only the coordinators of his own projects', () => {
+  assert.equal(canManageCoordinators('admin', false), true);
+  assert.equal(canManageCoordinators('bim_manager', true), true);
+  assert.equal(canManageCoordinators('bim_manager', false), false);
+  assert.equal(canManageCoordinators('bim_coordinator', true), false);
+  assert.equal(canChangeAssignmentRole('bim_manager', true, 'coordinator'), true);
+  assert.equal(canChangeAssignmentRole('bim_manager', true, 'manager'), false);
+  assert.equal(canChangeAssignmentRole('bim_manager', true, 'member'), false);
+  assert.equal(canChangeAssignmentRole('admin', false, 'manager'), true);
+});

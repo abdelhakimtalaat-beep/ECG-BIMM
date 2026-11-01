@@ -9,6 +9,7 @@ import { ImageCropper } from './ImageCropper';
 import { optionsOf, projectWorkload } from '@/lib/workload';
 import { STATUSES, type Project, type Status } from '@/lib/types';
 import { useApp } from './store';
+import { AssignModal } from './AssignModal';
 import { Badge, Confirm, Drawer, Field, StatusBadge, useToast } from './ui';
 
 export function ProjectPhoto({ project, className = '' }: { project: Project; className?: string }) {
@@ -33,6 +34,9 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const scope = canEditProject(me, mgrs.map((a) => a.employee_id), coords.map((a) => a.employee_id));
   const can = (f: string) => ({ full: ['project_no', 'typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'scope_site', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'revit_version', 'built_up_area', 'plot_area', 'status', 'notes'], manager: ['typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'scope_site', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'revit_version', 'built_up_area', 'plot_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
   const team = new Set(asg.map((a) => a.employee_id));
+  const isProjectMgr = me.role === 'bim_manager' && !!me.employee_id && mgrs.some((a) => a.employee_id === me.employee_id);
+  const canCoord = me.role === 'admin' || isProjectMgr;
+  const [assigning, setAssigning] = useState(false);
   const related = useMemo(() => upcomingReels(data.reels, today).filter((r) => r.employee_id && team.has(r.employee_id)), [data.reels, today, team]);
 
   if (!p) return <Drawer open={false} onClose={onClose} title="" children={null} />;
@@ -110,12 +114,13 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
         <div className="grid grid-cols-2 gap-3 text-sm">
           {([['manager', 'BIM Manager', mgrs], ['coordinator', 'BIM Coordinator', coords]] as const).map(([role, label, cur]) => (
             <div key={role}><p className="label">{label}</p>
-              {me.role === 'admin' && cur.length <= 1
+              {(role === 'manager' ? me.role === 'admin' : canCoord) && cur.length <= 1
                 ? <select className="input" aria-label={label} value={cur[0]?.employee_id ?? ''} onChange={async (ev) => { try { await api(`/api/projects/${p.id}/team`, { method: 'PUT', body: { role, employee_id: ev.target.value || null } }); toast(`${label} updated`); refresh(); load(); } catch (e: any) { toast(e.message, 'err'); } }}>
                     <option value="">— none —</option>
                     {data.employees.filter((e) => (e.active || e.id === cur[0]?.employee_id) && (role === 'coordinator' || ['bim_manager', 'department_manager'].includes(e.job_category))).sort((x, y) => x.name.localeCompare(y.name)).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
                   </select>
-                : <>{names(cur)}{me.role === 'admin' && <p className="text-xs text-slate-500">Several assigned — manage in the Teams tab.</p>}</>}
+                : <>{names(cur)}{(role === 'manager' ? me.role === 'admin' : canCoord) && <p className="text-xs text-slate-500">Several assigned — use “Manage coordinators”.</p>}</>}
+              {role === 'coordinator' && canCoord && <button className="btn-secondary btn-sm mt-2" onClick={() => setAssigning(true)}>Manage coordinators</button>}
             </div>))}
           {members.length > 0 && <div className="col-span-2"><p className="label">Other team members</p>{names(members)}</div>}</div>
 
@@ -133,6 +138,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
       <Confirm open={confirmDel} danger title="Delete project" confirmLabel="Delete permanently" onClose={() => setConfirmDel(false)} message={<>Permanently delete <b>{p.name}</b> with its assignments, history and comments? To keep the record, set its status to Closed instead.</>}
         onConfirm={async () => { try { await api(`/api/projects/${p.id}`, { method: 'DELETE' }); toast('Deleted'); setConfirmDel(false); onClose(); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
     </Drawer>
+      {assigning && <AssignModal projectId={p.id} onClose={() => { setAssigning(false); load(); }} />}
     {cropFile && <ImageCropper file={cropFile} title="Crop project photo" outWidth={1200} aspects={[{ label: '16:9', value: 16 / 9 }, { label: '4:3', value: 4 / 3 }, { label: 'Square', value: 1 }]} onCancel={() => setCropFile(null)} onDone={async (b, n) => { setCropFile(null); await upload(b, n); }} />}
     </>
   );

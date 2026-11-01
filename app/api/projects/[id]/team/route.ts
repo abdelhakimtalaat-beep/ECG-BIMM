@@ -1,14 +1,16 @@
-// Sets the BIM Manager or BIM Coordinator of a project (Administrator only). Replaces whoever held that role.
+// Sets the BIM Manager (Administrator only) or the BIM Coordinator (Administrator or the project's BIM Manager) of a project. Replaces whoever held that role.
 import { z } from 'zod';
 import { handle, json, ok } from '@/lib/api';
 import { ApiError, requireUser } from '@/lib/auth';
 import { audit, tx } from '@/lib/db';
+import { assertCanAssign } from '@/lib/perm';
 
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handle(async () => {
-    const me = await requireUser(['admin']);
+    const me = await requireUser();
     const { id } = await ctx.params; z.string().uuid().parse(id);
     const b = z.object({ role: z.enum(['manager', 'coordinator']), employee_id: z.string().uuid().nullable() }).parse(await json(req));
+    await assertCanAssign(me, id, b.role);
     await tx(async (c) => {
       const p = (await c.query('select name from projects where id=$1', [id])).rows[0];
       if (!p) throw new ApiError(404, 'Project not found');

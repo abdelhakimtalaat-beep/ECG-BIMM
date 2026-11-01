@@ -11,7 +11,8 @@ export function AssignModal({ projectId, onClose }: { projectId: string; onClose
   const p = data.projects.find((x) => x.id === projectId)!;
   const asg = data.assignments.filter((a) => a.project_id === projectId);
   const scope = canEditProject(me, asg.filter((a) => a.role === 'manager').map((a) => a.employee_id), asg.filter((a) => a.role !== 'manager').map((a) => a.employee_id));
-  const editable = (_role: string) => scope === 'full'; // read-only except for the Administrator
+  const isMgr = me.role === 'bim_manager' && scope === 'manager';
+  const editable = (role: string) => scope === 'full' || (isMgr && role === 'coordinator'); // the Administrator changes all; a BIM Manager only the coordinators of his project
   const [add, setAdd] = useState({ role: 'coordinator', employee_id: '', pkg: '' });
   const [conf, setConf] = useState<null | { kind: 'remove'; id: string; label: string } | { kind: 'replace'; role: 'manager' | 'coordinator'; from: string; to: string }>(null);
   const eligible = (role: string) => data.employees.filter((e) => e.active && (role === 'manager' ? ['bim_manager', 'department_manager'].includes(e.job_category) : true));
@@ -29,9 +30,9 @@ export function AssignModal({ projectId, onClose }: { projectId: string; onClose
             {editable(a.role) && <button className="btn-secondary btn-sm" onClick={() => setConf({ kind: 'remove', id: a.id, label: `${e?.name} (${a.role})` })}>Remove</button>}
           </li>); })}
       </ul>
-      {(scope === 'full' || scope === 'manager') ? (
+      {(scope === 'full' || isMgr) ? (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_1fr_1fr_auto] sm:items-end">
-          <Field label="Role"><select className="input" value={add.role} onChange={(e) => setAdd({ ...add, role: e.target.value })}>{scope === 'full' && <option value="manager">Manager</option>}<option value="coordinator">Coordinator</option><option value="member">Member</option></select></Field>
+          <Field label="Role"><select className="input" value={add.role} onChange={(e) => setAdd({ ...add, role: e.target.value })}>{scope === 'full' && <option value="manager">Manager</option>}<option value="coordinator">Coordinator</option>{scope === 'full' && <option value="member">Member</option>}</select></Field>
           <Field label="Person"><select className="input" value={add.employee_id} onChange={(e) => setAdd({ ...add, employee_id: e.target.value })}><option value="">Select…</option>{eligible(add.role).map((x) => <option key={x.id} value={x.id}>{x.name} — {x.job_title}</option>)}</select></Field>
           <Field label="Package (optional)"><input className="input" value={add.pkg} onChange={(e) => setAdd({ ...add, pkg: e.target.value })} placeholder="e.g. MEP" /></Field>
           <button className="btn-primary" disabled={!add.employee_id} onClick={() => run(() => api('/api/assignments', { body: { project_id: projectId, employee_id: add.employee_id, role: add.role, package: add.pkg || null } }).then(() => setAdd({ ...add, employee_id: '', pkg: '' })), 'Assignment added')}>Add</button>

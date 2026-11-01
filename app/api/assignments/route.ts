@@ -2,13 +2,11 @@ import { z } from 'zod';
 import { handle, json, ok } from '@/lib/api';
 import { ApiError, requireUser } from '@/lib/auth';
 import { audit, one, tx } from '@/lib/db';
+import { assertCanAssign } from '@/lib/perm';
 
 const body = z.object({ project_id: z.string().uuid(), employee_id: z.string().uuid(), role: z.enum(['manager', 'coordinator', 'member']), package: z.string().trim().max(120).nullish() });
 
-async function guard(me: any, _projectId: string, _role: string) {
-  // The Teams tab is read-only for everyone except the Department Manager / Administrator.
-  if (me.role !== 'admin') throw new ApiError(403, 'Only the Department Manager can change team assignments');
-}
+const guard = (me: any, projectId: string, role: string) => assertCanAssign(me, projectId, role);
 export async function POST(req: Request) {
   return handle(async () => {
     const me = await requireUser();

@@ -1,6 +1,6 @@
 // Server-side authorisation. The UI hides controls using the same rules (lib/can.ts) but this file is what protects the data.
 import { one } from './db';
-import { projectScopeFor, type Scope } from './rules';
+import { canChangeAssignmentRole, projectScopeFor, type Scope } from './rules';
 import { ApiError } from './auth';
 import type { Me } from './types';
 
@@ -18,4 +18,10 @@ export async function assertScope(u: Me, projectId: string, min: Exclude<Scope, 
   const rank = { none: 0, coordinator: 1, manager: 2, full: 3 } as const;
   if (rank[s] < rank[min]) throw new ApiError(403, 'You can only change projects you are assigned to');
   return s;
+}
+
+/** Assignments: the Administrator changes everything; a BIM Manager changes only the BIM Coordinators of the projects he manages. */
+export async function assertCanAssign(u: Me, projectId: string, role: string) {
+  const isMgr = u.role === 'bim_manager' && !!u.employee_id && !!(await one(`select 1 from project_assignments where project_id=$1 and employee_id=$2 and role='manager'`, [projectId, u.employee_id]));
+  if (!canChangeAssignmentRole(u.role, isMgr, role)) throw new ApiError(403, role === 'coordinator' ? 'Only the Administrator or this project\'s BIM Manager can change its BIM Coordinators' : 'Only the Department Manager can change the BIM Manager or other team members');
 }
