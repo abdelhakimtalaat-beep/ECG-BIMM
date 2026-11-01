@@ -58,9 +58,9 @@ function ProposalForm({ init, onClose, onSaved }: { init: Partial<Prop>; onClose
 const NUM = (k: string, v: any, on: (x: string) => void, label: string) => <Field label={label}><input inputMode="decimal" className="input" value={v == null || v === '' ? '' : (() => { const [i, d] = String(v).split('.'); const n = i.replace(/[^\d]/g, ''); return (n ? Number(n).toLocaleString('en-US') : '') + (d !== undefined ? '.' + d : ''); })()} onChange={(e) => on(e.target.value.replace(/,/g, '').replace(/[^\d.]/g, ''))} /></Field>;
 
 function HoursCalculator({ init, onClose, onUse }: { init: any; onClose: () => void; onUse: (hours: number, inputs: any) => void }) {
-  const { data } = useApp(); const fac = data.settings.factors; const mh = data.settings.man_hour_factor;
-  const [v, setV] = useState<any>({ built_up_area: '', plot_area: '', typicality: '', function_type: '', coordination_type: '', bim_standards: '', scope_items: [], scope_site: [], ...(init ?? {}) });
-  const r = expectedManHours({ ...v, built_up_area: Number(v.built_up_area) || null, plot_area: Number(v.plot_area) || null }, fac, mh);
+  const { data } = useApp(); const fac = data.settings.factors; const sf = data.settings.stage_factors;
+  const [v, setV] = useState<any>({ built_up_area: '', plot_area: '', typicality: '', function_type: '', coordination_type: '', bim_standards: '', scope_items: [], scope_site: [], stages: [], ...(init ?? {}) });
+  const r = expectedManHours({ ...v, built_up_area: Number(v.built_up_area) || null, plot_area: Number(v.plot_area) || null }, fac, sf, v.stages ?? []);
   const sel = (k: 'typicality' | 'function_type' | 'coordination_type' | 'bim_standards', label: string) => <Field label={label}><select className="input" value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })}><option value="">— not set —</option>{Object.keys(fac[k]).map((o) => <option key={o} value={o}>{o} ({fac[k][o]})</option>)}</select></Field>;
   const chk = (k: 'scope_items' | 'scope_site', label: string) => <div className="col-span-2"><p className="label">{label}</p><div className="flex flex-wrap gap-x-4 gap-y-2">{Object.keys(fac[k]).map((o) => { const cur: string[] = v[k] ?? []; return <label key={o} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={cur.includes(o)} onChange={(e) => setV({ ...v, [k]: e.target.checked ? [...cur, o] : cur.filter((x) => x !== o) })} />{o} <span className="text-xs text-slate-500">({fac[k][o]})</span></label>; })}</div></div>;
   return <Modal open onClose={onClose} wide title="Expected man-hours calculator" footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={r.hours == null} onClick={() => onUse(r.hours!, v)}>Use {r.hours != null ? fmtNum(r.hours) : ''} man-hours</button></>}>
@@ -68,13 +68,14 @@ function HoursCalculator({ init, onClose, onUse }: { init: any; onClose: () => v
       {NUM('built_up_area', v.built_up_area, (x) => setV({ ...v, built_up_area: x }), 'Built-up area')}{NUM('plot_area', v.plot_area, (x) => setV({ ...v, plot_area: x }), 'Plot Area')}
       {sel('typicality', 'Typicality')}{sel('function_type', 'Function')}{sel('coordination_type', 'Coordination')}{sel('bim_standards', 'BIM Standards')}
       {chk('scope_items', 'Buildings scope')}{chk('scope_site', 'Site work scope')}
+      <div className="col-span-2"><p className="label">Stage (tick one or more)</p><div className="flex flex-wrap gap-x-4 gap-y-2">{Object.keys(sf).map((o) => { const cur: string[] = v.stages ?? []; return <label key={o} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={cur.includes(o)} onChange={(e) => setV({ ...v, stages: e.target.checked ? [...cur, o] : cur.filter((x) => x !== o) })} />{o} <span className="text-xs text-slate-500">({sf[o] ?? 0})</span></label>; })}</div></div>
       <div className="col-span-2 rounded-lg bg-brand-50 p-3 text-sm">
         <p className="text-slate-600">Workload = (Built-up area × Typicality × Function × Coordination × BIM Standards × Buildings scope) + (Plot Area × Function × Coordination × BIM Standards × Site work scope)</p>
         <p className="mt-1">Workload = <b className="text-brand-900">{r.workload == null ? 'not calculated yet' : fmtNum(r.workload)}</b></p>
-        <p>× Man-Hour factor = <b className="text-brand-900">{mh > 0 ? mh : 'not set'}</b></p>
+        <p>× Stage factor (sum of the ticked stages) = <b className="text-brand-900">{r.stageFactor > 0 ? r.stageFactor : 'not set'}</b></p>
         <p className="mt-1 text-base">Expected man-hours = <b className="text-violet-700 dark:text-violet-300">{r.hours == null ? '—' : fmtNum(r.hours)}</b></p>
-        {mh <= 0 && <p className="mt-1 text-amber-700">The Man-Hour factor is not set. Set it in Administration → Workload factors.</p>}
-        {mh > 0 && r.workload == null && <p className="mt-1 text-amber-700">Function, Coordination and BIM Standards are required, plus either Built-up area + Typicality + a Buildings scope, or Plot Area + a Site work scope.</p>}
+        {r.stageFactor <= 0 && <p className="mt-1 text-amber-700">Tick at least one stage whose factor is set (Administration → Workload factors → Stage factor).</p>}
+        {r.stageFactor > 0 && r.workload == null && <p className="mt-1 text-amber-700">Function, Coordination and BIM Standards are required, plus either Built-up area + Typicality + a Buildings scope, or Plot Area + a Site work scope.</p>}
       </div>
     </div>
   </Modal>;

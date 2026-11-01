@@ -14,7 +14,7 @@ const schema = z.object({
     count_statuses: z.array(z.enum(['Not Started', 'In Progress', 'On Hold', 'Closed'])).min(1),
   }).optional(),
   factors: z.object(Object.fromEntries(FACTOR_GROUPS.map((g) => [g, z.record(z.string().trim().min(1).max(80), z.number().min(0).max(100)).refine((r) => Object.keys(r).length > 0 && Object.keys(r).length <= 30, 'Each factor needs between 1 and 30 options')])) as any).optional(),
-  man_hour_factor: z.number().positive().max(100000).optional(),
+  stage_factors: z.record(z.string().trim().min(1).max(80), z.number().min(0).max(100000)).refine((r) => Object.keys(r).length > 0 && Object.keys(r).length <= 30, 'Between 1 and 30 stages').optional(),
   alerts: z.object({ reel_reminder_days: z.number().int().min(1).max(90), outlier_area: z.number().positive() }).optional(),
 });
 export async function PUT(req: Request) {

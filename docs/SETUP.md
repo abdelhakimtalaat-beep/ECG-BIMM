@@ -140,4 +140,4 @@ Run in Supabase, in order, BEFORE deploying: `017_plot_area_scope_site.sql` (Plo
 - Your own account picture in the top bar is your Org Chart photo.
 
 ## Update: Proposals tab
-Run `db/migrations/020_proposals.sql` in Supabase BEFORE deploying. The Administrator adds proposals (project name, number, client, proposal manager, expected man-hours). The calculator uses the project workload criteria × the Man-Hour factor, which the Administrator sets in Administration → Workload factors.
+Run `db/migrations/020_proposals.sql` in Supabase BEFORE deploying. The Administrator adds proposals (project name, number, client, proposal manager, expected man-hours). The calculator uses the project workload criteria × the Stage factor (the sum of the ticked stages: Concept Design, Schematic Design, Design Development, Tender Document, IFC, Shop Drawings), which the Administrator sets in Administration → Workload factors.

@@ -137,8 +137,11 @@ function Factors() {
   const setVal = (g: string, k: string, v: string) => setF({ ...f, [g]: { ...f[g as keyof Factors], [k]: v === '' ? ('' as any) : Number(v) } });
   const remove = (g: string, k: string) => { const { [k]: _, ...rest } = f[g as keyof Factors]; setF({ ...f, [g]: rest }); };
   const add = (g: string) => { const x = nw[g]; if (!x?.n.trim() || x.v === '' || isNaN(Number(x.v))) return toast('Enter a name and a number', 'err'); if (x.n.trim() in f[g as keyof Factors]) return toast('That option already exists', 'err'); setF({ ...f, [g]: { ...f[g as keyof Factors], [x.n.trim()]: Number(x.v) } }); setNw({ ...nw, [g]: { n: '', v: '' } }); };
-  const [mh, setMh] = useState(String(data.settings.man_hour_factor || ''));
-  const saveMh = async () => { try { await api('/api/settings', { method: 'PUT', body: { man_hour_factor: Number(mh) } }); toast('Man-Hour factor saved'); await refresh(); } catch (e: any) { toast(e.message, 'err'); } };
+  const [st, setSt] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(data.settings.stage_factors).map(([k, v]) => [k, v ? String(v) : ''])));
+  const [ns, setNs] = useState({ n: '', v: '' });
+  const stBad = Object.keys(st).length === 0;
+  const addSt = () => { const n = ns.n.trim(); if (!n) return toast('Enter a stage name', 'err'); if (n in st) return toast('That stage already exists', 'err'); setSt({ ...st, [n]: ns.v }); setNs({ n: '', v: '' }); };
+  const saveSt = async () => { try { await api('/api/settings', { method: 'PUT', body: { stage_factors: Object.fromEntries(Object.entries(st).map(([k, v]) => [k, Number(v) || 0])) } }); toast('Stage factor saved'); await refresh(); } catch (e: any) { toast(e.message, 'err'); } };
   const bad = FACTOR_GROUPS.some((g) => Object.values(f[g]).some((v) => typeof v !== 'number' || isNaN(v) || v < 0));
   return (
     <div className="space-y-4">
@@ -152,9 +155,12 @@ function Factors() {
           <div className="mt-3 flex gap-2"><input className="input" placeholder="New option" value={nw[g]?.n ?? ''} onChange={(e) => setNw({ ...nw, [g]: { n: e.target.value, v: nw[g]?.v ?? '' } })} />
             <input type="number" step="0.05" min="0" className="input w-24" placeholder="Value" value={nw[g]?.v ?? ''} onChange={(e) => setNw({ ...nw, [g]: { n: nw[g]?.n ?? '', v: e.target.value } })} />
             <button className="btn-secondary" onClick={() => add(g)}><Plus size={16} />Add</button></div></div>))}</div>
-      <div className="card max-w-xl p-4"><h3 className="mb-1 font-semibold text-brand-900">Man-Hour factor</h3>
-        <p className="mb-2 text-sm text-slate-600">Expected man-hours of a proposal = project workload × this factor (hours per workload unit). Used by the calculator in the Proposals tab.</p>
-        <div className="flex gap-2"><input inputMode="decimal" className="input w-40" aria-label="Man-Hour factor" placeholder="e.g. 0.05" value={mh} onChange={(e) => setMh(e.target.value.replace(/[^\d.]/g, ''))} /><button className="btn-primary" disabled={!(Number(mh) > 0)} onClick={saveMh}>Save factor</button></div></div>
+      <div className="card max-w-xl p-4"><h3 className="mb-1 font-semibold text-brand-900">Stage factor</h3>
+        <p className="mb-2 text-sm text-slate-600">Expected man-hours of a proposal = project workload × the Stage factor. In the Proposals calculator the stages are ticked as check boxes and their factors are added together. You can add stages and remove stages; leave a stage at 0 until its factor is decided.</p>
+        <table className="w-full text-sm"><tbody>{Object.keys(st).map((k) => <tr key={k} className="border-t border-slate-100"><td className="py-1.5 pr-2">{k}</td><td className="w-32"><input inputMode="decimal" className="input" aria-label={`${k} factor`} value={st[k]} onChange={(e) => setSt({ ...st, [k]: e.target.value.replace(/[^\d.]/g, '') })} /></td>
+          <td className="w-10 text-right"><button className="btn-secondary btn-sm" aria-label={`Remove ${k}`} onClick={() => { const { [k]: _, ...rest } = st; setSt(rest); }}><Trash2 size={14} /></button></td></tr>)}</tbody></table>
+        <div className="mt-3 flex gap-2"><input className="input" placeholder="New stage" value={ns.n} onChange={(e) => setNs({ ...ns, n: e.target.value })} /><input inputMode="decimal" className="input w-24" placeholder="Value" value={ns.v} onChange={(e) => setNs({ ...ns, v: e.target.value.replace(/[^\d.]/g, '') })} /><button className="btn-secondary" onClick={addSt}><Plus size={16} />Add</button></div>
+        <button className="btn-primary mt-3" disabled={stBad} onClick={saveSt}>Save stage factor</button></div>
       <div className="flex gap-2"><button className="btn-primary" disabled={bad} onClick={() => save(f)}>Save factors</button>
         <button className="btn-secondary" onClick={() => { if (confirm('Reset all factors to the original defaults?')) save(JSON.parse(JSON.stringify(DEFAULT_FACTORS))); }}>Reset to defaults</button></div>
     </div>

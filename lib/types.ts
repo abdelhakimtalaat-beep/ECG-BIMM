@@ -33,7 +33,7 @@ export interface Capacity {
   hours_per_project: number | null; available_hours_per_person: number | null;
   imbalance_ratio: number; count_statuses: Status[];
 }
-export interface Settings { capacity: Capacity; alerts: { reel_reminder_days: number; outlier_area: number }; factors: Factors; man_hour_factor: number }
+export interface Settings { capacity: Capacity; alerts: { reel_reminder_days: number; outlier_area: number }; factors: Factors; stage_factors: Record<string, number> }
 export interface StatusMapping { id: string; source_status: string; activity_flag: string; target_status: Status; note: string | null }
 export interface HistoryRow { project_id: string; old_status: Status | null; new_status: Status; changed_at: string; changed_by: string | null }
 export interface TaskArea { id: string; manager_id: string | null; team_id: string | null; project_id: string }

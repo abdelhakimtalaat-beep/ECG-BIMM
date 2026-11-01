@@ -247,10 +247,15 @@ test('workload: buildings part + site part', () => {
   assert.equal(projectWorkload({ ...b, scope_site: ['Lead Consultant'] }), Math.round((bld + 5000 * 1.3 * 0.2) * 100) / 100);
 });
 
-import { expectedManHours } from '../lib/proposals.ts';
-test('proposals: expected man-hours = workload x Man-Hour factor', () => {
+import { expectedManHours, mergeStages, STAGES } from '../lib/proposals.ts';
+test('proposals: expected man-hours = workload x sum of the ticked stage factors', () => {
   const inp: any = { built_up_area: 10000, typicality: 'No Typical', function_type: 'Residential/Offices/Mixed Use/Other', coordination_type: 'Internal Coordination', bim_standards: 'Normal Standards', scope_items: ['Architecture'] };
-  assert.deepEqual(expectedManHours(inp, DEFAULT_FACTORS, 0.05), { workload: 3000, hours: 150 });
-  assert.deepEqual(expectedManHours(inp, DEFAULT_FACTORS, 0), { workload: 3000, hours: null });
-  assert.deepEqual(expectedManHours({ ...inp, typicality: null }, DEFAULT_FACTORS, 0.05), { workload: null, hours: null });
+  const sf = mergeStages({ 'Concept Design': 0.01, IFC: 0.04, 'Shop Drawings': 0 });
+  assert.equal(STAGES.length, 6); assert.deepEqual(Object.keys(mergeStages(undefined)), [...STAGES]); assert.deepEqual(Object.keys(sf), ['Concept Design', 'IFC', 'Shop Drawings']);
+  assert.equal(mergeStages({ 'My stage': 0.5 })['My stage'], 0.5); assert.deepEqual(mergeStages({}), mergeStages(null));
+  assert.deepEqual(expectedManHours(inp, DEFAULT_FACTORS, sf, ['IFC']), { workload: 3000, stageFactor: 0.04, hours: 120 });
+  assert.deepEqual(expectedManHours(inp, DEFAULT_FACTORS, sf, ['Concept Design', 'IFC']), { workload: 3000, stageFactor: 0.05, hours: 150 });
+  assert.equal(expectedManHours(inp, DEFAULT_FACTORS, sf, ['Shop Drawings']).hours, null);
+  assert.equal(expectedManHours(inp, DEFAULT_FACTORS, sf, []).hours, null);
+  assert.equal(expectedManHours({ ...inp, typicality: null }, DEFAULT_FACTORS, sf, ['IFC']).hours, null);
 });
