@@ -274,6 +274,21 @@ create table if not exists email_templates (
 );
 create index if not exists email_templates_status_idx on email_templates(status);
 
+-- Proposals
+create table if not exists proposals (
+  id                 uuid primary key default gen_random_uuid(),
+  project_name       text not null,
+  proposal_number    text not null,
+  client             text,
+  proposal_manager   text,
+  expected_man_hours numeric,
+  calc               jsonb,
+  created_by         text,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
+);
+create unique index if not exists proposals_number_uq on proposals(lower(proposal_number));
+
 -- Wish List
 create table if not exists wishes (
   id          uuid primary key default gen_random_uuid(),
@@ -318,7 +333,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','wishes','wish_votes','contacts'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','wishes','wish_votes','contacts'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;

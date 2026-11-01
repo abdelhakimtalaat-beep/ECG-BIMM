@@ -138,3 +138,6 @@ Run in Supabase, in order, BEFORE deploying: `017_plot_area_scope_site.sql` (Plo
 - The Workload tab was merged into Teams and Workload (tabs: Capacity, Workload, Checks); /workload redirects there.
 - Emails Template: the Administrator publishes templates; other users send requests that the Administrator approves or rejects; anybody opens an approved template in Outlook (desktop or web) or copies it.
 - Your own account picture in the top bar is your Org Chart photo.
+
+## Update: Proposals tab
+Run `db/migrations/020_proposals.sql` in Supabase BEFORE deploying. The Administrator adds proposals (project name, number, client, proposal manager, expected man-hours). The calculator uses the project workload criteria × the Man-Hour factor, which the Administrator sets in Administration → Workload factors.

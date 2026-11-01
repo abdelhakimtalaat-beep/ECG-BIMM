@@ -246,3 +246,11 @@ test('workload: buildings part + site part', () => {
   assert.equal(projectWorkload({ ...b, scope_items: null, scope_site: null }), null);
   assert.equal(projectWorkload({ ...b, scope_site: ['Lead Consultant'] }), Math.round((bld + 5000 * 1.3 * 0.2) * 100) / 100);
 });
+
+import { expectedManHours } from '../lib/proposals.ts';
+test('proposals: expected man-hours = workload x Man-Hour factor', () => {
+  const inp: any = { built_up_area: 10000, typicality: 'No Typical', function_type: 'Residential/Offices/Mixed Use/Other', coordination_type: 'Internal Coordination', bim_standards: 'Normal Standards', scope_items: ['Architecture'] };
+  assert.deepEqual(expectedManHours(inp, DEFAULT_FACTORS, 0.05), { workload: 3000, hours: 150 });
+  assert.deepEqual(expectedManHours(inp, DEFAULT_FACTORS, 0), { workload: 3000, hours: null });
+  assert.deepEqual(expectedManHours({ ...inp, typicality: null }, DEFAULT_FACTORS, 0.05), { workload: null, hours: null });
+});

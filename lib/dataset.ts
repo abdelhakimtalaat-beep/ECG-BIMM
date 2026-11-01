@@ -26,6 +26,7 @@ export async function loadDataset(): Promise<Dataset> {
       hours_per_project: null, available_hours_per_person: null, imbalance_ratio: 1.5, count_statuses: ['In Progress', 'Not Started'], ...(s.capacity || {}) },
     alerts: { reel_reminder_days: 7, outlier_area: 5000000, ...(s.alerts || {}) },
     factors: mergeFactors(s.factors),
+    man_hour_factor: Number(s.man_hour_factor) > 0 ? Number(s.man_hour_factor) : 0,
   };
   return { employees, projects, assignments, reels, settings, mappings, history, task_areas, tasks, teams } as Dataset;
 }
