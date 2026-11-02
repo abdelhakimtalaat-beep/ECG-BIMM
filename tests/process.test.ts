@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DIAGRAM_H, DIAGRAM_W, EDGES, LANES, NODES, NODE_KEYS, PROCESS_COLORS, PROCESS_STATUSES, nodeById, nodeSize, PHASES, phaseOf, phaseProgress, progressOf, routeEdge, wrapLabel } from '../lib/processMap.ts';
+import { polyHitsBox } from '../lib/processRoute.ts';
+import { NODE_BOXES, PREREQS, alarmsOf, unmetPrereqs, DIAGRAM_H, DIAGRAM_W, EDGES, LANES, NODES, NODE_KEYS, PROCESS_COLORS, PROCESS_STATUSES, nodeById, nodeSize, PHASES, phaseOf, phaseProgress, progressOf, routeEdge, wrapLabel } from '../lib/processMap.ts';
 
 test('process map: ids unique, every node sits in its lane, every connector joins existing nodes', () => {
   assert.equal(NODE_KEYS.size, NODES.length);
@@ -16,7 +17,7 @@ test('process map: ids unique, every node sits in its lane, every connector join
 });
 test('process map: connectors are orthogonal polylines', () => {
   for (const e of EDGES) {
-    const p = routeEdge(e); assert.ok(p.length >= 2 && p.length <= 4, e.id);
+    const p = routeEdge(e); assert.ok(p.length >= 2, e.id);
     for (let i = 1; i < p.length; i++) assert.ok(p[i][0] === p[i - 1][0] || p[i][1] === p[i - 1][1], `${e.id} segment ${i} is horizontal or vertical`);
   }
 });
@@ -44,4 +45,25 @@ test('process map: four phases cover every node', () => {
   assert.deepEqual(PHASES.map((p) => p.id), ['mob', 'prod', 'coord', 'qc']);
   assert.equal(phaseOf(nodeById.get('pm_midp_gate')!).id, 'mob'); assert.equal(phaseOf(nodeById.get('bm_coord')!).id, 'coord'); assert.equal(phaseOf(nodeById.get('pm_close')!).id, 'qc'); assert.equal(phaseOf(nodeById.get('bm_rcp')!).id, 'prod');
   const pp = phaseProgress({}); assert.equal(pp.reduce((a, b) => a + b.total, 0), NODES.length); assert.ok(pp.every((x) => x.total > 0));
+});
+
+test('process map: no connector runs through another node', () => {
+  for (const e of EDGES) { const p = routeEdge(e); for (const b of NODE_BOXES) if (b.id !== e.from && b.id !== e.to) assert.ok(!polyHitsBox(p, b, 1), `${e.id} crosses ${b.id}`); }
+});
+test('process map: coordination starts at the published views / NWC files, quality control at the internal review', () => {
+  for (const id of ['ar_publish', 'st_publish', 'me_publish', 'in_nwc', 'bm_coord']) assert.equal(phaseOf(nodeById.get(id)!).id, 'coord', id);
+  for (const id of ['ar_acquire', 'st_acquire', 'me_acquire', 'ur_master']) assert.equal(phaseOf(nodeById.get(id)!).id, 'prod', id);
+  for (const id of ['ar_refine', 'st_resolve']) assert.equal(phaseOf(nodeById.get(id)!).id, 'coord', id);
+  for (const id of ['ar_review', 'st_review', 'in_review', 'bm_qcc', 'pm_close']) assert.equal(phaseOf(nodeById.get(id)!).id, 'qc', id);
+});
+test('process map: alarm when an activity starts before the previous ones are completed', () => {
+  assert.deepEqual(PREREQS.get('bm_pinfo')!.sort(), ['ar_keyplan', 'bm_midp', 'pm_midp_gate', 'ur_site'].sort());
+  assert.ok(!PREREQS.get('bm_coord')!.includes('bm_appr1'), 'the No (rework) connector is not a prerequisite');
+  assert.deepEqual(alarmsOf({}), {});
+  const s: any = { bm_bep: { status: 'Completed' }, pm_client: { status: 'Completed' }, bm_kickoff: { status: 'Completed' }, bm_midp: { status: 'In Progress' } };
+  const a = alarmsOf(s); assert.ok('bm_midp' in a); assert.deepEqual(a.bm_midp.sort(), ['ar_tidp', 'in_tidp', 'me_tidp', 'st_tidp']);
+  assert.ok(!unmetPrereqs({ ...s, bm_midp: { status: 'Completed' } } as any, 'bm_pinfo').includes('bm_midp'));
+  for (const id of ['pm_mob', 'ar_consult', 'ar_tidp', 'st_tidp', 'me_tidp', 'in_tidp', 'bm_midp']) s[id] = { status: 'Completed' }; s.bm_midp = { status: 'Completed' };
+  assert.deepEqual(alarmsOf(s), {});
+  s.bm_pinfo = { status: 'On Hold' }; assert.deepEqual(alarmsOf(s), {}, 'On Hold is not a start');
 });

@@ -1,5 +1,5 @@
 'use client';
-import { DIAGRAM_H, DIAGRAM_W, EDGES, LANES, LANE_LABEL_W, NODES, PHASES, PHASE_H, PROCESS_COLORS, phaseProgress, nodeById, nodeSize, labelPos, pathOf, routeEdge, statusOf, wrapLabel, type PNode, type StateMap } from '@/lib/processMap';
+import { DIAGRAM_H, DIAGRAM_W, EDGES, LANES, LANE_LABEL_W, NODES, PHASES, PHASE_H, PROCESS_COLORS, phaseProgress, alarmsOf, nodeById, nodeSize, labelPos, pathOf, routeEdge, statusOf, wrapLabel, type PNode, type StateMap } from '@/lib/processMap';
 
 const LINE = '#c0392b';
 function Shape({ n, color }: { n: PNode; color: string }) {
@@ -13,6 +13,7 @@ function Shape({ n, color }: { n: PNode; color: string }) {
 
 /** The workflow, drawn from data: every node and connector is its own SVG element. Colour = status. */
 export function ProcessDiagram({ states, selected, onSelect, zoom }: { states: StateMap; selected: string | null; onSelect: (id: string) => void; zoom: number }) {
+  const alarms = alarmsOf(states);
   return (
     <svg width={DIAGRAM_W * zoom} height={(DIAGRAM_H + PHASE_H) * zoom} viewBox={`0 0 ${DIAGRAM_W} ${DIAGRAM_H + PHASE_H}`} role="group" aria-label="Design Stage BIM Workflow" className="block select-none">
       <defs>
@@ -52,13 +53,14 @@ export function ProcessDiagram({ states, selected, onSelect, zoom }: { states: S
           const lines = wrapLabel(n.label, maxc); const lh = fs + 1.6; const y0 = -((lines.length - 1) * lh) / 2 + 2.6;
           const sel = selected === n.id;
           return (
-            <g key={n.id} data-node={n.id} data-status={st} transform={`translate(${n.x} ${n.y})`} role="button" tabIndex={0} aria-label={`${n.label} — ${st}`} className="cursor-pointer outline-none [&:focus-visible_.ring]:stroke-brand-600"
+            <g key={n.id} data-node={n.id} data-status={st} transform={`translate(${n.x} ${n.y})`} role="button" tabIndex={0} aria-label={`${n.label} — ${st}${alarms[n.id] ? ' — warning: previous activities not completed' : ''}`} className="cursor-pointer outline-none [&:focus-visible_.ring]:stroke-brand-600"
               onClick={() => onSelect(n.id)} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onSelect(n.id); } }}>
-              <title>{`${n.label} — ${st}${n.note ? '\n' + n.note : ''}`}</title>
+              <title>{`${n.label} — ${st}${alarms[n.id] ? '\nWARNING: started before completing the previous activities: ' + alarms[n.id].map((i) => nodeById.get(i)!.label).join(', ') : ''}${n.note ? '\n' + n.note : ''}`}</title>
               <rect className="ring" x={-w / 2 - 4} y={-h / 2 - 4} width={w + 8} height={h + 8} rx={6} fill="none" stroke={sel ? 'rgb(var(--brand-600))' : 'transparent'} strokeWidth={2} />
               <Shape n={n} color={color} />
               <text textAnchor="middle" fontSize={fs} fontWeight={600} className="pointer-events-none fill-slate-800">{lines.map((t, i) => <tspan key={i} x={0} y={y0 + i * lh}>{t}</tspan>)}</text>
               <circle cx={n.kind === 'decision' ? 0 : w / 2 - 3} cy={n.kind === 'decision' ? -h / 2 + 1 : -h / 2 + 3} r={3.2} fill={color} stroke="rgb(var(--surface))" strokeWidth={1} />
+              {alarms[n.id] && <g data-alarm={n.id} transform={`translate(${-w / 2 + 1} ${-h / 2 - 1})`}><path d="M0 -8 L8 6 L-8 6 Z" fill="#dc2626" stroke="rgb(var(--surface))" strokeWidth={1} strokeLinejoin="round" /><text y={4.6} textAnchor="middle" fontSize={9} fontWeight={800} fill="#fff" className="pointer-events-none">!</text></g>}
             </g>);
         })}
       </g>

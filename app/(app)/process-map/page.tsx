@@ -1,12 +1,13 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { ArrowLeft, Minus, Plus, Search, Trash2, Workflow } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { ProcessDiagram } from '@/components/ProcessDiagram';
 import { Confirm, Empty, Field, Modal, PageHeader, Spinner, StatusBadge, useToast } from '@/components/ui';
 import { api, fmtDateTime } from '@/lib/client';
 import { canEditProject } from '@/lib/can';
-import { NODES, PROCESS_COLORS, PROCESS_COLOR_NAMES, PROCESS_STATUSES, laneOf, nodeById, progressOf, type NodeState, type ProcessStatus, type StateMap } from '@/lib/processMap';
+import { NODES, PROCESS_COLORS, STARTED, alarmsOf, unmetPrereqs, PROCESS_COLOR_NAMES, PROCESS_STATUSES, laneOf, nodeById, progressOf, type NodeState, type ProcessStatus, type StateMap } from '@/lib/processMap';
 
 interface Content { id: string; name: string; kind: string }
 interface Building { id: string; content_id: string; name: string; kind: string }
@@ -53,10 +54,21 @@ function Dashboard({ projectId, onBack }: { projectId: string; onBack: () => voi
   const asg = data.assignments.filter((a) => a.project_id === projectId);
   const editable = canEditProject(me, asg.filter((a) => a.role === 'manager').map((a) => a.employee_id), asg.filter((a) => a.role === 'coordinator').map((a) => a.employee_id)) !== 'none';
   const [d, setD] = useState<{ contents: Content[]; buildings: Building[]; nodes: Row[] } | null>(null);
-  const [cur, setCur] = useState<string | null>(null); const [sel, setSel] = useState<string | null>(null); const [zoom, setZoom] = useState(1.25);
+  const [cur, setCur] = useState<string | null>(null); const [sel, setSel] = useState<string | null>(null); const [zoom, setZoom] = useState(1.25); const [mapEl, setMapEl] = useState<HTMLDivElement | null>(null); const zoomRef = useRef(1.25); zoomRef.current = zoom;
   const [add, setAdd] = useState(''); const [del, setDel] = useState<Building | null>(null);
   const load = useCallback(async () => { try { const r = await api<{ contents: Content[]; buildings: Building[]; nodes: Row[] }>(`/api/process?project_id=${projectId}`); setD(r); setCur((c) => (c && r.buildings.some((b) => b.id === c) ? c : r.buildings[0]?.id ?? null)); } catch (e: any) { toast(e.message, 'err'); } }, [projectId, toast]);
   useEffect(() => { load(); }, [load]);
+  // Ctrl (or Cmd) + mouse wheel zooms the map only (the browser page does not zoom); the point under the cursor stays put
+  useEffect(() => {
+    if (!mapEl) return;
+    const onWheel = (ev: WheelEvent) => {
+      if (!ev.ctrlKey && !ev.metaKey) return; ev.preventDefault();
+      const old = zoomRef.current, nz = Math.min(2.5, Math.max(0.4, +(old * (ev.deltaY < 0 ? 1.1 : 1 / 1.1)).toFixed(3))); if (nz === old) return;
+      const r = mapEl.getBoundingClientRect(), ox = ev.clientX - r.left, oy = ev.clientY - r.top, k = nz / old;
+      flushSync(() => setZoom(nz)); mapEl.scrollLeft = (mapEl.scrollLeft + ox) * k - ox; mapEl.scrollTop = (mapEl.scrollTop + oy) * k - oy;
+    };
+    mapEl.addEventListener('wheel', onWheel, { passive: false }); return () => mapEl.removeEventListener('wheel', onWheel);
+  }, [mapEl]);
   const states = useMemo(() => { const m: Record<string, StateMap> = {}; for (const r of d?.nodes ?? []) (m[r.building_id] ??= {})[r.node_key] = { status: r.status, comment: r.comment, updated_by: r.updated_by, updated_at: r.updated_at }; return m; }, [d]);
   if (!p) return null;
   const free = (d?.contents ?? []).filter((c) => !d!.buildings.some((b) => b.content_id === c.id));
@@ -86,26 +98,35 @@ function Dashboard({ projectId, onBack }: { projectId: string; onBack: () => voi
               <span className="ml-auto flex items-center gap-1"><button className="btn-secondary btn-sm" aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.15).toFixed(2)))}><Minus size={14} /></button><span className="w-12 text-center text-xs">{Math.round(zoom * 100)}%</span><button className="btn-secondary btn-sm" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.15).toFixed(2)))}><Plus size={14} /></button>
                 {editable && <button className="btn-ghost btn-sm text-red-600" aria-label="Remove building from the map" onClick={() => setDel(b)}><Trash2 size={14} /></button>}</span></div>
             <div className="mb-2"><Legend /></div>
-            <div className="max-h-[calc(100vh-20rem)] min-h-[24rem] overflow-auto rounded-lg border border-slate-200 text-slate-400"><ProcessDiagram states={st} selected={sel} onSelect={setSel} zoom={zoom} /></div>
-            <p className="mt-2 text-xs text-slate-500">{editable ? 'Click any activity or decision to set its status and add a comment.' : 'Click an activity to see its details.'} Solid arrows are the process flow; dashed arrows are information and deliverables.</p>
+            <div ref={setMapEl} className="max-h-[calc(100vh-20rem)] min-h-[24rem] overflow-auto rounded-lg border border-slate-200 text-slate-400"><ProcessDiagram states={st} selected={sel} onSelect={setSel} zoom={zoom} /></div>
+            {Object.keys(alarmsOf(st)).length > 0 && <p className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-700" role="alert">⚠ {Object.keys(alarmsOf(st)).length} activit{Object.keys(alarmsOf(st)).length === 1 ? 'y was' : 'ies were'} started before the previous activities were completed (red triangle on the map).</p>}
+            <p className="mt-2 text-xs text-slate-500">Hold Ctrl and scroll the mouse wheel over the map to zoom. {editable ? 'Click any activity or decision to set its status and add a comment.' : 'Click an activity to see its details.'} Solid arrows are the process flow; dashed arrows are information and deliverables.</p>
           </div>}
         </>}
-        {sel && b && <NodeModal building={b} nodeKey={sel} state={st[sel]} editable={editable} onClose={() => setSel(null)} onSaved={async () => { setSel(null); await load(); }} />}
+        {sel && b && <NodeModal building={b} buildings={d.buildings} allStates={states} nodeKey={sel} state={st[sel]} editable={editable} onClose={() => setSel(null)} onSaved={async () => { setSel(null); await load(); }} />}
         <Confirm open={!!del} title="Remove building from the map" message={`Remove ${del?.name} from the BIM Process Map? Its status history is deleted (the project content itself stays).`} confirmLabel="Remove" danger onClose={() => setDel(null)} onConfirm={async () => { const x = del!; setDel(null); try { await api(`/api/process/buildings/${x.id}`, { method: 'DELETE' }); toast('Building removed'); await load(); } catch (e: any) { toast(e.message, 'err'); } }} />
       </>}
     </div>
   );
 }
 
-function NodeModal({ building, nodeKey, state, editable, onClose, onSaved }: { building: Building; nodeKey: string; state?: NodeState; editable: boolean; onClose: () => void; onSaved: () => void }) {
+function NodeModal({ building, buildings, allStates, nodeKey, state, editable, onClose, onSaved }: { building: Building; buildings: Building[]; allStates: Record<string, StateMap>; nodeKey: string; state?: NodeState; editable: boolean; onClose: () => void; onSaved: () => void }) {
   const toast = useToast(); const n = nodeById.get(nodeKey)!; const lane = laneOf(nodeKey);
   const [status, setStatus] = useState<ProcessStatus>(state?.status ?? 'Not Started'); const [comment, setComment] = useState(state?.comment ?? '');
-  const save = async () => { try { await api('/api/process/nodes', { method: 'PUT', body: { building_id: building.id, node_key: nodeKey, status, comment: comment.trim() || null } }); toast('Status saved'); onSaved(); } catch (e: any) { toast(e.message, 'err'); } };
-  return <Modal open onClose={onClose} title={n.label} footer={<><button className="btn-secondary" onClick={onClose}>{editable ? 'Cancel' : 'Close'}</button>{editable && <button className="btn-primary" onClick={save}>Save</button>}</>}>
+  const [all, setAll] = useState(false);
+  const started = STARTED.includes(status);
+  const unmet = started ? unmetPrereqs(allStates[building.id] ?? {}, nodeKey) : [];
+  const others = all && started ? buildings.filter((x) => x.id !== building.id).map((x) => ({ x, u: unmetPrereqs(allStates[x.id] ?? {}, nodeKey) })).filter((r) => r.u.length) : [];
+  const save = async () => { try { await api('/api/process/nodes', { method: 'PUT', body: { building_id: building.id, node_key: nodeKey, status, comment: comment.trim() || null, apply_all: all && buildings.length > 1 } }); toast(all && buildings.length > 1 ? 'Status saved for all buildings' : 'Status saved'); onSaved(); } catch (e: any) { toast(e.message, 'err'); } };
+  return <Modal open onClose={onClose} title={n.label} footer={<><button className="btn-secondary" onClick={onClose}>{editable ? 'Cancel' : 'Close'}</button>{editable && <button className={unmet.length ? 'btn-danger' : 'btn-primary'} onClick={save}>{unmet.length ? 'Save anyway' : 'Save'}</button>}</>}>
     <div className="space-y-3">
       <p className="text-xs text-slate-500"><Workflow size={12} className="mr-1 inline" />{lane?.label} · {building.name}</p>
       {n.note && <p className="rounded bg-slate-50 p-2 text-xs text-slate-600">{n.note}</p>}
       <div><p className="label">Status</p><div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Status">{PROCESS_STATUSES.map((s) => <button key={s} type="button" role="radio" aria-checked={status === s} disabled={!editable} onClick={() => setStatus(s)} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm ${status === s ? 'border-2' : 'border-slate-300'} ${editable ? '' : 'opacity-70'}`} style={status === s ? { borderColor: PROCESS_COLORS[s] } : undefined}><span className="h-3 w-3 shrink-0 rounded" style={{ background: PROCESS_COLORS[s] }} />{s}</button>)}</div></div>
+      {(unmet.length > 0 || others.length > 0) && <div role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800"><p className="font-semibold">⚠ Warning — this activity is being started before the previous activities are completed.</p>
+        {unmet.length > 0 && <ul className="mt-1 list-disc pl-5">{unmet.map((i) => <li key={i}>{nodeById.get(i)!.label} <span className="text-xs">({allStates[building.id]?.[i]?.status ?? 'Not Started'})</span></li>)}</ul>}
+        {others.map((r) => <p key={r.x.id} className="mt-1 text-xs">Also in {r.x.name}: {r.u.map((i) => nodeById.get(i)!.label).join(', ')}</p>)}</div>}
+      {editable && buildings.length > 1 && <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-4 w-4" checked={all} onChange={(e) => setAll(e.target.checked)} /><span>Apply this status to <b>all buildings</b> of the project ({buildings.length}), not only {building.name}<span className="block text-xs text-slate-500">The comment stays on this building only.</span></span></label>}
       <Field label="Comment"><textarea rows={3} className="input" disabled={!editable} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={status === 'On Hold' ? 'What is it waiting for?' : ''} /></Field>
       {state?.updated_at && <p className="text-xs text-slate-500">Last updated by {state.updated_by ?? '—'} on {fmtDateTime(new Date(state.updated_at))}</p>}
     </div>

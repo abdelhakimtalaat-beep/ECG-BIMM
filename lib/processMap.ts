@@ -23,9 +23,9 @@ export const DIAGRAM_W = 2250, DIAGRAM_H = 795, LANE_LABEL_W = 34;
 export interface Phase { id: string; label: string; x0: number; x1: number; tint: string }
 export const PHASES: Phase[] = [
   { id: 'mob', label: 'Mobilization', x0: 0, x1: 596, tint: '#6366f1' },
-  { id: 'prod', label: 'Production', x0: 596, x1: 1490, tint: '#0d9488' },
-  { id: 'coord', label: 'Coordination', x0: 1490, x1: 1690, tint: '#d97706' },
-  { id: 'qc', label: 'Quality Control & Submission', x0: 1690, x1: 2250, tint: '#7c3aed' },
+  { id: 'prod', label: 'Production', x0: 596, x1: 1409, tint: '#0d9488' },
+  { id: 'coord', label: 'Coordination', x0: 1409, x1: 1787, tint: '#d97706' },
+  { id: 'qc', label: 'Quality Control & Submission', x0: 1787, x1: 2250, tint: '#7c3aed' },
 ];
 export const PHASE_H = 26;
 export const phaseOf = (n: PNode) => PHASES.find((p) => n.x < p.x1) ?? PHASES[PHASES.length - 1];
@@ -118,6 +118,8 @@ export const NODES: PNode[] = [
   N('in_upload', 'infra', 2062, 755, 'Upload Submission Files', 'task', { w: 66 }),
 ];
 
+import { Router, polyHitsBox, type Box, type Pt } from './processRoute.ts';
+export type { Pt };
 export interface PEdge { id: string; from: string; to: string; label?: string; dashed?: boolean; bx?: number }
 let _e = 0;
 const E = (from: string, to: string, o: Partial<PEdge> = {}): PEdge => ({ id: `e${++_e}_${from}_${to}`, from, to, ...o });
@@ -170,9 +172,8 @@ export const nodeById = new Map(NODES.map((n) => [n.id, n]));
 export const laneOf = (id: string) => LANES.find((l) => l.id === nodeById.get(id)?.lane);
 export const nodeSize = (n: PNode) => ({ w: n.w ?? (n.kind === 'decision' ? 60 : n.kind === 'start' || n.kind === 'end' ? 66 : 76), h: n.h ?? (n.kind === 'decision' ? 36 : n.kind === 'start' || n.kind === 'end' ? 28 : 34) });
 
-export type Pt = [number, number];
 /** Orthogonal connector between two nodes: straight when aligned, otherwise horizontal - vertical - horizontal around a bend column. */
-export function routeEdge(e: PEdge): Pt[] {
+function legacyRoute(e: PEdge): Pt[] {
   const a = nodeById.get(e.from)!, b = nodeById.get(e.to)!; const sa = nodeSize(a), sb = nodeSize(b);
   const dx = b.x - a.x, dy = b.y - a.y;
   if (Math.abs(dy) < 6) { const dir = dx >= 0 ? 1 : -1; return [[a.x + dir * sa.w / 2, a.y], [b.x - dir * sb.w / 2, b.y]]; }
@@ -189,6 +190,20 @@ export function labelPos(pts: Pt[]): { x: number; y: number } {
   if (Math.abs(p1[1] - p0[1]) < 1) { const d = p1[0] >= p0[0] ? 1 : -1; return { x: p0[0] + d * 14, y: p0[1] - 4 }; }
   const d = p1[1] >= p0[1] ? 1 : -1; return { x: p0[0] + 4, y: p0[1] + d * 14 };
 }
+const boxOf = (n: PNode): Box => { const s = nodeSize(n); return { id: n.id, x0: n.x - s.w / 2, y0: n.y - s.h / 2, x1: n.x + s.w / 2, y1: n.y + s.h / 2 }; };
+export const NODE_BOXES: Box[] = NODES.map(boxOf);
+let _router: Router | null = null; const _cache = new Map<string, Pt[]>();
+/** Connector geometry. The hand-tuned route (bend column `bx`) is used when it stays clear of every other node; otherwise the router finds a clear one. */
+export function routeEdge(e: PEdge): Pt[] {
+  const hit = _cache.get(e.id); if (hit) return hit;
+  const legacy = legacyRoute(e);
+  let out = legacy;
+  if (NODE_BOXES.some((b) => b.id !== e.from && b.id !== e.to && polyHitsBox(legacy, b, 2))) {
+    _router ??= new Router(NODE_BOXES, DIAGRAM_W, DIAGRAM_H);
+    out = _router.route(boxOf(nodeById.get(e.from)!), boxOf(nodeById.get(e.to)!)) ?? legacy;
+  }
+  _cache.set(e.id, out); return out;
+}
 export const pathOf = (pts: Pt[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]} ${p[1]}`).join(' ');
 
 /** Greedy word wrap into lines of at most `max` characters (a longer single word stays whole). */
@@ -201,6 +216,17 @@ export function wrapLabel(text: string, max: number): string[] {
 export interface NodeState { status: ProcessStatus; comment?: string | null; updated_by?: string | null; updated_at?: string | null }
 export type StateMap = Record<string, NodeState | undefined>;
 export const statusOf = (s: StateMap, id: string): ProcessStatus => s[id]?.status ?? 'Not Started';
+/** Rework connectors (labelled "No") go back to an earlier step; every other incoming connector is a prerequisite. */
+export const PREREQS: Map<string, string[]> = (() => { const m = new Map<string, string[]>(); for (const e of EDGES) { if (e.label === 'No') continue; (m.get(e.to) ?? m.set(e.to, []).get(e.to)!).push(e.from); } return m; })();
+export const STARTED: ProcessStatus[] = ['In Progress', 'Completed'];
+/** Previous activities that are not Completed yet. */
+export const unmetPrereqs = (s: StateMap, id: string): string[] => (PREREQS.get(id) ?? []).filter((p) => statusOf(s, p) !== 'Completed');
+/** Alarms: activities that are In Progress / Completed while a previous activity is not Completed. */
+export function alarmsOf(s: StateMap): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const n of NODES) if (STARTED.includes(statusOf(s, n.id))) { const u = unmetPrereqs(s, n.id); if (u.length) out[n.id] = u; }
+  return out;
+}
 export function phaseProgress(s: StateMap) {
   return PHASES.map((p) => { const ns = NODES.filter((n) => phaseOf(n).id === p.id); const done = ns.filter((n) => statusOf(s, n.id) === 'Completed').length; return { ...p, total: ns.length, done, pct: ns.length ? Math.round((done / ns.length) * 100) : 0 }; });
 }
