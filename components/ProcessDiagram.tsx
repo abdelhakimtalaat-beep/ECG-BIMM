@@ -1,5 +1,5 @@
 'use client';
-import { DIAGRAM_H, DIAGRAM_W, EDGES, LANES, LANE_LABEL_W, NODES, PROCESS_COLORS, nodeById, nodeSize, labelPos, pathOf, routeEdge, statusOf, wrapLabel, type PNode, type StateMap } from '@/lib/processMap';
+import { DIAGRAM_H, DIAGRAM_W, EDGES, LANES, LANE_LABEL_W, NODES, PHASES, PHASE_H, PROCESS_COLORS, phaseProgress, nodeById, nodeSize, labelPos, pathOf, routeEdge, statusOf, wrapLabel, type PNode, type StateMap } from '@/lib/processMap';
 
 const LINE = '#c0392b';
 function Shape({ n, color }: { n: PNode; color: string }) {
@@ -14,10 +14,19 @@ function Shape({ n, color }: { n: PNode; color: string }) {
 /** The workflow, drawn from data: every node and connector is its own SVG element. Colour = status. */
 export function ProcessDiagram({ states, selected, onSelect, zoom }: { states: StateMap; selected: string | null; onSelect: (id: string) => void; zoom: number }) {
   return (
-    <svg width={DIAGRAM_W * zoom} height={DIAGRAM_H * zoom} viewBox={`0 0 ${DIAGRAM_W} ${DIAGRAM_H}`} role="group" aria-label="Design Stage BIM Workflow" className="block select-none">
+    <svg width={DIAGRAM_W * zoom} height={(DIAGRAM_H + PHASE_H) * zoom} viewBox={`0 0 ${DIAGRAM_W} ${DIAGRAM_H + PHASE_H}`} role="group" aria-label="Design Stage BIM Workflow" className="block select-none">
       <defs>
         <marker id="pm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L10 5 L0 9 z" fill={LINE} /></marker>
       </defs>
+      <g aria-label="Phases">
+        {phaseProgress(states).map((p) => (
+          <g key={p.id} data-phase={p.id}>
+            <rect x={p.x0} y={0} width={p.x1 - p.x0} height={PHASE_H} fill={p.tint} fillOpacity={0.9} stroke="rgb(var(--surface))" strokeWidth={1.5} />
+            <text x={(p.x0 + p.x1) / 2} y={PHASE_H / 2 + 4} textAnchor="middle" fontSize={12} fontWeight={700} fill="#fff">{`${PHASES.indexOf(PHASES.find((q) => q.id === p.id)!) + 1}. ${p.label} — ${p.done}/${p.total} done (${p.pct}%)`}</text>
+          </g>
+        ))}
+      </g>
+      <g transform={`translate(0 ${PHASE_H})`}>
       {LANES.map((l, i) => (
         <g key={l.id} data-lane={l.id}>
           <rect x={0} y={l.y0} width={DIAGRAM_W} height={l.y1 - l.y0} className={i % 2 ? 'fill-slate-100' : 'fill-surface'} fillOpacity={i % 2 ? 0.5 : 1} stroke="currentColor" strokeOpacity={0.25} />
@@ -25,6 +34,7 @@ export function ProcessDiagram({ states, selected, onSelect, zoom }: { states: S
           <text transform={`translate(${LANE_LABEL_W / 2 + 2} ${(l.y0 + l.y1) / 2}) rotate(-90)`} textAnchor="middle" fontSize={9} className="fill-slate-600" fontWeight={600}>{wrapLabel(l.label, 17).map((ln, i, a) => <tspan key={i} x={0} dy={i === 0 ? -(a.length - 1) * 5.5 : 11}>{ln}</tspan>)}</text>
         </g>
       ))}
+      {PHASES.slice(1).map((p) => <line key={p.id} x1={p.x0} x2={p.x0} y1={0} y2={DIAGRAM_H} stroke={p.tint} strokeWidth={2} strokeDasharray="8 5" strokeOpacity={0.7} />)}
       <g aria-label="Connectors">
         {EDGES.map((e) => {
           const pts = routeEdge(e); const a = pts[0], b = pts[pts.length - 1]; const mid = pts[Math.min(1, pts.length - 1)];
@@ -51,6 +61,7 @@ export function ProcessDiagram({ states, selected, onSelect, zoom }: { states: S
               <circle cx={n.kind === 'decision' ? 0 : w / 2 - 3} cy={n.kind === 'decision' ? -h / 2 + 1 : -h / 2 + 3} r={3.2} fill={color} stroke="rgb(var(--surface))" strokeWidth={1} />
             </g>);
         })}
+      </g>
       </g>
     </svg>
   );
