@@ -316,6 +316,15 @@ create table if not exists process_nodes (
   updated_at  timestamptz not null default now(),
   primary key (building_id, node_key)
 );
+-- statuses applied to all buildings of a project (also inherited by buildings added later)
+create table if not exists process_project_nodes (
+  project_id uuid not null references projects(id) on delete cascade,
+  node_key   text not null,
+  status     text not null check (status in ('In Progress','On Hold','Completed')),
+  updated_by text,
+  updated_at timestamptz not null default now(),
+  primary key (project_id, node_key)
+);
 
 -- Wish List
 create table if not exists wishes (
@@ -361,7 +370,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','wishes','wish_votes','contacts'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','wishes','wish_votes','contacts'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;
