@@ -18,16 +18,14 @@ export async function PUT(req: Request) {
     else await q(`insert into process_nodes(building_id,node_key,status,comment,updated_by,updated_at) values($1,$2,$3,$4,$5,now())
       on conflict (building_id,node_key) do update set status=excluded.status, comment=excluded.comment, updated_by=excluded.updated_by, updated_at=now()`, [b.building_id, b.node_key, b.status, b.comment, me.full_name || me.email]);
     if (b.apply_all) {
-      // same status on this activity in every building of the project (each building keeps its own comment)
+      // linked: every building of the project (also buildings added later) follows this activity's status; each keeps its own comment
       await q(`insert into process_nodes(building_id,node_key,status,comment,updated_by,updated_at) select id,$2,$3,null,$4,now() from process_buildings where project_id=$1 and id<>$5
         on conflict (building_id,node_key) do update set status=excluded.status, updated_by=excluded.updated_by, updated_at=now()`, [bl.project_id, b.node_key, b.status, me.full_name || me.email, b.building_id]);
-      // remembered for buildings added to the map later
-      if (b.status === 'Not Started') await q('delete from process_project_nodes where project_id=$1 and node_key=$2', [bl.project_id, b.node_key]);
-      else await q(`insert into process_project_nodes(project_id,node_key,status,updated_by,updated_at) values($1,$2,$3,$4,now())
-        on conflict (project_id,node_key) do update set status=excluded.status, updated_by=excluded.updated_by, updated_at=now()`, [bl.project_id, b.node_key, b.status, me.full_name || me.email]);
       if (b.status === 'Not Started') await q(`delete from process_nodes where node_key=$2 and status='Not Started' and coalesce(comment,'')='' and building_id in (select id from process_buildings where project_id=$1)`, [bl.project_id, b.node_key]);
-    }
-    await audit(null, me.email, 'status', 'process_node', b.building_id, `${bl.pname} / ${bl.name}: "${nodeById.get(b.node_key)!.label}" ${before?.status ?? 'Not Started'} → ${b.status}${b.apply_all ? ' (applied to all buildings of the project, including buildings added later)' : ''}`);
+      await q(`insert into process_project_nodes(project_id,node_key,status,updated_by,updated_at) values($1,$2,$3,$4,now())
+        on conflict (project_id,node_key) do update set status=excluded.status, updated_by=excluded.updated_by, updated_at=now()`, [bl.project_id, b.node_key, b.status, me.full_name || me.email]);
+    } else if (b.apply_all === false) await q('delete from process_project_nodes where project_id=$1 and node_key=$2', [bl.project_id, b.node_key]); // unticked: unlinked, only this building changes
+    await audit(null, me.email, 'status', 'process_node', b.building_id, `${bl.pname} / ${bl.name}: "${nodeById.get(b.node_key)!.label}" ${before?.status ?? 'Not Started'} → ${b.status}${b.apply_all ? ' (linked: applied to all buildings, including buildings added later)' : ''}`);
     return ok();
   });
 }
