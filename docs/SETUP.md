@@ -147,3 +147,10 @@ Run `db/migrations/021_process_map.sql` in Supabase BEFORE deploying (earlier mi
 - Projects → open a project → **Project contents**: the Administrator and the BIM Manager / BIM Coordinator assigned to the project add the buildings, infrastructure, landscape, etc.
 - **BIM Process Map** tab: every project has a dashboard automatically. The assigned Manager/Coordinator (or Admin) picks a building from the project contents list; each building gets its own copy of the Design Stage BIM Workflow. Click a node to set its status: Grey = Not Started, Blue = In Progress, Amber = On Hold, Green = Completed (plus a comment). Everyone else views only.
 - The diagram is data: nodes, lanes and connectors are defined in `lib/processMap.ts` (each has an id), so they can be moved, renamed or added without redrawing anything.
+
+## Update: Meetings tab (Outlook / Teams calendars)
+Run `db/migrations/024_meetings.sql` in Supabase BEFORE deploying. No new environment variables and no IT action are needed.
+- Each engineer publishes his calendar in Outlook on the web (Settings → Calendar → Shared calendars → Publish a calendar → copy the ICS link) and pastes the link in **Meetings → My calendar**. The Administrator can paste links for others.
+- The platform reads the link (Microsoft / Google calendar servers only, https only), expands recurring meetings and keeps 14 days back and 120 days ahead. Calendars refresh automatically when the Meetings page is opened and a copy is older than 30 minutes; "Sync now" refreshes at once.
+- Privacy: the owner chooses "Managers only" (default; others see "Busy") or "Everyone". Private Outlook appointments show as "Private appointment". The link itself is stored only in the database and is never sent back to a browser.
+- If the "Publish a calendar" option is missing, the company has disabled it; the alternative is an IT-approved Microsoft Graph connection.
