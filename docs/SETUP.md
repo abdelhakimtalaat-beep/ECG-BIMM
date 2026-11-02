@@ -141,3 +141,9 @@ Run in Supabase, in order, BEFORE deploying: `017_plot_area_scope_site.sql` (Plo
 
 ## Update: Proposals tab
 Run `db/migrations/020_proposals.sql` in Supabase BEFORE deploying. The Administrator adds proposals (project name, number, client, proposal manager, expected man-hours). The calculator uses the project workload criteria × the Stage factor (the sum of the ticked stages: Concept Design, Schematic Design, Design Development, Tender Document, IFC, Shop Drawings), which the Administrator sets in Administration → Workload factors.
+
+## Update: BIM Process Map and Project contents
+Run `db/migrations/021_process_map.sql` in Supabase BEFORE deploying (earlier migrations 014–020 must already be run on the same Supabase project).
+- Projects → open a project → **Project contents**: the Administrator and the BIM Manager / BIM Coordinator assigned to the project add the buildings, infrastructure, landscape, etc.
+- **BIM Process Map** tab: every project has a dashboard automatically. The assigned Manager/Coordinator (or Admin) picks a building from the project contents list; each building gets its own copy of the Design Stage BIM Workflow. Click a node to set its status: Grey = Not Started, Blue = In Progress, Amber = On Hold, Green = Completed (plus a comment). Everyone else views only.
+- The diagram is data: nodes, lanes and connectors are defined in `lib/processMap.ts` (each has an id), so they can be moved, renamed or added without redrawing anything.

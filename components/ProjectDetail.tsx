@@ -10,6 +10,7 @@ import { optionsOf, projectWorkload } from '@/lib/workload';
 import { STATUSES, type Project, type Status } from '@/lib/types';
 import { useApp } from './store';
 import { AssignModal } from './AssignModal';
+import { ProjectContents } from './ProjectContents';
 import { Badge, Confirm, Drawer, Field, StatusBadge, useToast } from './ui';
 
 export function ProjectPhoto({ project, className = '' }: { project: Project; className?: string }) {
@@ -123,6 +124,8 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
               {role === 'coordinator' && canCoord && <button className="btn-secondary btn-sm mt-2" onClick={() => setAssigning(true)}>Manage coordinators</button>}
             </div>))}
           {members.length > 0 && <div className="col-span-2"><p className="label">Other team members</p>{names(members)}</div>}</div>
+
+        <ProjectContents projectId={p.id} canEdit={scope !== 'none'} />
 
         <div><p className="label">Status history</p>{!extra ? <p className="text-sm text-slate-500">Loading…</p> : extra.history.length ? <ul className="space-y-1 text-sm">{extra.history.map((h, i) => <li key={i} className="flex flex-wrap gap-x-2 border-l-2 border-brand-200 pl-3"><span className="text-slate-500">{fmtDate(h.changed_at)}</span><span>{h.old_status ? `${h.old_status} → ` : ''}<b>{h.new_status}</b></span><span className="text-xs text-slate-500">{h.changed_by}{h.reason ? ` · ${h.reason}` : ''}</span></li>)}</ul> : <p className="text-sm text-slate-500">No history.</p>}</div>
 

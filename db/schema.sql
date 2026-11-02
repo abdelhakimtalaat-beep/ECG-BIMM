@@ -289,6 +289,34 @@ create table if not exists proposals (
 );
 create unique index if not exists proposals_number_uq on proposals(lower(proposal_number));
 
+-- Project contents and BIM Process Map
+create table if not exists project_contents (
+  id         uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  name       text not null,
+  kind       text not null default 'Building' check (kind in ('Building','Infrastructure','Landscape','Other')),
+  created_by text,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists project_contents_name_uq on project_contents(project_id, lower(name));
+create table if not exists process_buildings (
+  id         uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  content_id uuid not null references project_contents(id) on delete cascade unique,
+  created_by text,
+  created_at timestamptz not null default now()
+);
+create index if not exists process_buildings_project_idx on process_buildings(project_id);
+create table if not exists process_nodes (
+  building_id uuid not null references process_buildings(id) on delete cascade,
+  node_key    text not null,
+  status      text not null default 'Not Started' check (status in ('Not Started','In Progress','On Hold','Completed')),
+  comment     text,
+  updated_by  text,
+  updated_at  timestamptz not null default now(),
+  primary key (building_id, node_key)
+);
+
 -- Wish List
 create table if not exists wishes (
   id          uuid primary key default gen_random_uuid(),
@@ -333,7 +361,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','wishes','wish_votes','contacts'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','wishes','wish_votes','contacts'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;
