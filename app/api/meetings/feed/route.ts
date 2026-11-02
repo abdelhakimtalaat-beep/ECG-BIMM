@@ -18,11 +18,11 @@ export async function PUT(req: Request) {
     const b = z.object({ employee_id: z.string().uuid().optional(), url: z.string().trim().min(8).max(2000), share: z.enum(['everyone', 'managers']) }).parse(await json(req));
     const id = who(me, b.employee_id); const url = cleanFeedUrl(b.url);
     const e = await one<any>('select name from employees where id=$1', [id]); if (!e) throw new ApiError(404, 'Employee not found');
-    let rows; try { rows = await readFeed(url); } catch (err: any) { throw new ApiError(400, err?.message ?? 'Could not read the calendar'); }
+    let rows, note: string | null; try { ({ rows, note } = await readFeed(url)); } catch (err: any) { throw new ApiError(400, err?.message ?? 'Could not read the calendar'); }
     await q(`insert into calendar_feeds(employee_id,url,share,created_by) values($1,$2,$3,$4) on conflict (employee_id) do update set url=excluded.url, share=excluded.share, updated_at=now()`, [id, url, b.share, me.email]);
-    await saveRows(id, rows); const count = rows.length;
+    await saveRows(id, rows, note); const count = rows.length;
     await audit(null, me.email, 'update', 'calendar_feed', id, `${e.name}: calendar linked (${count} meetings read), shown to ${b.share === 'everyone' ? 'everyone' : 'managers only'}`);
-    return ok({ count });
+    return ok({ count, note });
   });
 }
 export async function DELETE(req: Request) {

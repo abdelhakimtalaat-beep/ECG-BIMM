@@ -15,6 +15,6 @@ export async function POST(req: Request) {
       const res = await Promise.all(ids.map((i) => syncEmployee(i))); return ok({ synced: res.filter((r) => r.ok).length, failed: res.filter((r) => !r.ok).length });
     }
     if (!me.employee_id) throw new ApiError(400, 'Your account is not linked to an employee record.');
-    const r = await syncEmployee(me.employee_id); if (!r.ok) throw new ApiError(400, r.error ?? 'Sync failed'); return ok({ synced: 1, count: r.count });
+    const r = await syncEmployee(me.employee_id); if (!r.ok) throw new ApiError(400, r.error ?? 'Sync failed'); return ok({ synced: 1, count: r.count, note: r.note ?? null });
   });
 }

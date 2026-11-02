@@ -41,3 +41,8 @@ test('calendar link: only https Microsoft / Google calendar servers, ICS not HTM
   assert.equal(cleanFeedUrl(' webcal://outlook.office365.com/owa/calendar/a/b/reid/calendar.ics '), 'https://outlook.office365.com/owa/calendar/a/b/reid/calendar.ics');
   for (const bad of ['https://evil.com/a.ics', 'http://outlook.office365.com/a.ics', 'https://outlook.office365.com/owa/calendar/a/b/calendar.html', 'https://outlook.office365.com.evil.com/a.ics', 'https://attacker.com/outlook.office365.com', 'not a link']) assert.throws(() => cleanFeedUrl(bad), bad);
 });
+
+test('ics: a reminder (VALARM) inside an event does not replace its description', () => {
+  const ev = parseIcs(wrap(`BEGIN:VEVENT\r\nUID:v\r\nDTSTART:20261105T080000Z\r\nDTEND:20261105T090000Z\r\nSUMMARY:x\r\nDESCRIPTION:https://teams.microsoft.com/l/meetup-join/abc\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:Reminder\r\nEND:VALARM\r\nEND:VEVENT\r\n`), ...W);
+  assert.equal(ev.length, 1); assert.match(ev[0].teamsUrl!, /teams\.microsoft\.com/);
+});

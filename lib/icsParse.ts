@@ -104,13 +104,13 @@ const TEAMS_RE = /https:\/\/teams\.(?:microsoft|live)\.com\/[^\s<>"')\\]+/i;
 interface Raw { props: Prop[] }
 export function parseIcs(text: string, from: number, to: number): IcsEvent[] {
   const lines = unfold(text); const vtz: Record<string, number> = {}; const evs: Raw[] = [];
-  let cur: Prop[] | null = null, tzid: string | null = null, tzOff: number | null = null, inStd = false;
+  let cur: Prop[] | null = null, tzid: string | null = null, tzOff: number | null = null, inStd = false, alarm = 0;
   const off = (v: string) => { const m = /^([+-])(\d{2})(\d{2})/.exec(v); return m ? (m[1] === '-' ? -1 : 1) * (+m[2] * 60 + +m[3]) : null; };
   for (const ln of lines) {
     const p = parseProp(ln); if (!p) continue;
-    if (p.name === 'BEGIN') { if (p.value === 'VEVENT') cur = []; else if (p.value === 'VTIMEZONE') { tzid = null; tzOff = null; } else if (p.value === 'STANDARD') inStd = true; continue; }
-    if (p.name === 'END') { if (p.value === 'VEVENT' && cur) { evs.push({ props: cur }); cur = null; } else if (p.value === 'VTIMEZONE' && tzid && tzOff != null) vtz[tzid] = tzOff; else if (p.value === 'STANDARD') inStd = false; continue; }
-    if (cur) cur.push(p); else if (p.name === 'TZID' && !tzid) tzid = p.value.trim(); else if (p.name === 'TZOFFSETTO' && (inStd || tzOff == null)) tzOff = off(p.value);
+    if (p.name === 'BEGIN') { if (p.value === 'VALARM') alarm++; else if (p.value === 'VEVENT') cur = []; else if (p.value === 'VTIMEZONE') { tzid = null; tzOff = null; } else if (p.value === 'STANDARD') inStd = true; continue; }
+    if (p.name === 'END') { if (p.value === 'VALARM') alarm--; else if (p.value === 'VEVENT' && cur) { evs.push({ props: cur }); cur = null; } else if (p.value === 'VTIMEZONE' && tzid && tzOff != null) vtz[tzid] = tzOff; else if (p.value === 'STANDARD') inStd = false; continue; }
+    if (cur) { if (!alarm) cur.push(p); } else if (p.name === 'TZID' && !tzid) tzid = p.value.trim(); else if (p.name === 'TZOFFSETTO' && (inStd || tzOff == null)) tzOff = off(p.value);
   }
   const lim = to + 86400000; const out: IcsEvent[] = [];
   const get = (r: Raw, n: string) => r.props.find((x) => x.name === n);
