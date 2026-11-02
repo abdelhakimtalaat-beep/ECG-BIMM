@@ -9,7 +9,7 @@ async function download(url: string): Promise<string> {
   for (let hop = 0; hop < 4; hop++) {
     const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 12000);
     try {
-      const r = await fetch(cur, { redirect: 'manual', signal: ac.signal, headers: { Accept: 'text/calendar,*/*', 'User-Agent': 'ECG-BIM-Portal/1.0' }, cache: 'no-store' });
+      const r = await fetch(cur, { redirect: 'manual', signal: ac.signal, headers: { Accept: 'text/calendar, text/plain, */*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' }, cache: 'no-store' });
       if (r.status >= 300 && r.status < 400 && r.headers.get('location')) { cur = cleanFeedUrl(new URL(r.headers.get('location')!, cur).toString()); continue; }
       if (!r.ok) throw new Error(r.status === 404 || r.status === 403 ? 'The calendar link no longer works (it may have been unpublished). Publish the calendar again and paste the new link.' : `The calendar server answered ${r.status}.`);
       const buf = await r.arrayBuffer(); if (buf.byteLength > 12 * 1024 * 1024) throw new Error('The calendar file is too large.');
@@ -32,7 +32,9 @@ export async function readFeed(url: string): Promise<{ rows: Row[]; note: string
 export function explainEmpty(text: string, from: number, to: number): string {
   const n = (text.match(/^BEGIN:VEVENT/gim) ?? []).length; const r = (text.match(/^RRULE/gim) ?? []).length; const d = (x: number) => new Date(x).toISOString().slice(0, 10);
   const name = /^X-WR-CALNAME:(.*)$/im.exec(text)?.[1]?.trim();
-  if (!n) return `The calendar link works but the file contains no events${name ? ` (calendar "${name}")` : ''}. Check that you published your main Calendar (not Birthdays or Holidays) in Outlook on the web, and that your meetings are in it.`;
+  const parts = new Map<string, number>(); for (const m of text.matchAll(/^BEGIN:([A-Z-]+)/gim)) parts.set(m[1].toUpperCase(), (parts.get(m[1].toUpperCase()) ?? 0) + 1);
+  const inv = `[file ${Math.round(text.length / 1024 * 10) / 10} KB; contents: ${[...parts].map(([k, v]) => `${k} x${v}`).join(', ') || 'nothing'}]`;
+  if (!n) return `The calendar link works but the file contains no events${name ? ` (calendar "${name}")` : ''} ${inv}. Check that you published your main Calendar (not Birthdays or Holidays) in Outlook on the web, and that your meetings are in it.`;
   const dates = [...text.matchAll(/^DTSTART[^:\n]*:(\d{4})(\d{2})(\d{2})/gim)].map((m) => `${m[1]}-${m[2]}-${m[3]}`).sort();
   return `The calendar was read: the file has ${n} event(s)${r ? `, ${r} recurring` : ''}${dates.length ? `, dated ${dates[0]} to ${dates[dates.length - 1]}` : ''}, but none fall between ${d(from)} and ${d(to)}.`;
 }
