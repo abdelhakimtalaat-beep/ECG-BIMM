@@ -30,16 +30,18 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const [confirmDel, setConfirmDel] = useState(false); const file = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => { if (id) { try { setExtra(await api(`/api/projects/${id}`)); } catch {} } }, [id]);
-  useEffect(() => { setExtra(null); setEdit(null); if (id) load(); }, [id, load]);
+  useEffect(() => { setExtra(null); setEdit(null); setFe({}); if (id) load(); }, [id, load]);
 
   const asg = useMemo(() => data.assignments.filter((a) => a.project_id === id), [data.assignments, id]);
   const mgrs = asg.filter((a) => a.role === 'manager'), coords = asg.filter((a) => a.role === 'coordinator'), members = asg.filter((a) => a.role === 'member');
   const scope = canEditProject(me, mgrs.map((a) => a.employee_id), coords.map((a) => a.employee_id));
   const can = (f: string) => ({ full: ['project_no', 'typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'scope_site', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'revit_version', 'forma_url', 'forma_email', 'built_up_area', 'plot_area', 'status', 'notes'], manager: ['typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'scope_site', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'revit_version', 'forma_url', 'forma_email', 'built_up_area', 'plot_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
+  // Forma URL / e-mail show as clickable links until the user presses Edit (or starts typing in them)
+  const linkMode = (f: 'forma_url' | 'forma_email') => !!(p as any)?.[f] && !fe[f] && !(edit && f in edit);
   const team = new Set(asg.map((a) => a.employee_id));
   const isProjectMgr = me.role === 'bim_manager' && !!me.employee_id && mgrs.some((a) => a.employee_id === me.employee_id);
   const canCoord = me.role === 'admin' || isProjectMgr;
-  const [assigning, setAssigning] = useState(false);
+  const [assigning, setAssigning] = useState(false); const [fe, setFe] = useState<Record<string, boolean>>({});
   const related = useMemo(() => upcomingReels(data.reels, today).filter((r) => r.employee_id && team.has(r.employee_id)), [data.reels, today, team]);
 
   if (!p) return <Drawer open={false} onClose={onClose} title="" children={null} />;
@@ -50,7 +52,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
       const body: any = {}; for (const k of Object.keys(edit)) body[k] = edit[k] === '' ? null : edit[k];
       if ('built_up_area' in body && body.built_up_area != null) body.built_up_area = Number(body.built_up_area);
       if ('plot_area' in body && body.plot_area != null) body.plot_area = Number(body.plot_area);
-      await api(`/api/projects/${p.id}`, { method: 'PATCH', body }); toast('Saved'); setEdit(null); await refresh(); load();
+      await api(`/api/projects/${p.id}`, { method: 'PATCH', body }); toast('Saved'); setEdit(null); setFe({}); await refresh(); load();
     } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); }
   };
   const upload = async (f: Blob, name: string) => {
@@ -95,15 +97,15 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
           <Field label="Country"><input list="ecg-countries" className="input" disabled={!can('country')} placeholder="e.g. Saudi Arabia" value={('country' in E ? E.country : p.country) ?? ''} onChange={(e) => setEdit({ ...E, country: e.target.value })} /><datalist id="ecg-countries">{COUNTRIES.map((c) => <option key={c} value={c} />)}</datalist></Field><Field label="City">{inp('city')}</Field>
           <Field label="Project Manager">{inp('project_manager')}</Field><Field label="Technical Manager">{inp('technical_manager')}</Field>
           <Field label="CDE">{inp('cde')}</Field><Field label="Type">{inp('type')}</Field>
-          <Field label="Built-up area" hint={p.area_note ? `Source: ${p.area_raw} — ${p.area_note}` : undefined}>{numInp('built_up_area')}</Field>
-          <Field label="Plot Area" hint="Used for the Site work part of the workload.">{numInp('plot_area')}</Field>
+          <Field label="Built-up area">{numInp('built_up_area')}</Field>
+          <Field label="Plot Area">{numInp('plot_area')}</Field>
           <Field label="Revit version"><select className="input" disabled={!can('revit_version')} value={('revit_version' in E ? E.revit_version : p.revit_version) ?? ''} onChange={(e) => setEdit({ ...E, revit_version: e.target.value })}><option value="">— not set —</option>{['2020', '2021', '2022', '2023', '2024', '2025', '2026', '2027'].map((v) => <option key={v}>{v}</option>)}</select></Field>
-          <Field label="Autodesk Forma URL" hint={(('forma_url' in E ? E.forma_url : p.forma_url) ?? '') && /^https?:\/\//i.test(('forma_url' in E ? E.forma_url : p.forma_url) ?? '') ? undefined : 'Link of the project in Autodesk Forma (https://…)'}>
-            <div className="flex gap-2"><input type="url" className="input" disabled={!can('forma_url')} placeholder="https://forma.autodesk.com/…" value={('forma_url' in E ? E.forma_url : p.forma_url) ?? ''} onChange={(e) => setEdit({ ...E, forma_url: e.target.value })} />
-              {!edit && p.forma_url && /^https?:\/\//i.test(p.forma_url) && <a className="btn-secondary btn-sm shrink-0" href={p.forma_url} target="_blank" rel="noopener noreferrer">Open</a>}</div></Field>
-          <Field label="Autodesk Forma e-mail address" hint="The account / address used for this project in Autodesk Forma.">
-            <div className="flex gap-2"><input type="email" className="input" disabled={!can('forma_email')} placeholder="name@company.com" value={('forma_email' in E ? E.forma_email : p.forma_email) ?? ''} onChange={(e) => setEdit({ ...E, forma_email: e.target.value })} />
-              {!edit && p.forma_email && <a className="btn-secondary btn-sm shrink-0" href={`mailto:${p.forma_email}`}>E-mail</a>}</div></Field>
+          <Field label="Autodesk Forma URL">
+            {linkMode('forma_url') ? <div className="flex items-center gap-2"><a className="input flex-1 truncate text-brand-700 underline" href={p.forma_url!} target="_blank" rel="noopener noreferrer" title="Open in Autodesk Forma">{p.forma_url}</a>{can('forma_url') && <button type="button" className="btn-secondary btn-sm shrink-0" onClick={() => setFe((x) => ({ ...x, forma_url: true }))}>Edit</button>}</div>
+              : <input type="url" className="input" disabled={!can('forma_url')} placeholder="https://…" value={('forma_url' in E ? E.forma_url : p.forma_url) ?? ''} onChange={(e) => setEdit({ ...E, forma_url: e.target.value })} />}</Field>
+          <Field label="Autodesk Forma e-mail address">
+            {linkMode('forma_email') ? <div className="flex items-center gap-2"><a className="input flex-1 truncate text-brand-700 underline" href={`mailto:?cc=${encodeURIComponent(p.forma_email!)}`} title="New e-mail with this address in CC">{p.forma_email}</a>{can('forma_email') && <button type="button" className="btn-secondary btn-sm shrink-0" onClick={() => setFe((x) => ({ ...x, forma_email: true }))}>Edit</button>}</div>
+              : <input type="email" className="input" disabled={!can('forma_email')} placeholder="name@company.com" value={('forma_email' in E ? E.forma_email : p.forma_email) ?? ''} onChange={(e) => setEdit({ ...E, forma_email: e.target.value })} />}</Field>
           <div className="col-span-2 mt-1 border-t border-slate-200 pt-3"><p className="text-sm font-semibold text-brand-900">Workload Factors</p>{!can('typicality') && <p className="text-xs text-slate-500">View only — you can edit the factors of projects you are assigned to.</p>}</div>
           {([['typicality', 'Typicality'], ['function_type', 'Function'], ['coordination_type', 'Coordination'], ['bim_standards', 'BIM Standards']] as const).map(([k, label]) => { const fac = data.settings.factors[k]; const opts = Object.keys(fac); return [k, label, opts, fac] as const; }).map(([k, label, opts, fac]) => (
             <Field key={k} label={label}><select className="input" disabled={!can(k)} value={(k in E ? E[k] : (p as any)[k]) ?? ''} onChange={(e) => setEdit({ ...E, [k]: e.target.value })}>
@@ -114,12 +116,12 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
                 <label key={o} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" disabled={!can(k)} checked={cur.includes(o)} onChange={(e) => setEdit({ ...E, [k]: e.target.checked ? [...cur, o] : cur.filter((x) => x !== o) })} />{o} <span className="text-xs text-slate-500">({data.settings.factors[k][o]})</span></label>); })}</div></div>))}
           <div className="col-span-2 rounded-lg bg-brand-50 p-3 text-sm"><span className="text-slate-600">Workload = (Built-up area × Typicality × Function × Coordination × BIM Standards × Buildings scope) + (Plot Area × Function × Coordination × BIM Standards × Site work scope) = </span>
             <b className="text-brand-900">{(() => { const w = projectWorkload({ built_up_area: 'built_up_area' in E ? Number(E.built_up_area) : p.built_up_area, typicality: 'typicality' in E ? E.typicality : p.typicality, function_type: 'function_type' in E ? E.function_type : p.function_type, coordination_type: 'coordination_type' in E ? E.coordination_type : p.coordination_type, bim_standards: 'bim_standards' in E ? E.bim_standards : p.bim_standards, scope_items: 'scope_items' in E ? E.scope_items : p.scope_items, plot_area: 'plot_area' in E ? Number(E.plot_area) : p.plot_area, scope_site: 'scope_site' in E ? E.scope_site : p.scope_site }, data.settings.factors); return w == null ? 'not calculated (Function, Coordination and BIM Standards are required, plus either Built-up area + Typicality + a Buildings scope, or Plot Area + a Site work scope)' : fmtNum(w); })()}</b></div>
-          <Field label="Status" hint={`Workbook: ${p.status_raw ?? '—'}${p.activity_raw ? ' / ' + p.activity_raw : ''}`}>
+          <Field label="Status">
             <select className="input" disabled={!can('status')} value={'status' in E ? E.status : p.status} onChange={(e) => setEdit({ ...E, status: e.target.value as Status })}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></Field>
           <div className="col-span-2"><Field label="Notes"><textarea rows={2} className="input" disabled={!can('notes')} value={('notes' in E ? E.notes : p.notes) ?? ''} onChange={(e) => setEdit({ ...E, notes: e.target.value })} /></Field></div>
           {edit && 'status' in edit && edit.status !== p.status && <div className="col-span-2"><Field label="Reason for status change (optional)"><input className="input" value={E.reason ?? ''} onChange={(e) => setEdit({ ...E, reason: e.target.value })} /></Field></div>}
         </div>
-        {edit && <div className="flex gap-2"><button className="btn-primary" disabled={busy} onClick={save}>Save changes</button><button className="btn-secondary" onClick={() => setEdit(null)}>Discard</button></div>}
+        {edit && <div className="flex gap-2"><button className="btn-primary" disabled={busy} onClick={save}>Save changes</button><button className="btn-secondary" onClick={() => { setEdit(null); setFe({}); }}>Discard</button></div>}
         {scope === 'none' && <p className="text-xs text-slate-500">You have view-only access to this project.</p>}
 
         <div className="grid grid-cols-2 gap-3 text-sm">
