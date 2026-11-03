@@ -4,6 +4,7 @@ import { handle, json, ok } from '@/lib/api';
 import { ApiError, requireUser } from '@/lib/auth';
 import { audit, tx } from '@/lib/db';
 import { assertCanAssign } from '@/lib/perm';
+import { projectAssigned, safe } from '@/lib/notify';
 
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handle(async () => {
@@ -11,6 +12,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
     const { id } = await ctx.params; z.string().uuid().parse(id);
     const b = z.object({ role: z.enum(['manager', 'coordinator']), employee_id: z.string().uuid().nullable() }).parse(await json(req));
     await assertCanAssign(me, id, b.role);
+    const prev: string[] = [];
     await tx(async (c) => {
       const p = (await c.query('select name from projects where id=$1', [id])).rows[0];
       if (!p) throw new ApiError(404, 'Project not found');
@@ -22,6 +24,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
         en = e.name;
       }
       const before = (await c.query(`select string_agg(e.name, ', ') n from project_assignments a join employees e on e.id=a.employee_id where a.project_id=$1 and a.role=$2`, [id, b.role])).rows[0]?.n ?? '(none)';
+      prev.push(...(await c.query('select employee_id from project_assignments where project_id=$1 and role=$2', [id, b.role])).rows.map((r) => r.employee_id));
       await c.query('delete from project_assignments where project_id=$1 and role=$2', [id, b.role]);
       if (b.employee_id) {
         await c.query(`delete from project_assignments where project_id=$1 and employee_id=$2 and role='member'`, [id, b.employee_id]);
@@ -29,6 +32,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
       }
       await audit(c, me.email, 'reassign', 'project', id, `${p.name}: ${b.role} ${before} → ${en}`);
     });
-    return ok();
+    const mail = b.employee_id && !prev.includes(b.employee_id) ? await safe(() => projectAssigned(id, b.employee_id!, b.role, me.full_name || me.email, me.email, false)) : 'skipped';
+    return ok({ mail });
   });
 }

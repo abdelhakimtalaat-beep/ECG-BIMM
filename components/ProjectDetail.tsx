@@ -116,7 +116,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
           {([['manager', 'BIM Manager', mgrs], ['coordinator', 'BIM Coordinator', coords]] as const).map(([role, label, cur]) => (
             <div key={role}><p className="label">{label}</p>
               {(role === 'manager' ? me.role === 'admin' : canCoord) && cur.length <= 1
-                ? <select className="input" aria-label={label} value={cur[0]?.employee_id ?? ''} onChange={async (ev) => { try { await api(`/api/projects/${p.id}/team`, { method: 'PUT', body: { role, employee_id: ev.target.value || null } }); toast(`${label} updated`); refresh(); load(); } catch (e: any) { toast(e.message, 'err'); } }}>
+                ? <select className="input" aria-label={label} value={cur[0]?.employee_id ?? ''} onChange={async (ev) => { try { const r: any = await api(`/api/projects/${p.id}/team`, { method: 'PUT', body: { role, employee_id: ev.target.value || null } }); toast(r?.mail === 'sent' ? `${label} updated — notification e-mail sent` : `${label} updated`); refresh(); load(); } catch (e: any) { toast(e.message, 'err'); } }}>
                     <option value="">— none —</option>
                     {data.employees.filter((e) => (e.active || e.id === cur[0]?.employee_id) && (role === 'coordinator' || ['bim_manager', 'department_manager'].includes(e.job_category))).sort((x, y) => x.name.localeCompare(y.name)).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
                   </select>

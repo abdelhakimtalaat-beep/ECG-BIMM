@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { handle, json, ok } from '@/lib/api';
 import { requireUser } from '@/lib/auth';
 import { audit, one, tx } from '@/lib/db';
+import { projectAssigned, safe } from '@/lib/notify';
 
 const projectBody = z.object({
   project_no: z.string().trim().max(40).nullish().transform((v) => v || null),
@@ -35,6 +36,9 @@ export async function POST(req: Request) {
       await audit(c, me.email, 'create', 'project', pid, `Created project ${b.project_no ?? ''} ${b.name}`, undefined, b);
       return pid;
     });
-    return ok({ id }, 201);
+    // e-mail the assigned BIM Manager and BIM Coordinators (never blocks the creation)
+    const who = me.full_name || me.email; const targets: [string, 'manager' | 'coordinator'][] = [...(b.manager_id ? [[b.manager_id, 'manager'] as [string, 'manager']] : []), ...b.coordinator_ids.map((e) => [e, 'coordinator'] as [string, 'coordinator'])];
+    const mail = await Promise.all(targets.map(([e, r]) => safe(() => projectAssigned(id, e, r, who, me.email, true))));
+    return ok({ id, mail: { sent: mail.filter((m) => m === 'sent').length, failed: mail.filter((m) => m === 'failed').length, off: mail.includes('off') } }, 201);
   });
 }

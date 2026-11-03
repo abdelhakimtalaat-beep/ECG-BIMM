@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import net from 'node:net';
 import { buildIcs, nextDay } from '../lib/ics.ts';
+import { assignedMail } from '../lib/projectMail.ts';
 import { buildMessage, sendMail } from '../lib/mailer.ts';
 
 test('ics: all-day event, exclusive end, cancel, escaping and folding', () => {
@@ -34,4 +35,12 @@ test('SMTP client talks to a (fake) server correctly', async () => {
   assert.deepEqual(got, ['EHLO', 'AUTH', 'MAIL <me@gmail.com>', 'RCPT <amal@ecgsa.com>', 'DATA', 'QUIT']);
   assert.match(body, /Subject: Hello/);
   await assert.rejects(() => sendMail({ to: 'a@b.com', subject: 's', text: 't' }, { user: 'u', pass: 'p', connect: () => { const s = net.connect(port, '127.0.0.1'); return s; }, timeoutMs: 500 }));
+});
+
+test('project assignment e-mail: new project, role, team and portal link', () => {
+  const m = assignedMail({ name: 'Ali', role: 'coordinator', isNew: true, by: 'Admin', url: 'https://x.vercel.app/projects', project: { name: 'Tower A', project_no: 'P-101', client: 'ACME', city: 'Cairo', country: 'Egypt', status: 'Not Started', built_up_area: 125000 }, managers: ['Mona'], coordinators: ['Ali', 'Omar'] });
+  assert.equal(m.subject, 'New project: P-101 · Tower A — you are BIM Coordinator');
+  for (const x of ['Hello Ali', 'Project: Tower A', 'Client: ACME', 'Location: Cairo, Egypt', 'Built-up area: 125,000 m²', 'BIM Manager: Mona', 'BIM Coordinator(s): Ali, Omar', 'Assigned by: Admin', 'https://x.vercel.app/projects']) assert.ok(m.text.includes(x), x);
+  const u = assignedMail({ name: 'Mona', role: 'manager', isNew: false, by: 'Admin', project: { name: 'Tower A' }, managers: [], coordinators: [] });
+  assert.equal(u.subject, 'Project assignment: Tower A — you are BIM Manager'); assert.ok(!u.text.includes('Open the portal')); assert.ok(u.text.includes('BIM Manager: —'));
 });

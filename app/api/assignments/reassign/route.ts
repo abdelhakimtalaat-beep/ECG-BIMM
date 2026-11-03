@@ -4,6 +4,7 @@ import { handle, json, ok } from '@/lib/api';
 import { ApiError, requireUser } from '@/lib/auth';
 import { audit, tx } from '@/lib/db';
 import { assertCanAssign } from '@/lib/perm';
+import { projectAssigned, safe } from '@/lib/notify';
 
 export async function POST(req: Request) {
   return handle(async () => {
@@ -17,6 +18,7 @@ export async function POST(req: Request) {
       await c.query('insert into project_assignments(project_id,employee_id,role) values($1,$2,$3) on conflict do nothing', [b.project_id, b.to_employee_id, b.role]);
       await audit(c, me.email, 'reassign', 'project', b.project_id, `${n.p}: ${b.role} ${n.f ?? '(none)'} → ${n.t}`);
     });
-    return ok();
+    const mail = await safe(() => projectAssigned(b.project_id, b.to_employee_id, b.role, me.full_name || me.email, me.email, false));
+    return ok({ mail });
   });
 }

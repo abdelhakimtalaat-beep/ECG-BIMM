@@ -3,6 +3,7 @@ import { handle, json, ok } from '@/lib/api';
 import { ApiError, requireUser } from '@/lib/auth';
 import { audit, one, tx } from '@/lib/db';
 import { assertCanAssign } from '@/lib/perm';
+import { projectAssigned, safe } from '@/lib/notify';
 
 const body = z.object({ project_id: z.string().uuid(), employee_id: z.string().uuid(), role: z.enum(['manager', 'coordinator', 'member']), package: z.string().trim().max(120).nullish() });
 
@@ -18,7 +19,8 @@ export async function POST(req: Request) {
       await c.query('insert into project_assignments(project_id,employee_id,role,package) values($1,$2,$3,$4)', [b.project_id, b.employee_id, b.role, b.package ?? null]);
       await audit(c, me.email, 'assign', 'project', b.project_id, `${names.e} added as ${b.role} on ${names.p}`);
     });
-    return ok({ ok: true }, 201);
+    const mail = b.role === 'member' ? 'skipped' : await safe(() => projectAssigned(b.project_id, b.employee_id, b.role as 'manager' | 'coordinator', me.full_name || me.email, me.email, false));
+    return ok({ ok: true, mail }, 201);
   });
 }
 export async function DELETE(req: Request) {

@@ -2,6 +2,7 @@
 import { one } from './db';
 import { buildIcs } from './ics';
 import { mailEnabled, sendMail } from './mailer';
+import { assignedMail } from './projectMail';
 
 export type MailResult = 'sent' | 'skipped' | 'failed' | 'off';
 const DOMAIN = 'ecg-bim-portal';
@@ -54,3 +55,14 @@ export async function reelInvite(r: ReelLite): Promise<boolean> {
 }
 /** Reel deleted or given to another speaker -> remove it from the old speaker's calendar. */
 export const reelCancel = (r: ReelLite) => reelInvite({ ...r, status: 'Cancelled' });
+
+const portalUrl = () => { const u = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : ''); return u ? u.replace(/\/$/, '') + '/projects' : null; };
+/** Project assignment -> e-mail to the BIM Manager / BIM Coordinator. Returns false when nothing was sent (no e-mail address, or he made the change himself). */
+export async function projectAssigned(projectId: string, employeeId: string, role: 'manager' | 'coordinator', byName: string, byEmail: string, isNew: boolean): Promise<boolean> {
+  const a = await person(employeeId); if (!a?.email) return false; if (a.email.toLowerCase() === byEmail.toLowerCase()) return false;
+  const p = await one<any>('select name,project_no,client,type,city,country,status,built_up_area from projects where id=$1', [projectId]); if (!p) return false;
+  const team = await one<{ m: string | null; c: string | null }>(`select string_agg(e.name, ', ') filter (where a.role='manager') m, string_agg(e.name, ', ') filter (where a.role='coordinator') c from project_assignments a join employees e on e.id=a.employee_id where a.project_id=$1`, [projectId]);
+  const { subject, text } = assignedMail({ name: a.name, role, isNew, by: byName, url: portalUrl(), project: { ...p, built_up_area: p.built_up_area == null ? null : Number(p.built_up_area) }, managers: team?.m ? team.m.split(', ') : [], coordinators: team?.c ? team.c.split(', ') : [] });
+  await sendMail({ to: a.email, subject, text });
+  return true;
+}
