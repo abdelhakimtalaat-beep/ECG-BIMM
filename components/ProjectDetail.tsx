@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Building2, Crop, FileDown, ImagePlus, Trash2 } from 'lucide-react';
-import { api, fmtDate, fmtDateTime, fmtNum, loadPhotoForEdit, saveOriginalPhoto } from '@/lib/client';
+import { api, fmtDate, fmtDateTime, fmtNum, loadOriginalPhoto, loadPhotoForEdit, resizeImage, saveOriginalPhoto } from '@/lib/client';
 import { canEditProject } from '@/lib/can';
 import { upcomingReels } from '@/lib/metrics';
 import { COUNTRIES } from '@/lib/countries';
@@ -13,6 +13,8 @@ import { AssignModal } from './AssignModal';
 import { ProjectContents } from './ProjectContents';
 import { Badge, Confirm, Drawer, Field, StatusBadge, useToast } from './ui';
 
+/** Photo ratio of the cards in the All Projects area (width : height). Choosing it in the photo editor makes the card show the whole saved photo. */
+export const PROJECT_CARD_RATIO = 2;
 export function ProjectPhoto({ project, className = '', fit = false }: { project: Project; className?: string; fit?: boolean }) {
   if (project.photo_id) return <img src={`/api/files/${project.photo_id}`} alt={`Photograph of ${project.name}`} className={`${fit ? 'bg-slate-100 object-contain' : 'object-cover'} ${className}`} loading="lazy" />;
   return <div className={`flex flex-col items-center justify-center bg-gradient-to-br from-brand-50 to-slate-100 text-brand-300 ${fit ? 'h-48' : ''} ${className}`} role="img" aria-label="No project photo uploaded"><Building2 size={36} /><span className="mt-1 text-[11px] text-slate-400">No photo uploaded</span></div>;
@@ -33,7 +35,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const asg = useMemo(() => data.assignments.filter((a) => a.project_id === id), [data.assignments, id]);
   const mgrs = asg.filter((a) => a.role === 'manager'), coords = asg.filter((a) => a.role === 'coordinator'), members = asg.filter((a) => a.role === 'member');
   const scope = canEditProject(me, mgrs.map((a) => a.employee_id), coords.map((a) => a.employee_id));
-  const can = (f: string) => ({ full: ['project_no', 'typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'scope_site', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'revit_version', 'built_up_area', 'plot_area', 'status', 'notes'], manager: ['typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'scope_site', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'revit_version', 'built_up_area', 'plot_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
+  const can = (f: string) => ({ full: ['project_no', 'typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'scope_site', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'revit_version', 'forma_url', 'forma_email', 'built_up_area', 'plot_area', 'status', 'notes'], manager: ['typicality', 'function_type', 'coordination_type', 'bim_standards', 'scope_items', 'scope_site', 'name', 'cde', 'type', 'deltek_number', 'project_manager', 'technical_manager', 'client', 'country', 'city', 'revit_version', 'forma_url', 'forma_email', 'built_up_area', 'plot_area', 'status', 'notes'], coordinator: ['notes'], none: [] } as any)[scope].includes(f);
   const team = new Set(asg.map((a) => a.employee_id));
   const isProjectMgr = me.role === 'bim_manager' && !!me.employee_id && mgrs.some((a) => a.employee_id === me.employee_id);
   const canCoord = me.role === 'admin' || isProjectMgr;
@@ -79,7 +81,8 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
         <div className="relative overflow-hidden rounded-xl border border-slate-200"><ProjectPhoto project={p} className="max-h-96 w-full" fit />
           {(scope !== 'none') && <div className="absolute bottom-2 right-2 flex gap-1"><input ref={file} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { setCropOrig(true); setCropFile(f); } }} />
             <button className="btn-secondary btn-sm" onClick={() => file.current?.click()}><ImagePlus size={14} />{p.photo_id ? 'Replace' : 'Upload'} photo</button>
-            {p.photo_id && <button className="btn-secondary btn-sm" onClick={async () => { try { const f = await loadPhotoForEdit('project', p.id, p.photo_id!); setCropOrig(false); setCropFile(f); } catch (e: any) { toast(e.message, 'err'); } }}><Crop size={14} />Edit / crop</button>}
+            {p.photo_id && <button className="btn-secondary btn-sm" onClick={async () => { try { const r = await loadPhotoForEdit('project', p.id, p.photo_id!); setCropOrig(!r.fromOriginal); setCropFile(r.file); } catch (e: any) { toast(e.message, 'err'); } }}><Crop size={14} />Edit / crop</button>}
+            {p.photo_id && <button className="btn-secondary btn-sm" title="Put back the photo exactly as it was uploaded" onClick={async () => { try { const o = await loadOriginalPhoto('project', p.id); if (!o) { toast('No original is stored for this photo (it was uploaded before originals were kept). Upload it again to enable Reset.', 'err'); return; } if (!window.confirm('Reset the photo to the original upload (removes the crop)?')) return; await upload(await resizeImage(o, 1600), 'original.jpg'); } catch (e: any) { toast(e.message, 'err'); } }}>Reset to original</button>}
             {p.photo_id && <button className="btn-secondary btn-sm" aria-label="Remove photo" onClick={async () => { await api(`/api/projects/${p.id}/photo`, { method: 'DELETE' }); refresh(); }}><Trash2 size={14} /></button>}</div>}</div>
 
         <div className="flex flex-wrap items-center gap-2"><StatusBadge status={p.status} />{p.status_source === 'manual' && <Badge tone="blue" title="Set by a user rather than derived from the workbook status mapping">manual</Badge>}
@@ -95,6 +98,12 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
           <Field label="Built-up area" hint={p.area_note ? `Source: ${p.area_raw} — ${p.area_note}` : undefined}>{numInp('built_up_area')}</Field>
           <Field label="Plot Area" hint="Used for the Site work part of the workload.">{numInp('plot_area')}</Field>
           <Field label="Revit version"><select className="input" disabled={!can('revit_version')} value={('revit_version' in E ? E.revit_version : p.revit_version) ?? ''} onChange={(e) => setEdit({ ...E, revit_version: e.target.value })}><option value="">— not set —</option>{['2020', '2021', '2022', '2023', '2024', '2025', '2026', '2027'].map((v) => <option key={v}>{v}</option>)}</select></Field>
+          <Field label="Autodesk Forma URL" hint={(('forma_url' in E ? E.forma_url : p.forma_url) ?? '') && /^https?:\/\//i.test(('forma_url' in E ? E.forma_url : p.forma_url) ?? '') ? undefined : 'Link of the project in Autodesk Forma (https://…)'}>
+            <div className="flex gap-2"><input type="url" className="input" disabled={!can('forma_url')} placeholder="https://forma.autodesk.com/…" value={('forma_url' in E ? E.forma_url : p.forma_url) ?? ''} onChange={(e) => setEdit({ ...E, forma_url: e.target.value })} />
+              {!edit && p.forma_url && /^https?:\/\//i.test(p.forma_url) && <a className="btn-secondary btn-sm shrink-0" href={p.forma_url} target="_blank" rel="noopener noreferrer">Open</a>}</div></Field>
+          <Field label="Autodesk Forma e-mail address" hint="The account / address used for this project in Autodesk Forma.">
+            <div className="flex gap-2"><input type="email" className="input" disabled={!can('forma_email')} placeholder="name@company.com" value={('forma_email' in E ? E.forma_email : p.forma_email) ?? ''} onChange={(e) => setEdit({ ...E, forma_email: e.target.value })} />
+              {!edit && p.forma_email && <a className="btn-secondary btn-sm shrink-0" href={`mailto:${p.forma_email}`}>E-mail</a>}</div></Field>
           <div className="col-span-2 mt-1 border-t border-slate-200 pt-3"><p className="text-sm font-semibold text-brand-900">Workload Factors</p>{!can('typicality') && <p className="text-xs text-slate-500">View only — you can edit the factors of projects you are assigned to.</p>}</div>
           {([['typicality', 'Typicality'], ['function_type', 'Function'], ['coordination_type', 'Coordination'], ['bim_standards', 'BIM Standards']] as const).map(([k, label]) => { const fac = data.settings.factors[k]; const opts = Object.keys(fac); return [k, label, opts, fac] as const; }).map(([k, label, opts, fac]) => (
             <Field key={k} label={label}><select className="input" disabled={!can(k)} value={(k in E ? E[k] : (p as any)[k]) ?? ''} onChange={(e) => setEdit({ ...E, [k]: e.target.value })}>
@@ -143,7 +152,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
         onConfirm={async () => { try { await api(`/api/projects/${p.id}`, { method: 'DELETE' }); toast('Deleted'); setConfirmDel(false); onClose(); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
     </Drawer>
       {assigning && <AssignModal projectId={p.id} onClose={() => { setAssigning(false); load(); }} />}
-    {cropFile && <ImageCropper file={cropFile} title="Crop project photo" outWidth={1200} aspects={[{ label: 'Original ratio', value: 0 }, { label: '16:9', value: 16 / 9 }, { label: '4:3', value: 4 / 3 }, { label: 'Square', value: 1 }]} onCancel={() => setCropFile(null)} onDone={async (b, n) => { const f = cropFile; setCropFile(null); await upload(b, n); if (cropOrig && f) await saveOriginalPhoto('project', p.id, f).catch(() => {}); }} />}
+    {cropFile && <ImageCropper file={cropFile} title="Crop project photo" outWidth={1200} aspects={[{ label: 'Projects card (2:1)', value: PROJECT_CARD_RATIO }, { label: 'Original ratio', value: 0 }, { label: '16:9', value: 16 / 9 }, { label: '4:3', value: 4 / 3 }, { label: 'Square', value: 1 }]} onCancel={() => setCropFile(null)} onDone={async (b, n) => { const f = cropFile; setCropFile(null); await upload(b, n); if (cropOrig && f) await saveOriginalPhoto('project', p.id, f).catch(() => {}); }} />}
     </>
   );
 }

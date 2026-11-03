@@ -50,7 +50,7 @@ export function ImageCropper({ file, aspects, outWidth = 800, title = 'Crop phot
             style={{ position: 'absolute', left: 0, top: 0, maxWidth: 'none', width: nat ? nat.w * s : undefined, height: nat ? nat.h * s : undefined, transform: `translate(${st.x}px, ${st.y}px)`, pointerEvents: 'none' }} />
           <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 opacity-40">{Array.from({ length: 9 }).map((_, i) => <div key={i} className="border border-white/70" />)}</div>
         </div>
-        <label className="flex w-full max-w-[300px] items-center gap-3 text-xs text-slate-600">Zoom
+        <label className="flex w-full max-w-[300px] items-center gap-3 text-xs text-slate-600"><button type="button" className="btn-ghost btn-sm" onClick={() => nat && setSt(centered(nat.w, nat.h, VW, VH, 1))}>Reset</button>Zoom
           <input type="range" min={1} max={5} step={0.01} value={st.zoom} onChange={(e) => setZoom(Number(e.target.value))} className="flex-1" aria-label="Zoom" /></label>
         <p className="text-center text-xs text-slate-500">Drag the photo to move it, use the slider or mouse wheel to zoom. The framed area is what will be saved.</p>
         {err && <p className="text-sm text-red-600">{err}</p>}

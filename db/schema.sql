@@ -116,6 +116,8 @@ alter table projects add column if not exists scope_items text[];
 alter table projects add column if not exists country text;
 alter table projects add column if not exists city text;
 alter table projects add column if not exists revit_version text;
+alter table projects add column if not exists forma_url text;
+alter table projects add column if not exists forma_email text;
 alter table projects add column if not exists plot_area numeric;
 alter table projects add column if not exists scope_site text[];
 create index if not exists projects_no_idx on projects(project_no);

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Download, Maximize2, Minus, Plus, Search, UserPlus, ChevronsDownUp, ChevronsUpDown, FileDown, ImagePlus, Trash2, Crop } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { Badge, Confirm, Drawer, Empty, Field, Modal, PageHeader, StatusBadge, useToast } from '@/components/ui';
-import { api, fmtDateTime, loadPhotoForEdit, resizeImage, saveBlob, saveOriginalPhoto } from '@/lib/client';
+import { api, fmtDateTime, loadOriginalPhoto, loadPhotoForEdit, resizeImage, saveBlob, saveOriginalPhoto } from '@/lib/client';
 import { chainToRoot } from '@/lib/metrics';
 import { CARD_H, CARD_W, descendants, layoutTree, type OrgMode } from '@/lib/orgLayout';
 import type { Employee } from '@/lib/types';
@@ -211,7 +211,8 @@ export default function OrgPage() {
             <div className="space-y-1"><p className="text-lg font-semibold">{detail.name}</p><p className="text-sm text-slate-600">{detail.job_title}</p>
               {canUpload(detail) && <div className="flex flex-wrap gap-2 pt-1">
                 <button className="btn-secondary btn-sm" onClick={() => photoInput.current?.click()}><ImagePlus size={14} />{detail.photo_id ? 'Replace photo' : 'Add photo'}</button>
-                {detail.photo_id && <button className="btn-secondary btn-sm" onClick={async () => { try { setCropFor({ id: detail.id, file: await loadPhotoForEdit('employee', detail.id, detail.photo_id!), orig: false }); } catch (e: any) { toast(e.message, 'err'); } }}><Crop size={14} />Edit / crop</button>}
+                {detail.photo_id && <button className="btn-secondary btn-sm" onClick={async () => { try { const r = await loadPhotoForEdit('employee', detail.id, detail.photo_id!); setCropFor({ id: detail.id, file: r.file, orig: !r.fromOriginal }); } catch (e: any) { toast(e.message, 'err'); } }}><Crop size={14} />Edit / crop</button>}
+                {detail.photo_id && <button className="btn-secondary btn-sm" title="Put back the photo exactly as it was uploaded" onClick={async () => { try { const o = await loadOriginalPhoto('employee', detail.id); if (!o) { toast('No original is stored for this photo (it was uploaded before originals were kept). Upload it again to enable Reset.', 'err'); return; } if (!window.confirm('Reset the photo to the original upload (removes the crop)?')) return; await uploadPhotoBlob(detail.id, await resizeImage(o, 800), 'original.jpg'); toast('Photo reset to the original'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }}>Reset to original</button>}
                 {admin && detail.photo_id && <button className="btn-secondary btn-sm" aria-label="Remove photo" onClick={async () => { try { await api(`/api/employees/${detail.id}/photo`, { method: 'DELETE' }); toast('Photo removed'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }}><Trash2 size={14} /></button>}
                 <input ref={photoInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={async (ev) => { const f = ev.target.files?.[0]; ev.target.value = ''; if (f) setCropFor({ id: detail.id, file: f, orig: true }); }} />
               </div>}</div>

@@ -31,6 +31,8 @@ const patch = z.object({
   client: z.string().trim().max(200).nullable(),
   country: z.string().trim().max(80).nullable(),
   city: z.string().trim().max(80).nullable(),
+  forma_url: z.string().trim().max(500).refine((v) => v === '' || /^https?:\/\/[^\s]+$/i.test(v), 'The Forma URL must start with https://').nullable(),
+  forma_email: z.string().trim().max(200).refine((v) => v === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Enter a valid e-mail address').nullable(),
   revit_version: z.enum(['2020', '2021', '2022', '2023', '2024', '2025', '2026', '2027']).nullable(),
   built_up_area: z.number().nonnegative().nullable(),
   typicality: z.string().trim().max(80).nullable(),

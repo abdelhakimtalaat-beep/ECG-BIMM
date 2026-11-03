@@ -157,3 +157,7 @@ Run `db/migrations/024_meetings.sql` in Supabase BEFORE deploying. No new enviro
 
 ## Update: project assignment e-mails
 When a project is created with a BIM Manager / BIM Coordinator, or when a BIM Manager / Coordinator is assigned or changed on an existing project, that person receives an e-mail (project, client, location, role, team, link). It uses the same Gmail settings as the task e-mails (`SMTP_USER`, `SMTP_PASS`, optional `SMTP_FROM_NAME`). Optional: set `APP_URL` in Vercel (e.g. https://your-app.vercel.app) so the e-mail contains a link to the portal; without it the link is omitted. No SQL. The person who makes the change is not e-mailed about himself, and a failed e-mail never blocks the change.
+
+## Update: Autodesk Forma fields and photo originals
+Run `db/migrations/025_forma.sql` in Supabase BEFORE deploying (adds `forma_url` and `forma_email` to projects). In a project's window the Administrator and the project's BIM Manager edit **Autodesk Forma URL** (must start with https://) and **Autodesk Forma e-mail address**; saved values get "Open" / "E-mail" buttons.
+Photos: the un-cropped original is kept for every project and employee photo uploaded from now on ("Edit / crop" re-crops it, "Reset to original" restores it). Project cards on the All Projects page use a 2:1 photo frame, selectable as "Projects card (2:1)" in the crop window.

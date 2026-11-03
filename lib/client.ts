@@ -42,9 +42,13 @@ export async function saveOriginalPhoto(kind: 'employee' | 'project', id: string
   const b = await resizeImage(f, 2000); await api(`/api/photo-original?kind=${kind}&id=${id}`, { method: 'PUT', raw: b, headers: { 'Content-Type': 'image/jpeg' } });
 }
 /** The photo to edit: the saved original when there is one, otherwise the current (already cropped) photo. */
-export async function loadPhotoForEdit(kind: 'employee' | 'project', id: string, photoId: string): Promise<File> {
-  let r = await fetch(`/api/photo-original?kind=${kind}&id=${id}`, { cache: 'no-store' }); if (!r.ok) r = await fetch(`/api/files/${photoId}`);
-  if (!r.ok) throw new Error('Could not load the photo'); const b = await r.blob(); return new File([b], 'photo.jpg', { type: b.type || 'image/jpeg' });
+export async function loadPhotoForEdit(kind: 'employee' | 'project', id: string, photoId: string): Promise<{ file: File; fromOriginal: boolean }> {
+  let fromOriginal = true; let r = await fetch(`/api/photo-original?kind=${kind}&id=${id}`, { cache: 'no-store' }); if (!r.ok) { fromOriginal = false; r = await fetch(`/api/files/${photoId}`); }
+  if (!r.ok) throw new Error('Could not load the photo'); const b = await r.blob(); return { file: new File([b], 'photo.jpg', { type: b.type || 'image/jpeg' }), fromOriginal };
+}
+/** The saved un-cropped original, or null when none was kept (photos uploaded before originals were saved). */
+export async function loadOriginalPhoto(kind: 'employee' | 'project', id: string): Promise<File | null> {
+  const r = await fetch(`/api/photo-original?kind=${kind}&id=${id}`, { cache: 'no-store' }); if (!r.ok) return null; const b = await r.blob(); return new File([b], 'photo.jpg', { type: b.type || 'image/jpeg' });
 }
 // Shrinks a chosen photo in the browser (max side 480 px, JPEG) so profile pictures stay small in the database.
 export async function resizeImage(file: File, max = 480): Promise<Blob> {
