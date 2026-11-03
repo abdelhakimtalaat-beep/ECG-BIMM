@@ -6,6 +6,7 @@ import { useApp } from '@/components/store';
 import { ProcessDiagram } from '@/components/ProcessDiagram';
 import { Confirm, Empty, Field, Modal, PageHeader, Spinner, StatusBadge, useToast } from '@/components/ui';
 import { api, fmtDateTime } from '@/lib/client';
+import { STATUSES } from '@/lib/types';
 import { canEditProject } from '@/lib/can';
 import { NODES, PROCESS_COLORS, STARTED, alarmsOf, unmetPrereqs, PROCESS_COLOR_NAMES, PROCESS_STATUSES, laneOf, nodeById, progressOf, type NodeState, type ProcessStatus, type StateMap } from '@/lib/processMap';
 
@@ -21,12 +22,15 @@ export default function ProcessMapPage() {
   const { me, data } = useApp(); const toast = useToast();
   const [pid, setPid] = useState<string | null>(null);
   const [sum, setSum] = useState<Summary[] | null>(null); const [perB, setPerB] = useState(NODES.length);
-  const [q, setQ] = useState(''); const [mine, setMine] = useState(false);
+  const [q, setQ] = useState(''); const [mine, setMine] = useState(false); const [mgr, setMgr] = useState(''); const [stat, setStat] = useState('');
   const loadSum = useCallback(async () => { try { const r = await api<{ nodes_per_building: number; projects: Summary[] }>('/api/process/summary'); setSum(r.projects); setPerB(r.nodes_per_building); } catch (e: any) { toast(e.message, 'err'); } }, [toast]);
   useEffect(() => { loadSum(); }, [loadSum]);
   const sumBy = useMemo(() => new Map((sum ?? []).map((s) => [s.project_id, s])), [sum]);
   const myIds = useMemo(() => new Set(data.assignments.filter((a) => a.employee_id === me.employee_id && (a.role === 'manager' || a.role === 'coordinator')).map((a) => a.project_id)), [data.assignments, me.employee_id]);
-  const list = useMemo(() => { const t = q.trim().toLowerCase(); return data.projects.filter((p) => (!mine || myIds.has(p.id)) && (!t || p.name.toLowerCase().includes(t) || (p.project_no ?? '').toLowerCase().includes(t))).sort((a, b) => (sumBy.get(b.id)?.buildings ?? 0) - (sumBy.get(a.id)?.buildings ?? 0) || (a.project_no ?? '').localeCompare(b.project_no ?? '')); }, [data.projects, q, mine, myIds, sumBy]);
+  const mgrsOf = useMemo(() => { const m = new Map<string, string[]>(); for (const a of data.assignments) if (a.role === 'manager') (m.get(a.project_id) ?? m.set(a.project_id, []).get(a.project_id)!).push(a.employee_id); return m; }, [data.assignments]);
+  const mgrOptions = useMemo(() => { const ids = new Set([...mgrsOf.values()].flat()); return data.employees.filter((e) => ids.has(e.id)).sort((a, b) => a.name.localeCompare(b.name)); }, [mgrsOf, data.employees]);
+  const empName = useMemo(() => new Map(data.employees.map((e) => [e.id, e.name])), [data.employees]);
+  const list = useMemo(() => { const t = q.trim().toLowerCase(); return data.projects.filter((p) => (!mine || myIds.has(p.id)) && (!stat || p.status === stat) && (!mgr || (mgr === '__none' ? !(mgrsOf.get(p.id)?.length) : !!mgrsOf.get(p.id)?.includes(mgr))) && (!t || p.name.toLowerCase().includes(t) || (p.project_no ?? '').toLowerCase().includes(t))).sort((a, b) => (sumBy.get(b.id)?.buildings ?? 0) - (sumBy.get(a.id)?.buildings ?? 0) || (a.project_no ?? '').localeCompare(b.project_no ?? '')); }, [data.projects, q, mine, myIds, sumBy, mgr, stat, mgrsOf]);
 
   if (pid) return <Dashboard projectId={pid} onBack={() => { setPid(null); loadSum(); }} />;
   return (
@@ -34,14 +38,17 @@ export default function ProcessMapPage() {
       <PageHeader title="BIM Process Map" subtitle="A Design Stage BIM Workflow dashboard exists for every project. Open a project to follow the progress of each of its buildings." />
       <div className="card flex flex-wrap items-end gap-3 p-3">
         <Field label="Search"><div className="relative"><Search size={14} className="absolute left-2.5 top-3 text-slate-400" /><input className="input w-72 pl-8" placeholder="Project name or number…" value={q} onChange={(e) => setQ(e.target.value)} /></div></Field>
+        <Field label="BIM Manager"><select className="input w-56" value={mgr} onChange={(e) => setMgr(e.target.value)}><option value="">All BIM Managers</option>{mgrOptions.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}<option value="__none">(No BIM Manager assigned)</option></select></Field>
+        <Field label="Status"><select className="input w-44" value={stat} onChange={(e) => setStat(e.target.value)}><option value="">All statuses</option>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></Field>
+        {(mgr || stat || q || mine) && <button className="btn-ghost pb-2 text-sm" onClick={() => { setMgr(''); setStat(''); setQ(''); setMine(false); }}>Clear filters</button>}
         {me.employee_id && <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={mine} onChange={(e) => setMine(e.target.checked)} />My projects only</label>}
-        <div className="ml-auto pb-2"><Legend /></div>
+        <div className="ml-auto pb-2 text-xs text-slate-500">{list.length} of {data.projects.length} projects</div>
       </div>
       {!sum ? <Spinner /> : !list.length ? <Empty title="No projects match" /> : (
-        <div className="card max-h-[calc(100vh-17rem)] overflow-auto"><table className="w-full text-left"><thead><tr>{['Project No.', 'Project name', 'Status', 'Buildings on the map', 'Progress', 'In progress', 'On hold'].map((h) => <th key={h} className="th sticky top-0 z-10">{h}</th>)}</tr></thead><tbody>{list.map((p) => {
+        <div className="card max-h-[calc(100vh-17rem)] overflow-auto"><table className="w-full text-left"><thead><tr>{['Project No.', 'Project name', 'BIM Manager', 'Status', 'Buildings on the map', 'Progress', 'In progress', 'On hold'].map((h) => <th key={h} className="th sticky top-0 z-10">{h}</th>)}</tr></thead><tbody>{list.map((p) => {
           const s = sumBy.get(p.id); const tot = (s?.buildings ?? 0) * perB; const pct = tot ? Math.round((s!.done / tot) * 100) : 0;
           return (<tr key={p.id} className="cursor-pointer border-t border-slate-100 hover:bg-brand-50" onClick={() => setPid(p.id)} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setPid(p.id)}>
-            <td className="td whitespace-nowrap">{p.project_no ?? '—'}</td><td className="td min-w-[16rem] font-medium text-brand-900">{p.name}</td><td className="td"><StatusBadge status={p.status} /></td>
+            <td className="td whitespace-nowrap">{p.project_no ?? '—'}</td><td className="td min-w-[16rem] font-medium text-brand-900">{p.name}</td><td className="td whitespace-nowrap text-xs">{(mgrsOf.get(p.id) ?? []).map((i) => empName.get(i)).filter(Boolean).join(', ') || '—'}</td><td className="td"><StatusBadge status={p.status} /></td>
             <td className="td text-center">{s?.buildings ?? 0}</td><td className="td"><span className="flex items-center gap-2"><Bar pct={pct} /><span className="text-xs">{tot ? `${pct}%` : '—'}</span></span></td>
             <td className="td text-center">{s?.doing || '—'}</td><td className="td text-center">{s?.hold || '—'}</td></tr>); })}</tbody></table></div>)}
     </div>

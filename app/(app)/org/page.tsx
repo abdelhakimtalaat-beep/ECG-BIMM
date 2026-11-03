@@ -1,10 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, Download, Maximize2, Minus, Plus, Search, UserPlus, ChevronsDownUp, ChevronsUpDown, FileDown, ImagePlus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, Maximize2, Minus, Plus, Search, UserPlus, ChevronsDownUp, ChevronsUpDown, FileDown, ImagePlus, Trash2, Crop } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { Badge, Confirm, Drawer, Empty, Field, Modal, PageHeader, StatusBadge, useToast } from '@/components/ui';
-import { api, fmtDateTime, resizeImage, saveBlob } from '@/lib/client';
+import { api, fmtDateTime, loadPhotoForEdit, resizeImage, saveBlob, saveOriginalPhoto } from '@/lib/client';
 import { chainToRoot } from '@/lib/metrics';
 import { CARD_H, CARD_W, descendants, layoutTree, type OrgMode } from '@/lib/orgLayout';
 import type { Employee } from '@/lib/types';
@@ -60,7 +60,7 @@ export default function OrgPage() {
   const [colorBy, setColorBy] = useState<'location' | 'role'>('location');
   const [view, setView] = useState({ x: 20, y: 20, k: 0.9 });
   const photoInput = useRef<HTMLInputElement>(null);
-  const [cropFor, setCropFor] = useState<{ id: string; file: File } | null>(null);
+  const [cropFor, setCropFor] = useState<{ id: string; file: File; orig: boolean } | null>(null);
   const cvInput = useRef<HTMLInputElement>(null);
   const canOpenCv = (e: { id: string }) => me.role === 'admin' || me.role === 'bim_manager' || me.employee_id === e.id; // own CV always
   const canUpload = (e: { id: string }) => admin || me.employee_id === e.id; // each engineer: own photo and CV
@@ -211,8 +211,9 @@ export default function OrgPage() {
             <div className="space-y-1"><p className="text-lg font-semibold">{detail.name}</p><p className="text-sm text-slate-600">{detail.job_title}</p>
               {canUpload(detail) && <div className="flex flex-wrap gap-2 pt-1">
                 <button className="btn-secondary btn-sm" onClick={() => photoInput.current?.click()}><ImagePlus size={14} />{detail.photo_id ? 'Replace photo' : 'Add photo'}</button>
+                {detail.photo_id && <button className="btn-secondary btn-sm" onClick={async () => { try { setCropFor({ id: detail.id, file: await loadPhotoForEdit('employee', detail.id, detail.photo_id!), orig: false }); } catch (e: any) { toast(e.message, 'err'); } }}><Crop size={14} />Edit / crop</button>}
                 {admin && detail.photo_id && <button className="btn-secondary btn-sm" aria-label="Remove photo" onClick={async () => { try { await api(`/api/employees/${detail.id}/photo`, { method: 'DELETE' }); toast('Photo removed'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }}><Trash2 size={14} /></button>}
-                <input ref={photoInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={async (ev) => { const f = ev.target.files?.[0]; ev.target.value = ''; if (f) setCropFor({ id: detail.id, file: f }); }} />
+                <input ref={photoInput} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={async (ev) => { const f = ev.target.files?.[0]; ev.target.value = ''; if (f) setCropFor({ id: detail.id, file: f, orig: true }); }} />
               </div>}</div>
           </div>
           <div className="rounded-lg border border-slate-200 p-3 text-sm">
@@ -246,7 +247,7 @@ export default function OrgPage() {
       <Confirm open={!!confirmDeact} onClose={() => setConfirmDeact(null)} danger title="Deactivate employee" confirmLabel="Deactivate"
         message={<>Deactivate <b>{confirmDeact?.name}</b>? They stay in the chart (greyed out) and keep their history. {confirmDeact && data.assignments.some((a) => a.employee_id === confirmDeact.id) ? 'They still have project assignments — reassign those on the Teams page.' : ''}</>}
         onConfirm={async () => { try { await api(`/api/employees/${confirmDeact!.id}`, { method: 'PATCH', body: { active: false } }); toast('Deactivated'); setConfirmDeact(null); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
-      {cropFor && <ImageCropper file={cropFor.file} title="Crop photo" outWidth={600} aspects={[{ label: 'Square', value: 1 }]} onCancel={() => setCropFor(null)} onDone={async (b, n) => { const id = cropFor.id; setCropFor(null); try { await uploadPhotoBlob(id, b, n); toast('Photo saved'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />}
+      {cropFor && <ImageCropper file={cropFor.file} title="Crop photo" outWidth={600} aspects={[{ label: 'Square', value: 1 }]} onCancel={() => setCropFor(null)} onDone={async (b, n) => { const { id, file, orig } = cropFor; setCropFor(null); try { await uploadPhotoBlob(id, b, n); if (orig) await saveOriginalPhoto('employee', id, file).catch(() => {}); toast('Photo saved'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />}
       {editing && <EmployeeForm init={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />}
     </>
   );

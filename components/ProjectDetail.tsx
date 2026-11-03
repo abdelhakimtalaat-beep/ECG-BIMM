@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Building2, FileDown, ImagePlus, Trash2 } from 'lucide-react';
-import { api, fmtDate, fmtDateTime, fmtNum } from '@/lib/client';
+import { Building2, Crop, FileDown, ImagePlus, Trash2 } from 'lucide-react';
+import { api, fmtDate, fmtDateTime, fmtNum, loadPhotoForEdit, saveOriginalPhoto } from '@/lib/client';
 import { canEditProject } from '@/lib/can';
 import { upcomingReels } from '@/lib/metrics';
 import { COUNTRIES } from '@/lib/countries';
@@ -13,9 +13,9 @@ import { AssignModal } from './AssignModal';
 import { ProjectContents } from './ProjectContents';
 import { Badge, Confirm, Drawer, Field, StatusBadge, useToast } from './ui';
 
-export function ProjectPhoto({ project, className = '' }: { project: Project; className?: string }) {
-  if (project.photo_id) return <img src={`/api/files/${project.photo_id}`} alt={`Photograph of ${project.name}`} className={`object-cover ${className}`} loading="lazy" />;
-  return <div className={`flex flex-col items-center justify-center bg-gradient-to-br from-brand-50 to-slate-100 text-brand-300 ${className}`} role="img" aria-label="No project photo uploaded"><Building2 size={36} /><span className="mt-1 text-[11px] text-slate-400">No photo uploaded</span></div>;
+export function ProjectPhoto({ project, className = '', fit = false }: { project: Project; className?: string; fit?: boolean }) {
+  if (project.photo_id) return <img src={`/api/files/${project.photo_id}`} alt={`Photograph of ${project.name}`} className={`${fit ? 'bg-slate-100 object-contain' : 'object-cover'} ${className}`} loading="lazy" />;
+  return <div className={`flex flex-col items-center justify-center bg-gradient-to-br from-brand-50 to-slate-100 text-brand-300 ${fit ? 'h-48' : ''} ${className}`} role="img" aria-label="No project photo uploaded"><Building2 size={36} /><span className="mt-1 text-[11px] text-slate-400">No photo uploaded</span></div>;
 }
 
 export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () => void }) {
@@ -24,7 +24,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const [extra, setExtra] = useState<{ history: any[]; notes: any[] } | null>(null);
   const [edit, setEdit] = useState<Record<string, any> | null>(null);
   const [note, setNote] = useState(''); const [busy, setBusy] = useState(false);
-  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null); const [cropOrig, setCropOrig] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false); const file = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => { if (id) { try { setExtra(await api(`/api/projects/${id}`)); } catch {} } }, [id]);
@@ -76,9 +76,10 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   return (
     <><Drawer open onClose={onClose} title={`${p.project_no ? p.project_no + ' · ' : ''}${p.name}`} width="max-w-2xl">
       <div className="space-y-5">
-        <div className="relative overflow-hidden rounded-xl border border-slate-200"><ProjectPhoto project={p} className="h-48 w-full" />
-          {(scope !== 'none') && <div className="absolute bottom-2 right-2 flex gap-1"><input ref={file} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) setCropFile(f); }} />
+        <div className="relative overflow-hidden rounded-xl border border-slate-200"><ProjectPhoto project={p} className="max-h-96 w-full" fit />
+          {(scope !== 'none') && <div className="absolute bottom-2 right-2 flex gap-1"><input ref={file} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { setCropOrig(true); setCropFile(f); } }} />
             <button className="btn-secondary btn-sm" onClick={() => file.current?.click()}><ImagePlus size={14} />{p.photo_id ? 'Replace' : 'Upload'} photo</button>
+            {p.photo_id && <button className="btn-secondary btn-sm" onClick={async () => { try { const f = await loadPhotoForEdit('project', p.id, p.photo_id!); setCropOrig(false); setCropFile(f); } catch (e: any) { toast(e.message, 'err'); } }}><Crop size={14} />Edit / crop</button>}
             {p.photo_id && <button className="btn-secondary btn-sm" aria-label="Remove photo" onClick={async () => { await api(`/api/projects/${p.id}/photo`, { method: 'DELETE' }); refresh(); }}><Trash2 size={14} /></button>}</div>}</div>
 
         <div className="flex flex-wrap items-center gap-2"><StatusBadge status={p.status} />{p.status_source === 'manual' && <Badge tone="blue" title="Set by a user rather than derived from the workbook status mapping">manual</Badge>}
@@ -142,7 +143,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
         onConfirm={async () => { try { await api(`/api/projects/${p.id}`, { method: 'DELETE' }); toast('Deleted'); setConfirmDel(false); onClose(); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
     </Drawer>
       {assigning && <AssignModal projectId={p.id} onClose={() => { setAssigning(false); load(); }} />}
-    {cropFile && <ImageCropper file={cropFile} title="Crop project photo" outWidth={1200} aspects={[{ label: '16:9', value: 16 / 9 }, { label: '4:3', value: 4 / 3 }, { label: 'Square', value: 1 }]} onCancel={() => setCropFile(null)} onDone={async (b, n) => { setCropFile(null); await upload(b, n); }} />}
+    {cropFile && <ImageCropper file={cropFile} title="Crop project photo" outWidth={1200} aspects={[{ label: 'Original ratio', value: 0 }, { label: '16:9', value: 16 / 9 }, { label: '4:3', value: 4 / 3 }, { label: 'Square', value: 1 }]} onCancel={() => setCropFile(null)} onDone={async (b, n) => { const f = cropFile; setCropFile(null); await upload(b, n); if (cropOrig && f) await saveOriginalPhoto('project', p.id, f).catch(() => {}); }} />}
     </>
   );
 }

@@ -6,7 +6,7 @@ import { sniffImage } from '@/lib/files';
 // Public so the login page can show it. Serves the logo uploaded by an administrator, otherwise the supplied /public/ecg-logo.png.
 export async function GET(req: Request) {
   const a = await one<any>(`select mime,data from attachments where kind='logo' order by created_at desc limit 1`).catch(() => null);
-  if (!a) return Response.redirect(new URL('/ecg-logo.png', req.url), 302);
+  if (!a) return Response.redirect(new URL('/ecg-logo.png?v=2', req.url), 302);
   return new Response(new Uint8Array(a.data), { headers: { 'Content-Type': a.mime, 'Cache-Control': 'public, max-age=300', 'X-Content-Type-Options': 'nosniff' } });
 }
 export async function POST(req: Request) {

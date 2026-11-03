@@ -16,7 +16,7 @@ export function ImageCropper({ file, aspects, outWidth = 800, title = 'Crop phot
   const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
   const img = useRef<HTMLImageElement>(null);
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
-  const VW = 300, VH = Math.round(VW / aspect);
+  const VW = 300; const ratio = aspect > 0 ? aspect : nat ? nat.w / nat.h : 1; const VH = Math.max(120, Math.min(420, Math.round(VW / ratio))); const frame = VW / VH; // frame ratio: the saved image has exactly this ratio, so nothing is stretched
 
   useEffect(() => { if (nat) setSt(centered(nat.w, nat.h, VW, VH, 1)); }, [nat, VH]);
   const s = nat ? baseScale(nat.w, nat.h, VW, VH) * st.zoom : 1;
@@ -31,7 +31,7 @@ export function ImageCropper({ file, aspects, outWidth = 800, title = 'Crop phot
     if (!nat || !img.current) return; setBusy(true); setErr('');
     try {
       const r = sourceRect(nat.w, nat.h, VW, VH, st);
-      const c = document.createElement('canvas'); c.width = outWidth; c.height = Math.round(outWidth / aspect);
+      const c = document.createElement('canvas'); c.width = outWidth; c.height = Math.round(outWidth / frame);
       const g = c.getContext('2d')!; g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
       g.drawImage(img.current, r.sx, r.sy, r.sw, r.sh, 0, 0, c.width, c.height);
       const blob = await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('Could not process the image'))), 'image/jpeg', 0.88));

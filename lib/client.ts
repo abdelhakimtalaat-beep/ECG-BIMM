@@ -37,6 +37,15 @@ export const STATUS_BG: Record<Status, string> = {
 export const STATUS_DOT: Record<Status, string> = { 'Not Started': '#9AA5B1', 'In Progress': '#1F6FC9', 'On Hold': '#E8A317', Closed: '#2E9E5B' };
 export function roleLabel(r: string) { return ({ admin: 'Department Manager / Administrator', bim_manager: 'BIM Manager', bim_coordinator: 'BIM Coordinator', viewer: 'Project Manager / Viewer', rd_engineer: 'R&D BIM Engineer', bim_specialist: 'BIM Specialist' } as any)[r] || r; }
 
+/** Keeps the un-cropped original (max side 2000 px) so the photo can be re-cropped later. */
+export async function saveOriginalPhoto(kind: 'employee' | 'project', id: string, f: File): Promise<void> {
+  const b = await resizeImage(f, 2000); await api(`/api/photo-original?kind=${kind}&id=${id}`, { method: 'PUT', raw: b, headers: { 'Content-Type': 'image/jpeg' } });
+}
+/** The photo to edit: the saved original when there is one, otherwise the current (already cropped) photo. */
+export async function loadPhotoForEdit(kind: 'employee' | 'project', id: string, photoId: string): Promise<File> {
+  let r = await fetch(`/api/photo-original?kind=${kind}&id=${id}`, { cache: 'no-store' }); if (!r.ok) r = await fetch(`/api/files/${photoId}`);
+  if (!r.ok) throw new Error('Could not load the photo'); const b = await r.blob(); return new File([b], 'photo.jpg', { type: b.type || 'image/jpeg' });
+}
 // Shrinks a chosen photo in the browser (max side 480 px, JPEG) so profile pictures stay small in the database.
 export async function resizeImage(file: File, max = 480): Promise<Blob> {
   if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) throw new Error('Choose a PNG, JPEG or WebP image');

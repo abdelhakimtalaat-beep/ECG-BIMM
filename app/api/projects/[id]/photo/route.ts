@@ -33,6 +33,7 @@ export async function DELETE(_: Request, ctx: { params: Promise<{ id: string }> 
     await tx(async (c) => {
       const old = (await c.query('select photo_id from projects where id=$1 for update', [id])).rows[0];
       if (old?.photo_id) { await c.query('update projects set photo_id=null where id=$1', [id]); await c.query('delete from attachments where id=$1', [old.photo_id]); }
+      await c.query(`delete from attachments where kind='photo_original' and filename=$1`, [`project:${id}`]);
       await audit(c, me.email, 'photo', 'project', id, 'Removed project photo');
     });
     return ok();
