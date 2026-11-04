@@ -1,11 +1,12 @@
 'use client';
-import { useMemo, useState } from 'react';
-import { AlertTriangle, BellRing, ChevronLeft, ChevronRight, Download, FileDown, FileSpreadsheet, Plus } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, BellRing, ChevronLeft, ChevronRight, Download, FileDown, FileSpreadsheet, ImageIcon, Plus } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { FilterBar } from '@/components/FilterBar';
 import { ChartBox, Datum, HBar, VBar } from '@/components/charts';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, useToast } from '@/components/ui';
 import { api, download, fmtDate, fmtDateTime } from '@/lib/client';
+import { drawReelImage, REEL_IMG_H, REEL_IMG_W } from '@/lib/reelImage';
 import { canEditReels, canEditReel } from '@/lib/can';
 import { reelConflicts, reelStats, upcomingReels, incompleteReels, weekdayOf } from '@/lib/metrics';
 import { REEL_STATUSES, SOFTWARES, type Reel, type ReelStatus } from '@/lib/types';
@@ -24,7 +25,7 @@ export default function ReelsPage() {
   const [view, setView] = useState<'table' | 'calendar' | 'week' | 'month' | 'upcoming'>('table');
   const [cursor, setCursor] = useState(() => { const first = data.reels.find((r) => r.session_date >= today)?.session_date ?? data.reels[0]?.session_date ?? today; return first.slice(0, 7) + '-01'; });
   const [weekStart, setWeekStart] = useState(() => { const d = new Date(today + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return iso(d); });
-  const [edit, setEdit] = useState<Partial<Reel> | null>(null); const [del, setDel] = useState<Reel | null>(null);
+  const [edit, setEdit] = useState<Partial<Reel> | null>(null); const [del, setDel] = useState<Reel | null>(null); const [img, setImg] = useState<Reel | null>(null);
   const conflicts = useMemo(() => reelConflicts(data.reels), [data.reels]);
   const stats = useMemo(() => reelStats(reels), [reels]);
   const up = useMemo(() => upcomingReels(reels, today), [reels, today]);
@@ -67,7 +68,7 @@ export default function ReelsPage() {
           <td className="td font-medium">{r.presenter_name}{conflicts.has(r.id) && <span className="ml-1 cursor-help text-amber-600" title={conflicts.get(r.id)!.join('\n')}><AlertTriangle size={14} className="inline" /></span>}{!r.employee_id && <span title="Speaker is not in the org chart"> <Badge tone="amber">not in org chart</Badge></span>}</td>
           <td className="td">{isAdm ? <select className="input w-36" value={r.status} onChange={(e) => quick(r, { status: e.target.value as ReelStatus })} aria-label={`Status for ${r.presenter_name}`}>{REEL_STATUSES.map((s) => <option key={s}>{s}</option>)}</select> : <Badge tone={TONE[r.status]}>{r.status}</Badge>}</td>
           <td className="td text-xs">{r.link ? <a className="text-brand-600 underline" href={r.link} target="_blank" rel="noopener noreferrer">Open link</a> : <span className="text-slate-400">—</span>}</td>
-          <td className="td whitespace-nowrap">{ed(r) ? <><button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>Edit</button> {canDelete && <button className="btn-ghost btn-sm text-red-600" onClick={() => setDel(r)}>Delete</button>}</> : <button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>View</button>}</td></tr>))}</tbody></table></div>);
+          <td className="td whitespace-nowrap"><button className="btn-secondary btn-sm mr-1" title="Export announcement image" onClick={() => setImg(r)}><ImageIcon size={14} className="inline" /> Image</button>{ed(r) ? <><button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>Edit</button> {canDelete && <button className="btn-ghost btn-sm text-red-600" onClick={() => setDel(r)}>Delete</button>}</> : <button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>View</button>}</td></tr>))}</tbody></table></div>);
 
   return (
     <>
@@ -103,6 +104,7 @@ export default function ReelsPage() {
       </div>
 
       {edit && <ReelForm init={edit} admin={!edit.id ? admin : ed(edit as Reel)} isAdm={isAdm} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); refresh(); }} />}
+      {img && <ReelImageModal r={img} today={today} onClose={() => setImg(null)} />}
       <Confirm open={!!del} danger title="Delete session" confirmLabel="Delete" onClose={() => setDel(null)} message={<>Delete the session of <b>{del?.presenter_name}</b> on {del && fmtDate(del.session_date)}? To keep the history, mark it Cancelled instead.</>} onConfirm={async () => { try { await api(`/api/reels/${del!.id}`, { method: 'DELETE' }); toast('Deleted'); setDel(null); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
     </>
   );
@@ -138,6 +140,22 @@ function ReelForm({ init, admin, isAdm, onClose, onSaved }: { init: Partial<Reel
         <Field label="Meeting / recording link"><input className="input" disabled={d} placeholder="https://…" value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} /></Field>
         <Field label="Notes / outcome"><input className="input" disabled={d} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field>
       </div>
+    </Modal>
+  );
+}
+
+function ReelImageModal({ r, today, onClose }: { r: Reel; today: string; onClose: () => void }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const [time, setTime] = useState(() => { try { return localStorage.getItem('reelImgTime') || '10:00'; } catch { return '10:00'; } });
+  const to12 = (t: string) => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
+  const day = r.session_date === today ? 'Today' : new Date(r.session_date + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  useEffect(() => { if (ref.current) drawReelImage(ref.current, { topic: r.topic ?? '', speaker: r.presenter_name, day, time: to12(time || '10:00'), link: r.link }); }, [r, time, day]);
+  const save = () => ref.current?.toBlob((b) => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `BIM-Reel-${r.session_date}-${(r.presenter_name || 'speaker').replace(/[^\w]+/g, '-')}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); try { localStorage.setItem('reelImgTime', time); } catch {} }, 'image/png');
+  return (
+    <Modal open onClose={onClose} wide title="BIM Reel announcement image" footer={<><button className="btn-secondary" onClick={onClose}>Close</button><button className="btn-primary" onClick={save}><Download size={16} />Download PNG</button></>}>
+      <div className="mb-3 flex flex-wrap items-end gap-3"><Field label="Session time"><input type="time" className="input w-36" value={time} onChange={(e) => setTime(e.target.value)} /></Field>
+        <p className="text-xs text-slate-500">Topic, speaker and date come from the session; the Meeting Link box shows the session link when one is saved.</p></div>
+      <canvas ref={ref} className="w-full rounded border border-slate-200" style={{ aspectRatio: `${REEL_IMG_W}/${REEL_IMG_H}` }} />
     </Modal>
   );
 }
