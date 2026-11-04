@@ -7,7 +7,7 @@ import { FilterBar } from '@/components/FilterBar';
 import { ChartBox, Datum, HBar, VBar } from '@/components/charts';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, useToast } from '@/components/ui';
 import { api, download, fmtDate, fmtDateTime } from '@/lib/client';
-import { DEFAULT_MEETING_LINK, DEFAULT_REEL_TO, reelMailContent, toAddresses } from '@/lib/reelEml';
+import { DEFAULT_MEETING_LINK, DEFAULT_REEL_CC, DEFAULT_REEL_TO, reelMailContent, toAddresses } from '@/lib/reelEml';
 import { drawReelImage, REEL_IMG_H, REEL_IMG_W } from '@/lib/reelImage';
 import { canEditReels, canEditReel } from '@/lib/can';
 import { reelConflicts, reelStats, upcomingReels, incompleteReels, weekdayOf } from '@/lib/metrics';
@@ -150,21 +150,23 @@ function ReelImageModal({ r, today, onClose }: { r: Reel; today: string; onClose
   const ref = useRef<HTMLCanvasElement>(null); const toast = useToast();
   const ls = (k: string, d: string) => { try { return localStorage.getItem(k) || d; } catch { return d; } };
   const keep = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch {} };
-  const [time, setTime] = useState(() => ls('reelImgTime', '10:00')); const [link, setLink] = useState(() => ls('reelImgLink', DEFAULT_MEETING_LINK)); const [to, setTo] = useState(() => ls('reelImgTo', DEFAULT_REEL_TO));
+  const [time, setTime] = useState(() => ls('reelImgTime', '10:00')); const [link, setLink] = useState(() => ls('reelImgLink', DEFAULT_MEETING_LINK)); const [to, setTo] = useState(() => ls('reelImgTo', DEFAULT_REEL_TO)); const [cc, setCc] = useState(() => ls('reelImgCc', DEFAULT_REEL_CC));
   const to12 = (t: string) => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
   const day = r.session_date === today ? 'Today' : new Date(r.session_date + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
   const when = (r.session_date === today ? 'today' : new Date(r.session_date + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })) + ` at ${to12(time || '10:00')}`;
   const info = { topic: r.topic ?? '', speaker: r.presenter_name, day, time: to12(time || '10:00'), link: link.trim() || null };
   useEffect(() => { if (ref.current) drawReelImage(ref.current, info); }); // eslint-disable-line react-hooks/exhaustive-deps
-  const png = () => new Promise<Blob>((res, rej) => { const cv = document.createElement('canvas'); drawReelImage(cv, info, 1.5); cv.toBlob((b) => (b ? res(b) : rej(new Error('Could not draw the image'))), 'image/png'); });
-  const remember = () => { keep('reelImgTime', time); keep('reelImgLink', link); keep('reelImgTo', to); };
+  // 0.5 = half the pixel size, so the picture pastes into the e-mail at 50%
+  const png = () => new Promise<Blob>((res, rej) => { const cv = document.createElement('canvas'); drawReelImage(cv, info, 0.5); cv.toBlob((b) => (b ? res(b) : rej(new Error('Could not draw the image'))), 'image/png'); });
+  const remember = () => { keep('reelImgTime', time); keep('reelImgLink', link); keep('reelImgTo', to); keep('reelImgCc', cc); };
   const mail = () => reelMailContent({ topic: info.topic, when, link: info.link });
   // Opens Outlook (the default mail app) directly; the picture is put on the clipboard so it can be pasted into the body.
   const openOutlook = async () => {
     remember(); const c = mail(); let copied = false;
     try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': png() })]); copied = true; } catch {}
     const recipients = toAddresses(to).join(';');
-    window.location.href = `mailto:${recipients}?subject=${encodeURIComponent(c.subject)}&body=${encodeURIComponent(c.text)}`;
+    const ccs = toAddresses(cc).join(';');
+    window.location.href = `mailto:${recipients}?${ccs ? `cc=${encodeURIComponent(ccs)}&` : ''}subject=${encodeURIComponent(c.subject)}&body=${encodeURIComponent(c.text)}`;
     toast(copied ? 'Outlook is opening — click in the message body and press Ctrl+V to paste the picture' : 'Outlook is opening — the picture could not be copied; use “Formatted file” instead', copied ? undefined : 'err');
   };
   const copyImage = async () => {
@@ -176,6 +178,7 @@ function ReelImageModal({ r, today, onClose }: { r: Reel; today: string; onClose
       <div className="mb-3 grid gap-3 sm:grid-cols-[9rem_1fr]"><Field label="Session time"><input type="time" className="input" value={time} onChange={(e) => setTime(e.target.value)} /></Field>
         <Field label="Meeting link"><input className="input" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://teams.microsoft.com/…" /></Field></div>
       <Field label="To (group e-mails, separated by ;)"><input className="input mb-3" value={to} onChange={(e) => setTo(e.target.value)} placeholder="Name <name@company.com>; …" /></Field>
+      <Field label="CC (separated by ;)"><input className="input mb-3" value={cc} onChange={(e) => setCc(e.target.value)} /></Field>
       <p className="mb-3 text-xs text-slate-500"><b>Email</b> opens a new message in Outlook with the recipients, subject (BIM Reel | topic) and text, and copies the picture — click in the message body and press <b>Ctrl+V</b>. <b>Copy image</b> only copies the picture.</p>
       <canvas ref={ref} className="w-full rounded border border-slate-200" style={{ aspectRatio: `${REEL_IMG_W}/${REEL_IMG_H}` }} />
     </Modal>
