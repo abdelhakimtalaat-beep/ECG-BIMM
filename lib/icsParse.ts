@@ -120,6 +120,7 @@ export function parseIcs(text: string, from: number, to: number): IcsEvent[] {
   const emit = (r: Raw, start: number, end: number, allDay: boolean) => {
     if (end <= from || start >= to) return;
     if ((get(r, 'STATUS')?.value ?? '').toUpperCase() === 'CANCELLED') return;
+    if (/^\s*(canceled|cancelled)\s*:/i.test(unesc(get(r, 'SUMMARY')?.value ?? ''))) return; // Outlook marks cancelled meetings in the title
     const desc = unesc(get(r, 'DESCRIPTION')?.value ?? ''), loc = unesc(get(r, 'LOCATION')?.value ?? '');
     const teams = get(r, 'X-MICROSOFT-SKYPETEAMSMEETINGURL')?.value || get(r, 'X-MICROSOFT-ONLINEMEETINGEXTERNALLINK')?.value || TEAMS_RE.exec(desc)?.[0] || TEAMS_RE.exec(loc)?.[0] || null;
     const org = get(r, 'ORGANIZER'); const busy = (get(r, 'X-MICROSOFT-CDO-BUSYSTATUS')?.value ?? '').toUpperCase() !== 'FREE' && (get(r, 'TRANSP')?.value ?? '').toUpperCase() !== 'TRANSPARENT';

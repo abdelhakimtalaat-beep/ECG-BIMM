@@ -5,7 +5,7 @@ import { useApp } from '@/components/store';
 import { Confirm, Empty, Field, PageHeader, Spinner, useToast } from '@/components/ui';
 import { api } from '@/lib/client';
 
-interface Ev { id: string; employee_id: string; uid: string; start_at: string; end_at: string; all_day: boolean; title: string; location: string | null; organizer: string | null; teams_url: string | null; is_private: boolean; busy: boolean; masked: boolean }
+interface Ev { id: string; employee_id: string; uid: string; start_at: string; end_at: string; all_day: boolean; title: string; location: string | null; organizer: string | null; teams_url: string | null; is_private: boolean; busy: boolean; masked: boolean; kind?: 'meeting' | 'task' }
 interface Feed { employee_id: string; share: 'everyone' | 'managers'; last_synced_at: string | null; last_error: string | null; event_count: number }
 type Range = 'today' | 'week' | '30' | 'custom';
 const dayStart = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -71,7 +71,11 @@ export default function MeetingsPage() {
         : <div className="space-y-4">{groups.map((g) => (
           <section key={ymd(g.date)} aria-label={dayLabel(g.date)}>
             <h2 className={`mb-1 text-sm font-semibold ${ymd(g.date) === ymd(new Date()) ? 'text-brand-700' : 'text-slate-700'}`}>{dayLabel(g.date)}{ymd(g.date) === ymd(new Date()) && <span className="ml-2 rounded-full bg-brand-600 px-2 py-0.5 text-xs font-normal text-white">Today</span>}</h2>
-            <ul className="card divide-y divide-slate-100">{g.items.map(({ ev, people }) => (
+{(['meeting', 'task'] as const).map((k) => { const items = g.items.filter((m) => (m.ev.kind ?? 'meeting') === k); if (!items.length) return null; const meet = k === 'meeting';
+              return (
+                <div key={k} className={`mb-2 overflow-hidden rounded-xl border ${meet ? 'border-sky-200' : 'border-amber-200'}`}>
+                  <p className={`px-3 py-1 text-xs font-semibold uppercase tracking-wide ${meet ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'}`} title={meet ? 'Calendar entries with attendees or a Teams link' : 'Calendar entries without attendees or a Teams link (personal tasks and blocks)'}>{meet ? 'Meetings' : 'Tasks'} · {items.length}</p>
+                  <ul className={`divide-y ${meet ? 'divide-sky-100 bg-sky-50/70' : 'divide-amber-100 bg-amber-50/70'}`}>{items.map(({ ev, people }) => (
               <li key={ev.id} className="flex flex-wrap items-start gap-x-4 gap-y-1 px-3 py-2.5 text-sm">
                 <div className="w-32 shrink-0 font-medium text-slate-700">{ev.all_day ? 'All day' : `${tm(ev.start_at)} – ${tm(ev.end_at)}`}</div>
                 <div className="min-w-0 flex-1">
@@ -81,6 +85,7 @@ export default function MeetingsPage() {
                 </div>
                 {ev.teams_url && <a className="btn-secondary btn-sm" href={ev.teams_url} target="_blank" rel="noopener noreferrer"><ExternalLink size={13} />Join</a>}
               </li>))}</ul>
+                </div>); })}
           </section>))}</div>}
 
       {privileged && <details className="card p-3 text-sm"><summary className="cursor-pointer font-medium text-slate-700">Calendar connections ({connected.length} of {data.employees.filter((e) => e.active).length} active engineers connected)</summary>

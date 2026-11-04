@@ -35,6 +35,9 @@ export default function TasksPage() {
   const [teamForm, setTeamForm] = useState<Partial<Team> | null>(null); const [delTeam, setDelTeam] = useState<Team | null>(null);
   const [delTask, setDelTask] = useState<Task | null>(null);
   const [delArea, setDelArea] = useState<string | null>(null);
+  const [wrapDone, setWrapDone] = useState(() => { try { return localStorage.getItem('tasksWrapDone') === '1'; } catch { return false; } });
+  const [showDone, setShowDone] = useState<Set<string>>(new Set()); // project areas whose completed tasks the user has opened again
+  const setWrap = (v: boolean) => { setWrapDone(v); setShowDone(new Set()); try { localStorage.setItem('tasksWrapDone', v ? '1' : '0'); } catch {} };
 
   const overdue = tasks.filter((t) => isOverdue(t, today));
   const myOverdue = overdue.filter((t) => t.assignee_id && t.assignee_id === me.employee_id).length;
@@ -54,6 +57,7 @@ export default function TasksPage() {
         <Field label="BIM Manager / Team"><select className="input w-56" value={who} onChange={(e) => setWho(e.target.value)}><option value="all">All BIM Managers and teams</option>{groups.map((m) => <option key={m.id} value={m.id}>{m.kind === 'team' ? `Team: ${m.name}` : m.name}</option>)}</select></Field>
         <Field label="Status"><select className="input w-40" value={status} onChange={(e) => setStatus(e.target.value)}><option value="all">All statuses</option>{TASK_STATUSES.map((s) => <option key={s}>{s}</option>)}<option value="overdue">⚠ Overdue only</option></select></Field>
         <Field label="Assignee"><select className="input w-48" value={assignee} onChange={(e) => setAssignee(e.target.value)}><option value="all">Everyone</option><option value="none">Unassigned</option>{data.employees.filter((e) => e.active).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></Field>
+        <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={wrapDone} onChange={(e) => setWrap(e.target.checked)} />Wrap completed tasks</label>
         {me.employee_id && <button className="btn-secondary" onClick={() => setAssignee(assignee === me.employee_id ? 'all' : me.employee_id!)}>{assignee === me.employee_id ? 'Show everyone' : 'My tasks'}</button>}
       </div>
 
@@ -79,6 +83,7 @@ export default function TasksPage() {
               {!myAreas.length && <p className="text-sm text-slate-500">No projects yet.{manage ? (m.kind === 'team' ? ' Add a project to start tracking tasks.' : ' Add one of your projects to start tracking tasks.') : ''}</p>}
               {myAreas.map((a) => {
                 const p = pById.get(a.project_id); const rows = tasks.filter((t) => t.area_id === a.id && visible(t));
+                const wrapped = wrapDone && status !== 'Completed' && !showDone.has(a.id); const doneRows = rows.filter((t) => t.status === 'Completed'); const shownRows = wrapped ? rows.filter((t) => t.status !== 'Completed') : rows;
                 return (
                   <div key={a.id} className="rounded-lg border border-slate-200">
                     <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
@@ -90,7 +95,7 @@ export default function TasksPage() {
                     </div>
                     {!rows.length ? <p className="p-3 text-sm text-slate-500">No tasks{status !== 'all' || assignee !== 'all' ? ' match the filters' : ' yet'}.</p> : (
                       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{['Task', 'Building', 'Assignee', 'Start date', 'Due date', 'Status', 'Comment', ''].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
-                        <tbody>{rows.map((t) => { const late = isOverdue(t, today); return (
+                        <tbody>{shownRows.map((t) => { const late = isOverdue(t, today); return (
                           <tr key={t.id} className={`border-t border-slate-100 ${late ? 'bg-red-50/60' : ''}`}>
                             <td className="td min-w-[14rem] font-medium">{t.title}</td>
                             <td className="td whitespace-nowrap">{t.building_no ?? '—'}</td>
@@ -100,7 +105,8 @@ export default function TasksPage() {
                             <td className="td">{editor ? <select className="input w-36" value={t.status} aria-label={`Status of ${t.title}`} onChange={(e) => e.target.value === 'Pending' && commentMissing('Pending', t.comment) ? setTaskForm({ area_id: a.id, task: { ...t, status: 'Pending' } }) : call(() => api(`/api/tasks/${t.id}`, { method: 'PATCH', body: { status: e.target.value } }))}>{TASK_STATUSES.map((s) => <option key={s}>{s}</option>)}</select> : <Badge tone={TONE[t.status] ?? 'gray'}>{t.status}</Badge>}</td>
                             <td className="td max-w-[16rem] text-xs text-slate-600" title={t.comment ?? ''}><span className="line-clamp-2">{t.comment ?? ''}</span></td>
                             <td className="td whitespace-nowrap">{editor && <><button className="btn-ghost btn-sm" aria-label="Edit task" onClick={() => setTaskForm({ area_id: a.id, task: t })}><Pencil size={14} /></button><button className="btn-ghost btn-sm text-red-600" aria-label="Delete task" onClick={() => setDelTask(t)}><Trash2 size={14} /></button></>}</td>
-                          </tr>); })}</tbody></table></div>)}
+                          </tr>); })}
+                          {doneRows.length > 0 && (wrapped || showDone.has(a.id)) && <tr className="border-t border-slate-100 bg-green-50/60"><td className="td" colSpan={8}><button className="inline-flex items-center gap-1 text-sm font-medium text-green-800" aria-expanded={!wrapped} onClick={() => setShowDone((s) => { const n = new Set(s); n.has(a.id) ? n.delete(a.id) : n.add(a.id); return n; })}>{wrapped ? <ChevronRight size={14} /> : <ChevronDown size={14} />}{wrapped ? `${doneRows.length} completed task${doneRows.length === 1 ? '' : 's'} — show` : `Hide ${doneRows.length} completed task${doneRows.length === 1 ? '' : 's'}`}</button></td></tr>}</tbody></table></div>)}
                   </div>);
               })}
             </div>}

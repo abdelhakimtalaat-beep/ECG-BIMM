@@ -14,12 +14,13 @@ export async function GET(req: Request) {
     try { await refreshStale(); } catch {}
     const feeds = await q<any>('select employee_id,share,last_synced_at,last_error,event_count, true as has_link from calendar_feeds');
     const shareOf = new Map(feeds.map((f: any) => [f.employee_id, f.share]));
-    const rows = await q<any>('select id,employee_id,uid,start_at,end_at,all_day,title,location,organizer,teams_url,is_private,busy from calendar_events where end_at>$1 and start_at<$2 order by start_at limit 3000', [from, to]);
+    const rows = await q<any>('select id,employee_id,uid,start_at,end_at,all_day,title,location,organizer,teams_url,is_private,busy from calendar_events where end_at>$1 and start_at<$2 and title !~* $3 order by start_at limit 3000', [from, to, '^\\s*(canceled|cancelled)\\s*:']);
     const privileged = me.role === 'admin' || me.role === 'bim_manager';
     const events = rows.map((r: any) => {
+      const kind = r.teams_url || r.organizer ? 'meeting' : 'task'; // a calendar entry with attendees / a Teams link is a meeting; the rest are personal tasks and blocks
       const own = !!me.employee_id && r.employee_id === me.employee_id;
       const full = own || (privileged && !r.is_private) || (shareOf.get(r.employee_id) === 'everyone' && !r.is_private);
-      return full ? { ...r, masked: false } : { id: r.id, employee_id: r.employee_id, uid: r.uid, start_at: r.start_at, end_at: r.end_at, all_day: r.all_day, title: r.is_private ? 'Private appointment' : 'Busy', location: null, organizer: null, teams_url: null, is_private: r.is_private, busy: r.busy, masked: true };
+      return full ? { ...r, kind, masked: false } : { id: r.id, employee_id: r.employee_id, uid: r.uid, start_at: r.start_at, end_at: r.end_at, all_day: r.all_day, title: r.is_private ? 'Private appointment' : 'Busy', location: null, organizer: null, teams_url: null, is_private: r.is_private, busy: r.busy, kind, masked: true };
     });
     return ok({ events, feeds, my_employee_id: me.employee_id });
   });
