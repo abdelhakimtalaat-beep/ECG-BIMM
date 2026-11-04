@@ -7,6 +7,9 @@ const wrap = (s: string) => (s.match(/.{1,76}/g) ?? []).join('\r\n');
 const utf8b64 = (s: string) => btoa(Array.from(new TextEncoder().encode(s), (c) => String.fromCharCode(c)).join(''));
 const hdr = (s: string) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${utf8b64(s)}?=`);
 
+export const DEFAULT_REEL_TO = 'Bimm <Bimm_Dep@ecgsa.com>; Architectural Department <architecturaldep@ecgsa.com>; UrbanDesign&LandscapeDepartment <landscapedep@ecgsa.com>; InteriorDesignDepartment <Interiordep@ecgsa.com>; VisualizationDepartment <VisualizationDepartment@ecgsa.com>; HealthCareDepartment <HealthcareDep@ecgsa.com>; BIM <BIM@ecgsa.com>; StructuralDepartment <structuraldep@ecgsa.com>; HvacDepartment <hvacdep@ecgsa.com>; MechanicalDepartment <Mechanicaldep@ecgsa.com>; ElectricalDepartment <electricaldep@ecgsa.com>; Communication&SecurityDepartment <communicationdep@ecgsa.com>; InfrastructureBusinessUnit <Infrastructuredep@ecgsa.com>; Sites <Sites@ecgsa.com>; TechnicalOfficeDepartment <TechnicalOfficeDepartment@ecgsa.com>; ED <ED@ecgsa.com>; ProjectManagers <ProjectManagers@ecgsa.com>';
+/** Plain addresses from "Name <a@x.com>; b@x.com" (names may contain commas or &, so only ; and new lines separate entries). */
+export const toAddresses = (s: string): string[] => s.split(/[;\n]+/).map((p) => (p.match(/<([^>]+)>/)?.[1] ?? p).trim()).filter((a) => /^[^\s@<>]+@[^\s@<>]+$/.test(a));
 export const DEFAULT_MEETING_LINK = 'https://teams.microsoft.com/meet/3878307048985?p=nx3sachr1U87HMPZEh';
 /** `when` reads after "scheduled for", e.g. "today at 10:00 AM" or "Thursday, 5 November 2026 at 10:00 AM". */
 export function reelMailContent(r: { topic: string; when: string; link?: string | null }) {

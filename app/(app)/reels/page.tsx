@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, BellRing, ChevronLeft, ChevronRight, Download, FileDown, FileSpreadsheet, ImageIcon, Mail, Plus } from 'lucide-react';
+import { Copy } from 'lucide-react';
+import { AlertTriangle, BellRing, ChevronLeft, ChevronRight, Download, FileDown, FileSpreadsheet, Mail, Plus } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { FilterBar } from '@/components/FilterBar';
 import { ChartBox, Datum, HBar, VBar } from '@/components/charts';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, useToast } from '@/components/ui';
 import { api, download, fmtDate, fmtDateTime } from '@/lib/client';
-import { buildReelEml, DEFAULT_MEETING_LINK, reelMailContent } from '@/lib/reelEml';
+import { DEFAULT_MEETING_LINK, DEFAULT_REEL_TO, reelMailContent, toAddresses } from '@/lib/reelEml';
 import { drawReelImage, REEL_IMG_H, REEL_IMG_W } from '@/lib/reelImage';
 import { canEditReels, canEditReel } from '@/lib/can';
 import { reelConflicts, reelStats, upcomingReels, incompleteReels, weekdayOf } from '@/lib/metrics';
@@ -69,7 +70,7 @@ export default function ReelsPage() {
           <td className="td font-medium">{r.presenter_name}{conflicts.has(r.id) && <span className="ml-1 cursor-help text-amber-600" title={conflicts.get(r.id)!.join('\n')}><AlertTriangle size={14} className="inline" /></span>}{!r.employee_id && <span title="Speaker is not in the org chart"> <Badge tone="amber">not in org chart</Badge></span>}</td>
           <td className="td">{isAdm ? <select className="input w-36" value={r.status} onChange={(e) => quick(r, { status: e.target.value as ReelStatus })} aria-label={`Status for ${r.presenter_name}`}>{REEL_STATUSES.map((s) => <option key={s}>{s}</option>)}</select> : <Badge tone={TONE[r.status]}>{r.status}</Badge>}</td>
           <td className="td text-xs">{r.link ? <a className="text-brand-600 underline" href={r.link} target="_blank" rel="noopener noreferrer">Open link</a> : <span className="text-slate-400">—</span>}</td>
-          <td className="td whitespace-nowrap"><button className="btn-secondary btn-sm mr-1" title="Export announcement image" onClick={() => setImg(r)}><ImageIcon size={14} className="inline" /> Image</button>{ed(r) ? <><button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>Edit</button> {canDelete && <button className="btn-ghost btn-sm text-red-600" onClick={() => setDel(r)}>Delete</button>}</> : <button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>View</button>}</td></tr>))}</tbody></table></div>);
+          <td className="td whitespace-nowrap"><button className="btn-secondary btn-sm mr-1" title="Email the BIM Reel announcement" onClick={() => setImg(r)}><Mail size={14} className="inline" /> Email</button>{ed(r) ? <><button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>Edit</button> {canDelete && <button className="btn-ghost btn-sm text-red-600" onClick={() => setDel(r)}>Delete</button>}</> : <button className="btn-secondary btn-sm" onClick={() => setEdit(r)}>View</button>}</td></tr>))}</tbody></table></div>);
 
   return (
     <>
@@ -149,7 +150,7 @@ function ReelImageModal({ r, today, onClose }: { r: Reel; today: string; onClose
   const ref = useRef<HTMLCanvasElement>(null); const toast = useToast();
   const ls = (k: string, d: string) => { try { return localStorage.getItem(k) || d; } catch { return d; } };
   const keep = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch {} };
-  const [time, setTime] = useState(() => ls('reelImgTime', '10:00')); const [link, setLink] = useState(() => ls('reelImgLink', DEFAULT_MEETING_LINK)); const [to, setTo] = useState(() => ls('reelImgTo', ''));
+  const [time, setTime] = useState(() => ls('reelImgTime', '10:00')); const [link, setLink] = useState(() => ls('reelImgLink', DEFAULT_MEETING_LINK)); const [to, setTo] = useState(() => ls('reelImgTo', DEFAULT_REEL_TO));
   const to12 = (t: string) => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
   const day = r.session_date === today ? 'Today' : new Date(r.session_date + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
   const when = (r.session_date === today ? 'today' : new Date(r.session_date + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })) + ` at ${to12(time || '10:00')}`;
@@ -162,21 +163,20 @@ function ReelImageModal({ r, today, onClose }: { r: Reel; today: string; onClose
   const openOutlook = async () => {
     remember(); const c = mail(); let copied = false;
     try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': png() })]); copied = true; } catch {}
-    const recipients = to.split(/[;,\s]+/).filter(Boolean).join(';');
+    const recipients = toAddresses(to).join(';');
     window.location.href = `mailto:${recipients}?subject=${encodeURIComponent(c.subject)}&body=${encodeURIComponent(c.text)}`;
     toast(copied ? 'Outlook is opening — click in the message body and press Ctrl+V to paste the picture' : 'Outlook is opening — the picture could not be copied; use “Formatted file” instead', copied ? undefined : 'err');
   };
-  const eml = async () => {
-    remember(); const c = mail(); const b = await png();
-    const f = buildReelEml({ ...c, to: to.split(/[;,\s]+/).filter(Boolean).join('; ') || undefined, png: new Uint8Array(await b.arrayBuffer()) });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([f], { type: 'message/rfc822' })); a.download = `BIM-Reel-${r.session_date}.eml`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  const copyImage = async () => {
+    try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': png() })]); toast('Image copied — paste it (Ctrl+V) into your e-mail'); }
+    catch { toast('The browser did not allow copying the image', 'err'); }
   };
   return (
-    <Modal open onClose={onClose} wide title="BIM Reel announcement" footer={<><button className="btn-secondary" onClick={onClose}>Close</button><button className="btn-secondary" onClick={eml} title="Downloads a ready e-mail file with the picture embedded and 12 pt text">Formatted file (.eml)</button><button className="btn-primary" onClick={openOutlook}><Mail size={16} />Email</button></>}>
+    <Modal open onClose={onClose} wide title="BIM Reel announcement" footer={<><button className="btn-secondary" onClick={onClose}>Close</button><button className="btn-secondary" onClick={copyImage}><Copy size={16} />Copy image</button><button className="btn-primary" onClick={openOutlook}><Mail size={16} />Email</button></>}>
       <div className="mb-3 grid gap-3 sm:grid-cols-[9rem_1fr]"><Field label="Session time"><input type="time" className="input" value={time} onChange={(e) => setTime(e.target.value)} /></Field>
         <Field label="Meeting link"><input className="input" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://teams.microsoft.com/…" /></Field></div>
-      <Field label="To (group e-mails, separated by ; )"><input className="input mb-3" value={to} onChange={(e) => setTo(e.target.value)} placeholder="bim-all@…; engineers@…" /></Field>
-      <p className="mb-3 text-xs text-slate-500"><b>Email</b> opens a new message in Outlook with the recipients, subject (BIM Reel | topic) and text; the picture is copied, so press <b>Ctrl+V</b> in the message body. <b>Formatted file</b> gives a message with the picture already embedded (clickable link) and 12 pt text, opened by double-clicking it.</p>
+      <Field label="To (group e-mails, separated by ;)"><input className="input mb-3" value={to} onChange={(e) => setTo(e.target.value)} placeholder="Name <name@company.com>; …" /></Field>
+      <p className="mb-3 text-xs text-slate-500"><b>Email</b> opens a new message in Outlook with the recipients, subject (BIM Reel | topic) and text, and copies the picture — click in the message body and press <b>Ctrl+V</b>. <b>Copy image</b> only copies the picture.</p>
       <canvas ref={ref} className="w-full rounded border border-slate-200" style={{ aspectRatio: `${REEL_IMG_W}/${REEL_IMG_H}` }} />
     </Modal>
   );
