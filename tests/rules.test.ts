@@ -59,3 +59,13 @@ test('BIM Manager changes only the coordinators of his own projects', () => {
   assert.equal(canChangeAssignmentRole('bim_manager', true, 'member'), false);
   assert.equal(canChangeAssignmentRole('admin', false, 'manager'), true);
 });
+
+test('project stages and LOD: fixed choices, canonical order, editable by the Administrator and the project BIM Manager', async () => {
+  const { PROJECT_STAGES, PROJECT_LODS, normalizeChoices } = await import('../lib/projectOptions.ts');
+  assert.deepEqual([...PROJECT_STAGES], ['Concept Design', 'Schematic Design', 'Design Development', 'Tender Documents', 'Permits', 'IFC', 'Shop Drawings', 'As-Built']);
+  assert.deepEqual([...PROJECT_LODS], ['100', '200', '300', '350', '400', '500']);
+  assert.deepEqual(normalizeChoices(['IFC', 'Concept Design', 'IFC', 'bogus'], PROJECT_STAGES), ['Concept Design', 'IFC']);
+  assert.equal(normalizeChoices([], PROJECT_LODS), null); assert.equal(normalizeChoices(null, PROJECT_LODS), null);
+  const { PROJECT_FIELDS } = await import('../lib/rules.ts');
+  for (const sc of ['full', 'manager'] as const) for (const f of ['stages', 'lods']) assert.ok(PROJECT_FIELDS[sc].includes(f), `${sc} ${f}`);
+});

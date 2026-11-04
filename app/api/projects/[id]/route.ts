@@ -4,6 +4,7 @@ import { ApiError, requireUser } from '@/lib/auth';
 import { audit, one, q, tx } from '@/lib/db';
 import { PROJECT_FIELDS, assertScope } from '@/lib/perm';
 import { loadFactors } from '@/lib/factors';
+import { PROJECT_LODS, PROJECT_STAGES, normalizeChoices } from '@/lib/projectOptions';
 
 type Ctx = { params: Promise<{ id: string }> };
 const uuid = z.string().uuid();
@@ -31,6 +32,8 @@ const patch = z.object({
   client: z.string().trim().max(200).nullable(),
   country: z.string().trim().max(80).nullable(),
   city: z.string().trim().max(80).nullable(),
+  stages: z.array(z.enum(PROJECT_STAGES)).max(20).nullable().transform((v) => normalizeChoices(v, PROJECT_STAGES)),
+  lods: z.array(z.enum(PROJECT_LODS)).max(20).nullable().transform((v) => normalizeChoices(v, PROJECT_LODS)),
   forma_url: z.string().trim().max(500).refine((v) => v === '' || /^https?:\/\/[^\s]+$/i.test(v), 'The Forma URL must start with https://').nullable(),
   forma_email: z.string().trim().max(200).refine((v) => v === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Enter a valid e-mail address').nullable(),
   revit_version: z.enum(['2020', '2021', '2022', '2023', '2024', '2025', '2026', '2027']).nullable(),
