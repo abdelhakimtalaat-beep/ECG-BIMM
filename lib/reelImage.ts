@@ -4,6 +4,7 @@ export const REEL_IMG_W = 1267, REEL_IMG_H = 702;
 const FONT = '"Segoe UI","Calibri","Helvetica Neue",Arial,sans-serif';
 const BLUE = '#5B7B9A', DARK = '#3D5A80', ORANGE = '#ED7D31', CORAL = '#F4694C', NAVY = '#1F4E79', PALE = '#BDD7EE';
 
+const COL2 = 1005; // left edge of the Schedule column; its box edges are COL2..COL2+220
 const LEFT = 94; // common left edge of the left-hand column (title, banner, topic label, lines, topic text)
 /** x that puts the first visible pixel of `t` exactly on `edge` (removes the font's left side-bearing). */
 function inkX(ctx: CanvasRenderingContext2D, t: string, edge: number) { return edge + ctx.measureText(t[0] ?? '').actualBoundingBoxLeft; }
@@ -47,15 +48,15 @@ export function drawReelImage(canvas: HTMLCanvasElement, r: ReelImage, scale = 2
   ctx.fillStyle = NAVY; ctx.font = `400 26px ${FONT}`; ctx.textAlign = 'right'; ctx.fillText(`Speaker, ${r.speaker}`, 955, 654); ctx.textAlign = 'left';
   // schedule panel
   ctx.fillStyle = DARK; ctx.fillRect(965, 303, 302, 355);
-  ctx.fillStyle = '#fff'; ctx.font = `700 22px ${FONT}`; spaced(ctx, 'SCHEDULE', 1005, 339, 3.5);
-  ctx.fillStyle = CORAL; ctx.fillRect(1005, 351, 220, 6);
-  ctx.fillStyle = PALE; ctx.fillRect(1004, 377, 221, 94);
-  ctx.fillStyle = NAVY; ctx.font = `700 31px ${FONT}`; ctx.fillText(r.day, 1016, 415); ctx.fillText(r.time, 1016, 456);
+  ctx.fillStyle = '#fff'; ctx.font = `700 22px ${FONT}`; spaced(ctx, 'SCHEDULE', inkX(ctx, 'S', COL2), 339, 3.5);
+  ctx.fillStyle = CORAL; ctx.fillRect(COL2, 351, 220, 6);
+  ctx.fillStyle = PALE; ctx.fillRect(COL2, 377, 220, 94);
+  ctx.fillStyle = NAVY; ctx.font = `700 31px ${FONT}`; ctx.fillText(r.day, inkX(ctx, r.day, COL2 + 12), 415); ctx.fillText(r.time, inkX(ctx, r.time, COL2 + 12), 456);
   if (r.link) {
-    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4; ctx.fillStyle = PALE; ctx.fillRect(1004, 492, 221, 154); ctx.restore();
-    ctx.strokeStyle = '#8FB4D9'; ctx.lineWidth = 1.5; ctx.strokeRect(1004, 492, 221, 154);
-    ctx.fillStyle = NAVY; ctx.font = `700 31px ${FONT}`; ctx.fillText('Meeting Link', 1016, 530); ctx.fillRect(1016, 534, ctx.measureText('Meeting Link').width, 2.5);
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4; ctx.fillStyle = PALE; ctx.fillRect(COL2, 492, 220, 154); ctx.restore();
+    ctx.strokeStyle = '#8FB4D9'; ctx.lineWidth = 1.5; ctx.strokeRect(COL2 + 0.75, 492.75, 218.5, 152.5);
+    ctx.fillStyle = NAVY; ctx.font = `700 31px ${FONT}`; ctx.fillText('Meeting Link', inkX(ctx, 'M', COL2 + 12), 530); ctx.fillRect(inkX(ctx, 'M', COL2 + 12), 534, ctx.measureText('Meeting Link').width, 2.5);
     ctx.fillStyle = '#0563C1'; ctx.font = `400 15.5px ${FONT}`;
-    wrapChars(ctx, r.link, 198).slice(0, 5).forEach((l, i) => { const yy = 556 + i * 19; ctx.fillText(l, 1016, yy); ctx.fillRect(1016, yy + 2, ctx.measureText(l).width, 1); });
+    wrapChars(ctx, r.link, 198).slice(0, 5).forEach((l, i) => { const yy = 556 + i * 19; const lx = inkX(ctx, l, COL2 + 12); ctx.fillText(l, lx, yy); ctx.fillRect(lx, yy + 2, ctx.measureText(l).width, 1); });
   }
 }

@@ -17,13 +17,14 @@ export function reelMailContent(r: { topic: string; when: string; link?: string 
   const topic = r.topic || 'BIM Reel';
   const subject = `BIM Reel | ${topic}`;
   const line = `This is a gentle reminder about our BIM REEL online tutorial session scheduled for ${r.when}.`;
-  const text = ['Dear All,', '', line, '', ...(r.link ? [`Meeting Link: ${r.link}`, ''] : []), 'Best Regards,', 'BIM Management Department'].join('\r\n');
+  const text = ['Dear All,', '', line, '', ...(r.link ? [`Meeting Link: ${r.link}`, ''] : []), '', 'Best Regards,', 'BIM Management Department'].join('\r\n');
   const img = `<img src="cid:reel-announcement" alt="BIM Reel announcement: ${esc(topic)}" width="900" style="width:900px;max-width:100%;height:auto;border:0">`;
   const html = `<div style="font-family:Calibri,Segoe UI,Arial,sans-serif;font-size:12pt;color:#222">
 <p style="font-size:12pt">Dear All,</p>
 <p style="font-size:12pt">${esc(line)}</p>
 <p>${r.link ? `<a href="${esc(r.link)}">${img}</a>` : img}</p>
 ${r.link ? `<p style="font-size:12pt"><b>Meeting Link:</b> <a href="${esc(r.link)}">${esc(r.link)}</a></p>` : ''}
+<p style="font-size:12pt">&nbsp;</p>
 <p style="font-size:12pt">Best Regards,<br>BIM Management Department</p></div>`;
   return { subject, text, html };
 }
