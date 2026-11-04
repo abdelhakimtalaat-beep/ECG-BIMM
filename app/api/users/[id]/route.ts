@@ -26,3 +26,20 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return ok();
   });
 }
+
+export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  return handle(async () => {
+    const me = await requireUser(['admin']);
+    const { id } = await ctx.params; z.string().uuid().parse(id);
+    if (me.id === id) throw new ApiError(400, 'You cannot delete your own user');
+    const cur = await one<any>('select email,role,active from users where id=$1', [id]);
+    if (!cur) throw new ApiError(404, 'User not found');
+    if (cur.role === 'admin' && cur.active) {
+      const n = await one<{ n: number }>(`select count(*)::int n from users where role='admin' and active and id<>$1`, [id]);
+      if ((n?.n ?? 0) === 0) throw new ApiError(400, 'There must be at least one active administrator');
+    }
+    await q('delete from users where id=$1', [id]);
+    await audit(null, me.email, 'delete', 'user', id, `Deleted user ${cur.email}`);
+    return ok();
+  });
+}

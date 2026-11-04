@@ -65,7 +65,7 @@ export default function OrgPage() {
   const canOpenCv = (e: { id: string }) => me.role === 'admin' || me.role === 'bim_manager' || me.employee_id === e.id; // own CV always
   const canUpload = (e: { id: string }) => admin || me.employee_id === e.id; // each engineer: own photo and CV
   const [editing, setEditing] = useState<Partial<Employee> & { _new?: boolean } | null>(null);
-  const [confirmDeact, setConfirmDeact] = useState<Employee | null>(null);
+  const [confirmDeact, setConfirmDeact] = useState<Employee | null>(null); const [confirmDel, setConfirmDel] = useState<Employee | null>(null);
   const vp = useRef<HTMLDivElement>(null); const content = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
 
@@ -236,7 +236,8 @@ export default function OrgPage() {
           {detail.notes && <p className="rounded bg-slate-50 p-3 text-sm">{detail.notes}</p>}
           {admin && <div className="flex flex-wrap gap-2"><button className="btn-secondary btn-sm" onClick={() => setEditing({ ...detail })}>Edit / transfer</button>
             <button className="btn-secondary btn-sm" onClick={() => setEditing({ _new: true, job_category: 'bim_coordinator', reports_to: detail.id })}>Add direct report</button>
-            <button className="btn-secondary btn-sm" onClick={() => (detail.active ? setConfirmDeact(detail) : api(`/api/employees/${detail.id}`, { method: 'PATCH', body: { active: true } }).then(refresh))}>{detail.active ? 'Deactivate' : 'Reactivate'}</button></div>}
+            <button className="btn-secondary btn-sm" onClick={() => (detail.active ? setConfirmDeact(detail) : api(`/api/employees/${detail.id}`, { method: 'PATCH', body: { active: true } }).then(refresh))}>{detail.active ? 'Deactivate' : 'Reactivate'}</button>
+            <button className="btn-secondary btn-sm text-red-600" onClick={() => setConfirmDel(detail)}>Delete</button></div>}
           <div><p className="label">Direct reports ({reports(detail.id).length})</p>{reports(detail.id).length ? <ul className="space-y-1">{reports(detail.id).map((r) => <li key={r.id}><button className="text-sm text-brand-700 hover:underline" onClick={() => { setOpen(r.id); setSel(r.id); }}>{r.name}</button> <span className="text-xs text-slate-500">{r.job_title}</span></li>)}</ul> : <p className="text-sm text-slate-500">None</p>}</div>
           <div><p className="label">Assigned projects ({projectsOf(detail.id).length})</p>
             {projectsOf(detail.id).length ? <ul className="max-h-80 divide-y divide-slate-100 overflow-auto rounded-lg border border-slate-200">{projectsOf(detail.id).map(({ a, p }) => <li key={a.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm"><span className="min-w-0"><span className="block truncate">{p.project_no ? `${p.project_no} · ` : ''}{p.name}</span><span className="text-xs text-slate-500">{a.role}</span></span><StatusBadge status={p.status} /></li>)}</ul>
@@ -248,6 +249,9 @@ export default function OrgPage() {
       <Confirm open={!!confirmDeact} onClose={() => setConfirmDeact(null)} danger title="Deactivate employee" confirmLabel="Deactivate"
         message={<>Deactivate <b>{confirmDeact?.name}</b>? They stay in the chart (greyed out) and keep their history. {confirmDeact && data.assignments.some((a) => a.employee_id === confirmDeact.id) ? 'They still have project assignments — reassign those on the Teams page.' : ''}</>}
         onConfirm={async () => { try { await api(`/api/employees/${confirmDeact!.id}`, { method: 'PATCH', body: { active: false } }); toast('Deactivated'); setConfirmDeact(null); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
+      <Confirm open={!!confirmDel} onClose={() => setConfirmDel(null)} danger title="Delete employee" confirmLabel="Delete permanently"
+        message={confirmDel && <>Permanently delete <b>{confirmDel.name}</b> from the org chart? {reports(confirmDel.id).length ? `${reports(confirmDel.id).length} direct report(s) will move up to ${confirmDel.reports_to ? emp.get(confirmDel.reports_to)?.name : 'the top level'}. ` : ''}{projectsOf(confirmDel.id).length ? `Their ${projectsOf(confirmDel.id).length} project assignment(s) will be removed. ` : ''}A linked portal user is deactivated. This cannot be undone — use Deactivate to keep the history.</>}
+        onConfirm={async () => { try { await api(`/api/employees/${confirmDel!.id}`, { method: 'DELETE' }); toast('Employee deleted'); setConfirmDel(null); setOpen(null); setSel(null); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />
       {cropFor && <ImageCropper file={cropFor.file} title="Crop photo" outWidth={600} aspects={[{ label: 'Square', value: 1 }]} onCancel={() => setCropFor(null)} onDone={async (b, n) => { const { id, file, orig } = cropFor; setCropFor(null); try { await uploadPhotoBlob(id, b, n); if (orig) await saveOriginalPhoto('employee', id, file).catch(() => {}); toast('Photo saved'); refresh(); } catch (e: any) { toast(e.message, 'err'); } }} />}
       {editing && <EmployeeForm init={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />}
     </>

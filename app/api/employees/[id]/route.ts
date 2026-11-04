@@ -49,3 +49,35 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return ok();
   });
 }
+
+// Permanently removes an employee from the chart. Direct reports move up to the removed person's manager,
+// project assignments of the person are deleted, and a linked portal user is deactivated (never left with access).
+export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  return handle(async () => {
+    const me = await requireUser(['admin']);
+    const { id } = await ctx.params; z.string().uuid().parse(id);
+    const ds = await loadDataset();
+    const cur = ds.employees.find((e) => e.id === id);
+    if (!cur) throw new ApiError(404, 'Employee not found');
+    if (me.employee_id === id) throw new ApiError(400, 'You cannot delete your own employee record');
+    const moved = ds.employees.filter((e) => e.reports_to === id);
+    await tx(async (c) => {
+      for (const r of moved) {
+        await c.query('update reporting_relationships set valid_to=current_date where employee_id=$1 and valid_to is null', [r.id]);
+        if (cur.reports_to) await c.query('insert into reporting_relationships(employee_id,manager_id) values($1,$2)', [r.id, cur.reports_to]);
+      }
+      const users = await c.query<{ id: string; role: string }>('select id,role from users where employee_id=$1', [id]);
+      for (const u of users.rows) {
+        if (u.role === 'admin') {
+          const n = await c.query(`select count(*)::int n from users where role='admin' and active and id<>$1`, [u.id]);
+          if ((n.rows[0]?.n ?? 0) === 0) throw new ApiError(400, 'This person is the last active administrator and cannot be deleted');
+        }
+      }
+      await c.query('update users set active=false, employee_id=null where employee_id=$1', [id]);
+      await c.query(`delete from attachments where id = any($1::uuid[]) or filename in ($2,$3)`, [[cur.photo_id, cur.cv_id].filter(Boolean), `employee:${id}`, `employee:${id}`]);
+      await c.query('delete from employees where id=$1', [id]);
+      await audit(c, me.email, 'delete', 'employee', id, `Deleted ${cur.name} from the org chart (${moved.length} direct report(s) moved up)`, cur, null);
+    });
+    return ok({ moved: moved.length });
+  });
+}
