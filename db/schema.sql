@@ -70,6 +70,7 @@ create table if not exists users (
   last_login_at timestamptz,
   created_at    timestamptz not null default now()
 );
+alter table users add column if not exists allowed_tabs text[];   -- read-only users: tabs they may open (NULL = all)
 
 -- ---------------------------------------------------------------- projects
 create table if not exists status_mappings (

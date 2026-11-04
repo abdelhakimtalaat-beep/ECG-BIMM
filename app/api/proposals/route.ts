@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { handle, json, ok } from '@/lib/api';
-import { ApiError, requireUser } from '@/lib/auth';
+import { ApiError, requireUser, requireTab } from '@/lib/auth';
 import { audit, one, q } from '@/lib/db';
 
 
@@ -14,7 +14,7 @@ const body = z.object({
 });
 export async function GET() {
   return handle(async () => {
-    await requireUser();
+    await requireTab('/proposals');
     return ok({ proposals: await q('select id,project_name,proposal_number,client,proposal_manager,expected_man_hours::float8 as expected_man_hours,calc,created_by,created_at,updated_at from proposals order by created_at desc') });
   });
 }

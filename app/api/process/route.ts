@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import { handle, ok } from '@/lib/api';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requireTab } from '@/lib/auth';
 import { q } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 /** The process dashboard of one project: its contents, the buildings added to the map, and the status of every node. */
 export async function GET(req: Request) {
   return handle(async () => {
-    await requireUser();
+    await requireTab('/process-map');
     const id = z.string().uuid().parse(new URL(req.url).searchParams.get('project_id'));
     const contents = await q('select id,name,kind from project_contents where project_id=$1 order by lower(name)', [id]);
     const buildings = await q('select b.id,b.content_id,c.name,c.kind from process_buildings b join project_contents c on c.id=b.content_id where b.project_id=$1 order by lower(c.name)', [id]);

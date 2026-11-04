@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { canSeeTab, firstAllowedTab, tabOfPath } from '@/lib/tabs';
 import clsx from 'clsx';
 import { LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown } from 'lucide-react';
 import { api, roleLabel } from '@/lib/client';
@@ -31,7 +32,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const th = useTheme(); const inst = useInstall(); const [help, setHelp] = useState(false);
   const [q, setQ] = useState(''); const [cur, setCur] = useState(''); const [nxt, setNxt] = useState('');
   const myPhoto = me.employee_id ? appData?.employees.find((e) => e.id === me.employee_id)?.photo_id : null;
-  const items = me.role === 'admin' ? [...NAV, { href: '/admin', label: 'Administration', short: 'Administration', icon: Settings }] : NAV;
+  const items = (me.role === 'admin' ? [...NAV, { href: '/admin', label: 'Administration', short: 'Administration', icon: Settings }] : NAV).filter((n) => canSeeTab(me, n.href));
+  const tab = tabOfPath(path); const blocked = tab !== null && !canSeeTab(me, tab); const first = firstAllowedTab(me);
+  useEffect(() => { if (blocked && first) router.replace(first); }, [blocked, first, router]);
   const active = (h: string) => (h === '/' ? path === '/' : path.startsWith(h));
   const logout = async () => { await api('/api/auth/logout', { method: 'POST', body: {} }); router.push('/login'); };
 
@@ -73,7 +76,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </div>}
           </div>
         </header>
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <main className="flex-1 p-4 sm:p-6">{blocked ? <p className="text-slate-600">{first ? 'Redirecting…' : 'No pages are enabled for your account. Please contact the BIM Department Administrator.'}</p> : children}</main>
         <footer className="no-print border-t border-slate-200 px-6 py-3 text-xs text-slate-400">ECG BIM Department Management Portal · A Dorsch Global Company</footer>
       </div>
       <Modal open={help} onClose={() => setHelp(false)} title="Install the portal on your phone" footer={<button className="btn-primary" onClick={() => setHelp(false)}>Got it</button>}>

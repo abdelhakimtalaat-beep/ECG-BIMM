@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { one } from './db';
 import type { Me, Role } from './types';
+import { canSeeTab } from './tabs';
 
 export const COOKIE = 'ecg_session';
 const MAX_AGE = 60 * 60 * 10; // 10 hours
@@ -30,15 +31,21 @@ export async function currentUser(): Promise<Me | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret());
-    const u = await one<Me & { active: boolean }>('select id,email,full_name,role,employee_id,active from users where id=$1', [payload.uid]);
+    const u = await one<Me & { active: boolean }>('select id,email,full_name,role,employee_id,allowed_tabs,active from users where id=$1', [payload.uid]);
     if (!u || !u.active) return null;
-    return { id: u.id, email: u.email, full_name: u.full_name, role: u.role, employee_id: u.employee_id };
+    return { id: u.id, email: u.email, full_name: u.full_name, role: u.role, employee_id: u.employee_id, allowed_tabs: u.allowed_tabs ?? null };
   } catch { return null; }
 }
 export async function requireUser(roles?: Role[]): Promise<Me> {
   const u = await currentUser();
   if (!u) throw new ApiError(401, 'Not signed in');
   if (roles && !roles.includes(u.role)) throw new ApiError(403, 'You do not have permission to do this');
+  return u;
+}
+/** Like requireUser, and the user must be allowed to open that tab (read-only users can be limited to chosen tabs). */
+export async function requireTab(href: string): Promise<Me> {
+  const u = await requireUser();
+  if (!canSeeTab(u, href)) throw new ApiError(403, 'This page is not enabled for your account');
   return u;
 }
 export const hash = (pw: string) => bcrypt.hash(pw, 12);

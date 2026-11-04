@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { handle, ok } from '@/lib/api';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requireTab } from '@/lib/auth';
 import { q } from '@/lib/db';
 import { refreshStale } from '@/lib/calendarSync';
 
@@ -9,7 +9,7 @@ export const maxDuration = 30;
 /** Meetings of all connected engineers in a date range. Titles are shown in full to the owner, the Administrator and BIM Managers; to everyone only when the owner chose "Everyone". */
 export async function GET(req: Request) {
   return handle(async () => {
-    const me = await requireUser(); const sp = new URL(req.url).searchParams;
+    const me = await requireTab('/meetings'); const sp = new URL(req.url).searchParams;
     const from = z.string().datetime({ offset: true }).parse(sp.get('from')), to = z.string().datetime({ offset: true }).parse(sp.get('to'));
     try { await refreshStale(); } catch {}
     const feeds = await q<any>('select employee_id,share,last_synced_at,last_error,event_count, true as has_link from calendar_feeds');

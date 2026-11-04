@@ -161,3 +161,6 @@ When a project is created with a BIM Manager / BIM Coordinator, or when a BIM Ma
 ## Update: Autodesk Forma fields and photo originals
 Run `db/migrations/025_forma.sql` in Supabase BEFORE deploying (adds `forma_url` and `forma_email` to projects). In a project's window the Administrator and the project's BIM Manager edit **Autodesk Forma URL** (must start with https://) and **Autodesk Forma e-mail address**; saved values get "Open" / "E-mail" buttons.
 Photos: the un-cropped original is kept for every project and employee photo uploaded from now on ("Edit / crop" re-crops it, "Reset to original" restores it). Project cards on the All Projects page use a 2:1 photo frame, selectable as "Projects card (2:1)" in the crop window.
+
+## View-only users outside the org chart (migration 027)
+Run `db/migrations/027_user_tabs.sql` in the Supabase SQL Editor before deploying. In Administration → Users → Add user choose "Outside the org chart (view only)", enter name, e-mail, temporary password and tick the permitted tabs. Use the **Tabs** button on any Viewer row to change them later.

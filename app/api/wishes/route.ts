@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { handle, json, ok } from '@/lib/api';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requireTab } from '@/lib/auth';
 import { audit, one, q } from '@/lib/db';
 import { WISH_AREAS } from '@/lib/wishes';
 
 export async function GET() {
   return handle(async () => {
-    const me = await requireUser();
+    const me = await requireTab('/wishes');
     const rows = await q(`select w.id,w.title,w.description,w.area,w.author_name,w.status,w.admin_note,w.created_at,w.updated_at,
         (select count(*) from wish_votes v where v.wish_id=w.id)::int as votes,
         exists(select 1 from wish_votes v where v.wish_id=w.id and v.user_id=$1) as voted,

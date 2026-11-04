@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { handle, json, ok } from '@/lib/api';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requireTab } from '@/lib/auth';
 import { audit, one, q } from '@/lib/db';
 import { newTemplateStatus } from '@/lib/emailTemplates';
 
 export async function GET() {
   return handle(async () => {
-    const me = await requireUser();
+    const me = await requireTab('/email-templates');
     const rows = await q(`select id,title,body,status,requested_by,requested_name,review_note,created_at,updated_at,(requested_by = $2) as mine
       from email_templates where status='approved' or $1='admin' or requested_by=$2 order by (status='pending') desc, lower(title)`, [me.role, me.email]);
     return ok({ templates: rows });

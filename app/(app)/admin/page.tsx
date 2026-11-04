@@ -1,4 +1,5 @@
 'use client';
+import { TAB_LIST } from '@/lib/tabs';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2 } from 'lucide-react';
@@ -32,8 +33,19 @@ function useLoad<T>(url: string) {
   return { d, err, load };
 }
 
+function TabPicker({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const on = new Set(value);
+  return (
+    <div>
+      <div className="mb-2 flex gap-2 text-xs"><button type="button" className="btn-secondary btn-sm" onClick={() => onChange(TAB_LIST.map((t) => t.href))}>Select all</button><button type="button" className="btn-secondary btn-sm" onClick={() => onChange([])}>Select none</button></div>
+      <div className="grid gap-1 sm:grid-cols-2">{TAB_LIST.map((t) => <label key={t.href} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={on.has(t.href)} onChange={(e) => onChange(TAB_LIST.map((x) => x.href).filter((h) => (h === t.href ? e.target.checked : on.has(h))))} />{t.label}</label>)}</div>
+    </div>
+  );
+}
+
 function Users() {
-  const { data } = useApp(); const toast = useToast(); const { d, err, load } = useLoad<any[]>('/api/users'); const [adding, setAdding] = useState(false);
+  const { data } = useApp(); const toast = useToast(); const { d, err, load } = useLoad<any[]>('/api/users'); const [adding, setAdding] = useState(false); const [tabsFor, setTabsFor] = useState<any | null>(null); const [tabSel, setTabSel] = useState<string[]>([]);
+  const [ext, setExt] = useState(false); const [x, setX] = useState({ email: '', full_name: '', password: '', allowed_tabs: TAB_LIST.map((t) => t.href) as string[] });
   const [f, setF] = useState({ password: '', role: 'bim_coordinator' as Role, employee_id: '' });
   const suggest = (cat?: string): Role => (cat === 'department_manager' ? 'admin' : cat === 'bim_manager' ? 'bim_manager' : cat === 'bim_specialist' ? 'bim_specialist' : cat === 'rd_engineer' ? 'rd_engineer' : 'bim_coordinator');
   const patch = async (id: string, body: any) => { try { await api(`/api/users/${id}`, { method: 'PATCH', body }); toast('Updated'); load(); } catch (e: any) { toast(e.message, 'err'); } };
@@ -44,18 +56,29 @@ function Users() {
     <div>
       <div className="mb-3 flex items-center justify-between"><p className="max-w-3xl text-sm text-slate-600">Roles are enforced on the server. <b>BIM Managers</b> and <b>BIM Coordinators</b> can edit only the projects they are assigned to, the planned BIM Reels, and the tasks of their area; a BIM Manager can also change the BIM Coordinators of his own projects. Everything else is read-only for them. Only the Administrator adds projects, changes the org chart, assignments, reel statuses, workload factors and users.</p><button className="btn-primary" onClick={() => setAdding(true)}><Plus size={16} />Add user</button></div>
       <div className="card overflow-x-auto"><table className="w-full text-left"><thead><tr>{['Email', 'Name', 'Role', 'Linked employee', 'Active', 'Last sign-in', ''].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead><tbody>{d.map((u) => (
-        <tr key={u.id} className="border-t border-slate-100"><td className="td">{u.email}</td><td className="td">{u.full_name ?? '—'}</td>
+        <tr key={u.id} className="border-t border-slate-100"><td className="td">{u.email}{!u.employee_id && u.role === 'viewer' && <span className="ml-1"><Badge tone="amber">External · view only</Badge></span>}</td><td className="td">{u.full_name ?? '—'}</td>
           <td className="td"><select className="input w-56" value={u.role} onChange={(e) => patch(u.id, { role: e.target.value })}>{(['admin', 'bim_manager', 'bim_coordinator', 'bim_specialist', 'rd_engineer', 'viewer'] as Role[]).map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</select></td>
           <td className="td"><select className="input w-48" value={u.employee_id ?? ''} onChange={(e) => patch(u.id, { employee_id: e.target.value || null })}><option value="">—</option>{data.employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></td>
           <td className="td"><input type="checkbox" checked={u.active} onChange={(e) => patch(u.id, { active: e.target.checked })} aria-label={`Active: ${u.email}`} /></td><td className="td text-xs text-slate-500">{u.last_login_at ? fmtDate(u.last_login_at) : 'never'}</td>
-          <td className="td"><button className="btn-secondary btn-sm" onClick={() => { const pw = prompt('New temporary password (min. 10 characters). The user must change it at next sign-in.'); if (pw) patch(u.id, { password: pw }); }}>Reset password</button></td></tr>))}</tbody></table></div>
-      <Modal open={adding} onClose={() => setAdding(false)} title="Add user" footer={<><button className="btn-secondary" onClick={() => setAdding(false)}>Cancel</button><button className="btn-primary" disabled={!f.employee_id || !f.password} onClick={async () => { try { await api('/api/users', { body: f }); toast('User created'); setAdding(false); setF({ password: '', role: 'bim_coordinator', employee_id: '' }); load(); } catch (e: any) { toast(e.message, 'err'); } }}>Create user</button></>}>
+          <td className="td whitespace-nowrap">{u.role === 'viewer' && <button className="btn-secondary btn-sm mr-1" onClick={() => { setTabsFor(u); setTabSel(u.allowed_tabs ?? TAB_LIST.map((t) => t.href)); }}>Tabs ({u.allowed_tabs ? u.allowed_tabs.length : 'all'})</button>}<button className="btn-secondary btn-sm" onClick={() => { const pw = prompt('New temporary password (min. 10 characters). The user must change it at next sign-in.'); if (pw) patch(u.id, { password: pw }); }}>Reset password</button></td></tr>))}</tbody></table></div>
+      <Modal open={adding} onClose={() => setAdding(false)} title="Add user" footer={<><button className="btn-secondary" onClick={() => setAdding(false)}>Cancel</button>{ext
+        ? <button className="btn-primary" disabled={!x.email || !x.full_name || !x.password || !x.allowed_tabs.length} onClick={async () => { try { await api('/api/users', { body: { external: true, ...x } }); toast('User created'); setAdding(false); setX({ email: '', full_name: '', password: '', allowed_tabs: TAB_LIST.map((t) => t.href) }); load(); } catch (e: any) { toast(e.message, 'err'); } }}>Create user</button>
+        : <button className="btn-primary" disabled={!f.employee_id || !f.password} onClick={async () => { try { await api('/api/users', { body: f }); toast('User created'); setAdding(false); setF({ password: '', role: 'bim_coordinator', employee_id: '' }); load(); } catch (e: any) { toast(e.message, 'err'); } }}>Create user</button>}</>}>
         <div className="space-y-3">
+          <div className="flex gap-4 text-sm"><label className="flex items-center gap-1"><input type="radio" checked={!ext} onChange={() => setExt(false)} />Engineer from the org chart</label><label className="flex items-center gap-1"><input type="radio" checked={ext} onChange={() => setExt(true)} />Outside the org chart (view only)</label></div>
+          {ext ? (<>
+            <Field label="Full name"><input className="input" value={x.full_name} onChange={(e) => setX({ ...x, full_name: e.target.value })} /></Field>
+            <Field label="Sign-in e-mail"><input type="email" className="input" value={x.email} onChange={(e) => setX({ ...x, email: e.target.value })} /></Field>
+            <Field label="Temporary password" hint="At least 10 characters; the user is asked to change it at first sign-in."><input type="text" className="input" value={x.password} onChange={(e) => setX({ ...x, password: e.target.value })} /></Field>
+            <div><p className="mb-1 text-sm font-medium">Tabs this user may see</p><TabPicker value={x.allowed_tabs} onChange={(v) => setX({ ...x, allowed_tabs: v })} /></div>
+          </>) : (<>
           <Field label="Engineer (sign-in e-mail)" hint={choices.length ? 'Only engineers that have an e-mail and no user yet are listed.' : 'Every engineer with an e-mail already has a user.'}>
-            <select className="input" value={f.employee_id} onChange={(e) => { const emp = data.employees.find((x) => x.id === e.target.value); setF({ ...f, employee_id: e.target.value, role: suggest(emp?.job_category) }); }}>
+            <select className="input" value={f.employee_id} onChange={(e) => { const emp = data.employees.find((y) => y.id === e.target.value); setF({ ...f, employee_id: e.target.value, role: suggest(emp?.job_category) }); }}>
               <option value="">— select —</option>{choices.map((e) => <option key={e.id} value={e.id}>{e.email} — {e.name}</option>)}</select></Field>
           <Field label="Role"><select className="input" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value as Role })}>{(['admin', 'bim_manager', 'bim_coordinator', 'bim_specialist', 'rd_engineer', 'viewer'] as Role[]).map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</select></Field>
-          <Field label="Temporary password" hint="At least 10 characters; the user is asked to change it at first sign-in."><input type="text" className="input" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></Field></div></Modal>
+          <Field label="Temporary password" hint="At least 10 characters; the user is asked to change it at first sign-in."><input type="text" className="input" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></Field></>)}</div></Modal>
+      <Modal open={!!tabsFor} onClose={() => setTabsFor(null)} title={`Tabs for ${tabsFor?.email ?? ''}`} footer={<><button className="btn-secondary" onClick={() => setTabsFor(null)}>Cancel</button><button className="btn-primary" disabled={!tabSel.length} onClick={async () => { await patch(tabsFor.id, { allowed_tabs: tabSel.length === TAB_LIST.length ? null : tabSel }); setTabsFor(null); }}>Save</button></>}>
+        <p className="mb-2 text-sm text-slate-600">This user is read-only. Tick the tabs he may open; the others are hidden and blocked.</p><TabPicker value={tabSel} onChange={setTabSel} /></Modal>
     </div>
   );
 }

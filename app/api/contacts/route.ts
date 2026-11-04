@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { handle, json, ok } from '@/lib/api';
-import { requireUser } from '@/lib/auth';
+import { requireUser, requireTab } from '@/lib/auth';
 import { audit, one, q } from '@/lib/db';
 
 const contactBody = {
@@ -14,7 +14,7 @@ const contactBody = {
 };
 export async function GET() {
   return handle(async () => {
-    const me = await requireUser();
+    const me = await requireTab('/contacts');
     const rows = await q('select id,name,department,job_title,email,mobile,ext,notes,created_by,created_at from contacts order by lower(name)');
     return ok({ contacts: rows.map((r: any) => ({ ...r, mine: r.created_by === me.email })) });
   });

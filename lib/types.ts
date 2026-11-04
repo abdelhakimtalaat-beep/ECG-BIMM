@@ -43,7 +43,7 @@ export interface Dataset {
   employees: Employee[]; projects: Project[]; assignments: Assignment[]; reels: Reel[]; task_areas?: TaskArea[]; tasks?: Task[]; teams?: Team[];
   settings: Settings; mappings: StatusMapping[]; history: HistoryRow[];
 }
-export interface Me { id: string; email: string; full_name: string | null; role: Role; employee_id: string | null }
+export interface Me { id: string; email: string; full_name: string | null; role: Role; employee_id: string | null; allowed_tabs?: string[] | null }
 
 export interface Filters {
   q: string; manager: string[]; coordinator: string[]; member: string[]; status: Status[]; cde: string[]; type: string[]; deltek: string[]; pm: string[]; tm: string[]; client: string[];
