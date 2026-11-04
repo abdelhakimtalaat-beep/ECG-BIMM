@@ -25,12 +25,15 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const p = id ? data.projects.find((x) => x.id === id) : null;
   const [extra, setExtra] = useState<{ history: any[]; notes: any[] } | null>(null);
   const [edit, setEdit] = useState<Record<string, any> | null>(null);
-  const [note, setNote] = useState(''); const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState(''); const [busy, setBusy] = useState(false); const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [cropFile, setCropFile] = useState<File | null>(null); const [cropOrig, setCropOrig] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false); const file = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => { if (id) { try { setExtra(await api(`/api/projects/${id}`)); } catch {} } }, [id]);
-  useEffect(() => { setExtra(null); setEdit(null); setFe({}); if (id) load(); }, [id, load]);
+  useEffect(() => { setExtra(null); setEdit(null); setFe({}); setSaveState('idle'); if (id) load(); }, [id, load]);
+  // Autosave: every change is written about 0.7 s after the last keystroke (no Save button)
+  const savingRef = useRef(false); const saveRef = useRef<() => Promise<void>>(async () => {});
+  useEffect(() => { if (!edit) return; const t = setTimeout(() => { void saveRef.current(); }, 700); return () => clearTimeout(t); }, [edit]);
 
   const asg = useMemo(() => data.assignments.filter((a) => a.project_id === id), [data.assignments, id]);
   const mgrs = asg.filter((a) => a.role === 'manager'), coords = asg.filter((a) => a.role === 'coordinator'), members = asg.filter((a) => a.role === 'member');
@@ -47,14 +50,26 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   if (!p) return <Drawer open={false} onClose={onClose} title="" children={null} />;
   const names = (l: typeof asg) => (l.length ? l.map((a) => emp.get(a.employee_id)?.name).join(', ') : '—');
   const save = async () => {
-    if (!edit) return; setBusy(true);
+    const snap = edit; if (!snap || savingRef.current) return;
+    const body: any = {};
+    for (const k of Object.keys(snap)) {
+      if (k === 'reason') continue; let v: any = snap[k] === '' ? null : snap[k];
+      if ((k === 'built_up_area' || k === 'plot_area') && v != null) { v = Number(v); if (!Number.isFinite(v)) continue; }
+      if (k === 'forma_url' && v && !/^https?:\/\/\S+$/i.test(v)) continue;                 // half-typed link: wait until it is complete
+      if (k === 'forma_email' && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) continue;     // half-typed e-mail: wait
+      if (k === 'name' && !v) continue;                                                     // the name cannot be empty
+      body[k] = v;
+    }
+    if (!Object.keys(body).length) return;
+    savingRef.current = true; setSaveState('saving');
     try {
-      const body: any = {}; for (const k of Object.keys(edit)) body[k] = edit[k] === '' ? null : edit[k];
-      if ('built_up_area' in body && body.built_up_area != null) body.built_up_area = Number(body.built_up_area);
-      if ('plot_area' in body && body.plot_area != null) body.plot_area = Number(body.plot_area);
-      await api(`/api/projects/${p.id}`, { method: 'PATCH', body }); toast('Saved'); setEdit(null); setFe({}); await refresh(); load();
-    } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); }
+      await api(`/api/projects/${p.id}`, { method: 'PATCH', body });
+      setEdit((cur) => { if (!cur) return null; const rest: Record<string, any> = { ...cur }; for (const k of Object.keys(body)) if (cur[k] === snap[k]) delete rest[k]; return Object.keys(rest).length ? rest : null; }); // keep anything typed while saving
+      setSaveState('saved'); await refresh(); load();
+    } catch (e: any) { toast(e.message, 'err'); setSaveState('error'); } finally { savingRef.current = false; }
   };
+  saveRef.current = save;
+  const close = async () => { for (let n = 0; n < 30 && savingRef.current; n++) await new Promise((r) => setTimeout(r, 100)); if (edit) await save(); onClose(); }; // never lose a pending change
   const upload = async (f: Blob, name: string) => {
     try { await api(`/api/projects/${p.id}/photo`, { raw: f, headers: { 'Content-Type': 'image/jpeg', 'x-filename': encodeURIComponent(name) } }); toast('Photo updated'); refresh(); }
     catch (e: any) { toast(e.message, 'err'); }
@@ -78,7 +93,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
   const inp = (k: string, type = 'text') => <input type={type} className="input" disabled={!can(k)} value={(k in E ? E[k] : (p as any)[k]) ?? ''} onChange={(e) => setEdit({ ...E, [k]: e.target.value })} />;
 
   return (
-    <><Drawer open onClose={onClose} title={`${p.project_no ? p.project_no + ' · ' : ''}${p.name}`} width="max-w-2xl">
+    <><Drawer open onClose={close} title={`${p.project_no ? p.project_no + ' · ' : ''}${p.name}`} width="max-w-2xl">
       <div className="space-y-5">
         <div className="relative overflow-hidden rounded-xl border border-slate-200"><ProjectPhoto project={p} className="max-h-96 w-full" fit />
           {(scope !== 'none') && <div className="absolute bottom-2 right-2 flex gap-1"><input ref={file} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { setCropOrig(true); setCropFile(f); } }} />
@@ -102,10 +117,10 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
           <Field label="Revit version"><select className="input" disabled={!can('revit_version')} value={('revit_version' in E ? E.revit_version : p.revit_version) ?? ''} onChange={(e) => setEdit({ ...E, revit_version: e.target.value })}><option value="">— not set —</option>{['2020', '2021', '2022', '2023', '2024', '2025', '2026', '2027'].map((v) => <option key={v}>{v}</option>)}</select></Field>
           <Field label="Autodesk Forma URL">
             {linkMode('forma_url') ? <div className="flex items-center gap-2"><a className="input flex-1 truncate text-brand-700 underline" href={p.forma_url!} target="_blank" rel="noopener noreferrer" title="Open in Autodesk Forma">{p.forma_url}</a>{can('forma_url') && <button type="button" className="btn-secondary btn-sm shrink-0" onClick={() => setFe((x) => ({ ...x, forma_url: true }))}>Edit</button>}</div>
-              : <input type="url" className="input" disabled={!can('forma_url')} placeholder="https://…" value={('forma_url' in E ? E.forma_url : p.forma_url) ?? ''} onChange={(e) => setEdit({ ...E, forma_url: e.target.value })} />}</Field>
+              : <input type="url" autoFocus={!!fe.forma_url} onBlur={() => setFe((x) => ({ ...x, forma_url: false }))} className="input" disabled={!can('forma_url')} placeholder="https://…" value={('forma_url' in E ? E.forma_url : p.forma_url) ?? ''} onChange={(e) => setEdit({ ...E, forma_url: e.target.value })} />}</Field>
           <Field label="Autodesk Forma e-mail address">
             {linkMode('forma_email') ? <div className="flex items-center gap-2"><a className="input flex-1 truncate text-brand-700 underline" href={`mailto:?cc=${encodeURIComponent(p.forma_email!)}`} title="New e-mail with this address in CC">{p.forma_email}</a>{can('forma_email') && <button type="button" className="btn-secondary btn-sm shrink-0" onClick={() => setFe((x) => ({ ...x, forma_email: true }))}>Edit</button>}</div>
-              : <input type="email" className="input" disabled={!can('forma_email')} placeholder="name@company.com" value={('forma_email' in E ? E.forma_email : p.forma_email) ?? ''} onChange={(e) => setEdit({ ...E, forma_email: e.target.value })} />}</Field>
+              : <input type="email" autoFocus={!!fe.forma_email} onBlur={() => setFe((x) => ({ ...x, forma_email: false }))} className="input" disabled={!can('forma_email')} placeholder="name@company.com" value={('forma_email' in E ? E.forma_email : p.forma_email) ?? ''} onChange={(e) => setEdit({ ...E, forma_email: e.target.value })} />}</Field>
           <div className="col-span-2 mt-1 border-t border-slate-200 pt-3"><p className="text-sm font-semibold text-brand-900">Workload Factors</p>{!can('typicality') && <p className="text-xs text-slate-500">View only — you can edit the factors of projects you are assigned to.</p>}</div>
           {([['typicality', 'Typicality'], ['function_type', 'Function'], ['coordination_type', 'Coordination'], ['bim_standards', 'BIM Standards']] as const).map(([k, label]) => { const fac = data.settings.factors[k]; const opts = Object.keys(fac); return [k, label, opts, fac] as const; }).map(([k, label, opts, fac]) => (
             <Field key={k} label={label}><select className="input" disabled={!can(k)} value={(k in E ? E[k] : (p as any)[k]) ?? ''} onChange={(e) => setEdit({ ...E, [k]: e.target.value })}>
@@ -119,9 +134,8 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
           <Field label="Status">
             <select className="input" disabled={!can('status')} value={'status' in E ? E.status : p.status} onChange={(e) => setEdit({ ...E, status: e.target.value as Status })}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></Field>
           <div className="col-span-2"><Field label="Notes"><textarea rows={2} className="input" disabled={!can('notes')} value={('notes' in E ? E.notes : p.notes) ?? ''} onChange={(e) => setEdit({ ...E, notes: e.target.value })} /></Field></div>
-          {edit && 'status' in edit && edit.status !== p.status && <div className="col-span-2"><Field label="Reason for status change (optional)"><input className="input" value={E.reason ?? ''} onChange={(e) => setEdit({ ...E, reason: e.target.value })} /></Field></div>}
         </div>
-        {edit && <div className="flex gap-2"><button className="btn-primary" disabled={busy} onClick={save}>Save changes</button><button className="btn-secondary" onClick={() => { setEdit(null); setFe({}); }}>Discard</button></div>}
+        {scope !== 'none' && <p className={`text-xs ${saveState === 'error' ? 'text-red-600' : 'text-slate-500'}`} role="status" aria-live="polite">{saveState === 'saving' || (edit && saveState !== 'error') ? 'Saving…' : saveState === 'error' ? <>Could not save. <button className="underline" onClick={() => void save()}>Try again</button></> : saveState === 'saved' ? '✓ All changes saved' : 'Changes are saved automatically.'}</p>}
         {scope === 'none' && <p className="text-xs text-slate-500">You have view-only access to this project.</p>}
 
         <div className="grid grid-cols-2 gap-3 text-sm">
