@@ -1,11 +1,12 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, BellRing, ChevronLeft, ChevronRight, Download, FileDown, FileSpreadsheet, ImageIcon, Plus } from 'lucide-react';
+import { AlertTriangle, BellRing, ChevronLeft, ChevronRight, Download, FileDown, FileSpreadsheet, ImageIcon, Mail, Plus } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { FilterBar } from '@/components/FilterBar';
 import { ChartBox, Datum, HBar, VBar } from '@/components/charts';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, useToast } from '@/components/ui';
 import { api, download, fmtDate, fmtDateTime } from '@/lib/client';
+import { buildReelEml, reelMailContent } from '@/lib/reelEml';
 import { drawReelImage, REEL_IMG_H, REEL_IMG_W } from '@/lib/reelImage';
 import { canEditReels, canEditReel } from '@/lib/can';
 import { reelConflicts, reelStats, upcomingReels, incompleteReels, weekdayOf } from '@/lib/metrics';
@@ -150,11 +151,23 @@ function ReelImageModal({ r, today, onClose }: { r: Reel; today: string; onClose
   const to12 = (t: string) => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
   const day = r.session_date === today ? 'Today' : new Date(r.session_date + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
   useEffect(() => { if (ref.current) drawReelImage(ref.current, { topic: r.topic ?? '', speaker: r.presenter_name, day, time: to12(time || '10:00'), link: r.link }); }, [r, time, day]);
-  const save = () => ref.current?.toBlob((b) => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `BIM-Reel-${r.session_date}-${(r.presenter_name || 'speaker').replace(/[^\w]+/g, '-')}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); try { localStorage.setItem('reelImgTime', time); } catch {} }, 'image/png');
+  const toast = useToast();
+  const email = () => {
+    const cv = document.createElement('canvas'); drawReelImage(cv, { topic: r.topic ?? '', speaker: r.presenter_name, day, time: to12(time || '10:00'), link: r.link }, 1);
+    cv.toBlob(async (b) => {
+      if (!b) return;
+      const whenText = `${new Date(r.session_date + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })} at ${to12(time || '10:00')}`;
+      const c = reelMailContent({ topic: r.topic ?? '', speaker: r.presenter_name, whenText, link: r.link });
+      const eml = buildReelEml({ ...c, png: new Uint8Array(await b.arrayBuffer()) });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([eml], { type: 'message/rfc822' })); a.download = `BIM-Reel-${r.session_date}.eml`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      try { localStorage.setItem('reelImgTime', time); } catch {}
+      toast('Open the downloaded file — it opens as a new e-mail in Outlook');
+    }, 'image/png');
+  };
   return (
-    <Modal open onClose={onClose} wide title="BIM Reel announcement image" footer={<><button className="btn-secondary" onClick={onClose}>Close</button><button className="btn-primary" onClick={save}><Download size={16} />Download PNG</button></>}>
+    <Modal open onClose={onClose} wide title="BIM Reel announcement image" footer={<><button className="btn-secondary" onClick={onClose}>Close</button><button className="btn-primary" onClick={email}><Mail size={16} />Email</button></>}>
       <div className="mb-3 flex flex-wrap items-end gap-3"><Field label="Session time"><input type="time" className="input w-36" value={time} onChange={(e) => setTime(e.target.value)} /></Field>
-        <p className="text-xs text-slate-500">Topic, speaker and date come from the session; the Meeting Link box shows the session link when one is saved.</p></div>
+        <p className="text-xs text-slate-500">Click Email: a new message opens in Outlook with the subject, text, the picture embedded and the meeting link (the picture itself is clickable and opens the link). Add the recipients and send. If the file opens in a browser or another mail app, double-click it from your Downloads folder.</p></div>
       <canvas ref={ref} className="w-full rounded border border-slate-200" style={{ aspectRatio: `${REEL_IMG_W}/${REEL_IMG_H}` }} />
     </Modal>
   );
