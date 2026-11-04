@@ -156,8 +156,8 @@ function ReelImageModal({ r, today, onClose }: { r: Reel; today: string; onClose
   const when = (r.session_date === today ? 'today' : new Date(r.session_date + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })) + ` at ${to12(time || '10:00')}`;
   const info = { topic: r.topic ?? '', speaker: r.presenter_name, day, time: to12(time || '10:00'), link: link.trim() || null };
   useEffect(() => { if (ref.current) drawReelImage(ref.current, info); }); // eslint-disable-line react-hooks/exhaustive-deps
-  // 0.5 = half the pixel size, so the picture pastes into the e-mail at 50%
-  const png = () => new Promise<Blob>((res, rej) => { const cv = document.createElement('canvas'); drawReelImage(cv, info, 0.5); cv.toBlob((b) => (b ? res(b) : rej(new Error('Could not draw the image'))), 'image/png'); });
+  // 0.4 = 40% of the pixel size, so the picture pastes into the e-mail 60% smaller
+  const png = () => new Promise<Blob>((res, rej) => { const cv = document.createElement('canvas'); drawReelImage(cv, info, 0.4); cv.toBlob((b) => (b ? res(b) : rej(new Error('Could not draw the image'))), 'image/png'); });
   const remember = () => { keep('reelImgTime', time); keep('reelImgLink', link); keep('reelImgTo', to); keep('reelImgCc', cc); };
   const mail = () => reelMailContent({ topic: info.topic, when, link: info.link });
   // Opens Outlook (the default mail app) directly; the picture is put on the clipboard so it can be pasted into the body.
