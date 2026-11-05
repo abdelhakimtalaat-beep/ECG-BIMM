@@ -66,7 +66,7 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
   const [d, setD] = useState<Detail | null>(null); const [tab, setTab] = useState<Stage | 'summary'>('summary');
   const [scoresBy, setScoresBy] = useState<Partial<Record<Stage, Record<string, { score: number | null; comment: string | null }>>>>({}); const [overallBy, setOverallBy] = useState<Partial<Record<Stage, string>>>({}); const [info, setInfo] = useState<Info>({});
   const [labels, setLabels] = useState<Labels>({ items: {}, sections: {} }); const [wording, setWording] = useState(false); const labelTimer = useRef<any>(null);
-  const [saving, setSaving] = useState(false); const [confirmSubmit, setConfirmSubmit] = useState(false); const [del, setDel] = useState(false); const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false); const [confirmSubmit, setConfirmSubmit] = useState(false); const [del, setDel] = useState(false); const [returnEmp, setReturnEmp] = useState(false); const [busy, setBusy] = useState(false);
   const pending = useRef<{ st: Partial<Record<Stage, { scores: Record<string, any>; overall?: string }>>; info?: Info }>({ st: {} }); const timer = useRef<any>(null);
 
   const adopt = (x: Detail, first = false) => {
@@ -114,6 +114,7 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
         <h1 className="text-lg font-semibold text-brand-900">{d.employee.name} — {d.period}</h1><Badge tone={TONE[d.status]}>{d.status === 'completed' ? 'Completed' : `Waiting: ${stageLabel(d.status)}`}</Badge>
         {saving && <span className="text-xs text-slate-500">Saving…</span>}
         <span className="ml-auto flex flex-wrap gap-2">
+          {d.can.reopen && d.status !== 'self' && d.stages.self?.submitted_at && <button className="btn-secondary btn-sm" disabled={busy} onClick={() => setReturnEmp(true)} title="Send the form back to the employee to re-evaluate and submit again"><RotateCcw size={14} />Return to employee</button>}
           {d.can.reopen && d.status !== 'self' && <select className="input w-52" value="" onChange={(e) => e.target.value && reopen(e.target.value as Stage)} aria-label="Send back to"><option value="">Send back to…</option>{STAGES.filter((s) => s.key !== 'department' || d.status === 'completed' || d.status === 'department').map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}</select>}
           {d.can.reopen && <button className={wording ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'} onClick={() => setWording(!wording)} title="Edit the description of the evaluation items (applies to every evaluation)"><Pencil size={14} />{wording ? 'Done editing items' : 'Edit items'}</button>}
           {d.can.delete && <button className="btn-ghost text-red-600" onClick={() => setDel(true)}><Trash2 size={16} />Delete</button>}
@@ -124,7 +125,7 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
       <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
         <div className="space-y-4">
           <div className="card p-3 text-sm"><p className="mb-1 font-semibold underline">Level Legend:</p><div className="grid grid-cols-2 gap-1">{LEVELS.map((l) => <div key={l.k}><b className="text-brand-700">{l.k}</b> <span className="ml-1 rounded border border-slate-300 bg-white px-1.5 text-xs">{l.range}</span></div>)}</div></div>
-          <div className="card space-y-1 p-3 text-sm">{BANDS.map((b) => <div key={b.k} className="flex items-center gap-2"><span className="h-5 w-8 shrink-0 rounded border border-slate-400" style={{ background: b.bg }} /><span><b>{b.k}</b> : {b.label} <span className="text-xs text-slate-500">({b.range})</span></span></div>)}</div>
+          <div className="card space-y-1 p-3 text-sm">{BANDS.map((b) => <div key={b.k} className="flex items-start gap-2"><span className="mt-0.5 h-5 w-8 shrink-0 rounded border border-slate-400" style={{ background: b.bg }} /><span><b>{b.k}</b> : {b.label} <span className="text-xs text-slate-500">({b.range})</span><span dir="rtl" lang="ar" className="block text-slate-700">{b.ar}</span></span></div>)}</div>
         </div>
         <div className="card space-y-3 p-4">
           <div className="flex flex-wrap items-start gap-4">
@@ -159,7 +160,7 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
                     return (<tr key={it.key} className="border-t border-slate-100">
                       <td className="px-2 py-1 text-slate-500">{it.key.replace('E', '')}</td><td className="min-w-[16rem] px-2 py-1">{wording ? <span className="flex gap-1"><input className="input w-full" maxLength={300} value={labels.items[it.key] ?? it.text} onChange={(e) => setLabel('items', it.key, e.target.value)} aria-label={`Description of item ${it.key}`} />{labels.items[it.key] && labels.items[it.key] !== it.text && <button type="button" className="btn-ghost btn-sm" title="Back to the original wording" onClick={() => setLabel('items', it.key, it.text)}><RotateCcw size={13} /></button>}</span> : itemText(it, labels)}</td>
                       <td className="min-w-[12rem] px-2 py-1">{editing ? <input className="input w-full" value={v?.comment ?? ''} maxLength={1000} onChange={(e) => setItem(it.key, { comment: e.target.value })} aria-label={`Comment on ${it.text}`} /> : <span className="text-xs text-slate-600">{v?.comment}</span>}</td>
-                      {BANDS.map((b) => <td key={b.k} className="px-0.5 py-1 text-center"><button type="button" disabled={!editing} title={`${b.label} (${b.range})`} onClick={() => setItem(it.key, { score: band === b.k ? v!.score : b.pick })} className={`w-full rounded border px-1 py-1 text-xs ${band === b.k ? 'border-slate-800 font-bold ring-2 ring-slate-700' : 'border-slate-300 opacity-60'} ${editing ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`} style={{ background: b.bg, color: b.text }}>{b.range}</button></td>)}
+                      {BANDS.map((b) => <td key={b.k} className="px-0.5 py-1 text-center"><button type="button" disabled={!editing} title={`${b.label} — ${b.ar} (${b.range})`} onClick={() => setItem(it.key, { score: band === b.k ? v!.score : b.pick })} className={`w-full rounded border px-1 py-1 text-xs ${band === b.k ? 'border-slate-800 font-bold ring-2 ring-slate-700' : 'border-slate-300 opacity-60'} ${editing ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`} style={{ background: b.bg, color: b.text }}>{b.range}</button></td>)}
                       <td className="px-2 py-1 text-center">{editing ? <input type="number" min={0} max={10} step={0.5} className="input w-16 text-center" value={v?.score ?? ''} onChange={(e) => setItem(it.key, { score: e.target.value === '' ? null : cleanScore(e.target.value) })} aria-label={`Score of ${it.text}`} /> : <b>{v?.score ?? ''}</b>}</td>
                     </tr>); })}</tbody></table></div>
               </section>); })}
@@ -168,8 +169,9 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
         </div>)}
 
       <Confirm open={confirmSubmit} title="Submit evaluation" message={submitStage ? `Submit the ${stageLabel(submitStage).toLowerCase()}? After submitting you cannot change it${submitStage === 'self' ? (d.has_manager ? '; your direct manager is next.' : '; the department manager is next.') : submitStage === 'manager' ? '; the department manager is next.' : '; the evaluation will be completed.'} Every item of the main sections must be scored.` : ''} confirmLabel="Submit" onClose={() => setConfirmSubmit(false)} onConfirm={submit} />
+      <Confirm open={returnEmp} title="Return to employee" message={`Send this evaluation back to ${d.employee.name}? He can change his self-evaluation and submit it again; the direct manager and the department manager then repeat their parts (their scores are kept as a starting point).`} confirmLabel="Return" onClose={() => setReturnEmp(false)} onConfirm={() => { setReturnEmp(false); reopen('self'); }} />
       <Confirm open={del} danger title="Delete evaluation" message="Delete this evaluation with all its scores? This cannot be undone." confirmLabel="Delete" onClose={() => setDel(false)} onConfirm={async () => { setDel(false); try { await api(`/api/evaluations/${id}`, { method: 'DELETE' }); toast('Deleted'); onBack(); } catch (e: any) { toast(e.message, 'err'); } }} />
-      <p className="text-xs text-slate-500">Each item is scored 0–10 (A 10-8 · F 8-6 · O 6-4 · S 4-2 · R 2→0 · N 0). Click a colour to set a typical score, then adjust the number if needed. Main sections count unscored items as 0; in the extra sections only the items you scored count.</p>
+      <p className="text-xs text-slate-500">Each item is scored 0–10 (A 8-10 · F 6-7.5 · O 4-5.5 · S 2-3.5 · R 0.5-1.5 · N 0). Click a colour to set a typical score, then adjust the number if needed. Main sections count unscored items as 0; in the extra sections only the items you scored count.</p>
     </div>
   );
 }

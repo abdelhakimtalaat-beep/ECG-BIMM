@@ -18,12 +18,12 @@ export const SECTIONS: EvSection[] = [
 export const ITEM_KEYS = SECTIONS.flatMap((s) => s.items.map((i) => i.key));
 
 export const BANDS = [
-  { k: 'A', label: 'Always (role-mode)', range: '10-8', min: 8, pick: 9, bg: '#7FDD7F', text: '#14532d' },
-  { k: 'F', label: 'Frequently (exceeds requirements)', range: '8-6', min: 6, pick: 7, bg: '#C2E07F', text: '#365314' },
-  { k: 'O', label: 'Often (meet requirements)', range: '6-4', min: 4, pick: 5, bg: '#FFFF80', text: '#713f12' },
-  { k: 'S', label: 'Sometimes (marginal)', range: '4-2', min: 2, pick: 3, bg: '#FFBF80', text: '#7c2d12' },
-  { k: 'R', label: 'Rarely (unsatisfactory)', range: '2->0', min: 0.0001, pick: 1, bg: '#E08080', text: '#7f1d1d' },
-  { k: 'N', label: 'Not at all', range: '0', min: 0, pick: 0, bg: '#B0B0B0', text: '#1f2937' },
+  { k: 'A', label: 'Always (Exceeds Requirements)', ar: 'دائماً (يتجاوز المتطلبات)', range: '8-10', min: 8, pick: 9, bg: '#7FDD7F', text: '#14532d' },
+  { k: 'F', label: 'Frequently (Meet Requirements)', ar: 'بشكل متكرر (يُلبي المتطلبات)', range: '6-7.5', min: 6, pick: 7, bg: '#C2E07F', text: '#365314' },
+  { k: 'O', label: 'Often (Meet Requirements)', ar: 'غالباً (يُلبي المتطلبات)', range: '4-5.5', min: 4, pick: 5, bg: '#FFFF80', text: '#713f12' },
+  { k: 'S', label: 'Sometimes (Marginal)', ar: 'أحياناً (هامشي / دون المستوى المطلوب قليلاً)', range: '2-3.5', min: 2, pick: 3, bg: '#FFBF80', text: '#7c2d12' },
+  { k: 'R', label: 'Rarely (Unsatisfactory)', ar: 'نادراً (غير مرضي)', range: '0.5-1.5', min: 0.5, pick: 1, bg: '#E08080', text: '#7f1d1d' },
+  { k: 'N', label: 'Not at all', ar: 'على الإطلاق / لا تقييم', range: '0', min: 0, pick: 0, bg: '#B0B0B0', text: '#1f2937' },
 ] as const;
 export const LEVELS = [{ k: 'A', range: '91-100', min: 91 }, { k: 'B+', range: '80-90', min: 80 }, { k: 'B', range: '66-79', min: 66 }, { k: 'C+', range: '56-65', min: 56 }, { k: 'C', range: '0-55', min: 0 }] as const;
 
