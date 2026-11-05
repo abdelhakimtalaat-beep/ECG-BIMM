@@ -9,7 +9,7 @@ import { BANDS, LEVELS, SECTIONS, STAGES, bandOf, cleanScore, levelOf, sectionSc
 interface Row { id: string; employee_id: string; period: string; status: EvStatus; updated_at: string; totals: Partial<Record<Stage, { total: number; level: string; rated: number }>> }
 interface StageData { scores: Record<string, { score: number | null; comment: string | null }>; overall_comment: string; submitted_at: string | null; submitted_by: string | null }
 interface Info { location?: string; employment_date?: string; department?: string; section?: string; vacation_days?: number | null; sick_days?: number | null; late_hours?: number | null; education?: { degree: string; major: string; university: string; year: string }[] }
-interface Detail { id: string; period: string; status: EvStatus; info: Info; employee: { id: string; name: string; job_title: string; photo_id: string | null; team_location: string | null }; has_manager: boolean; stages: Partial<Record<Stage, StageData>>; can: { edit: Stage | null; hr: boolean; reopen: boolean; delete: boolean } }
+interface Detail { id: string; period: string; status: EvStatus; info: Info; employee: { id: string; name: string; job_title: string; photo_id: string | null; team_location: string | null }; has_manager: boolean; stages: Partial<Record<Stage, StageData>>; can: { edit: Stage[]; submit: Stage | null; hr: boolean; reopen: boolean; delete: boolean } }
 const TONE: Record<EvStatus, 'gray' | 'blue' | 'amber' | 'green'> = { self: 'gray', manager: 'blue', department: 'amber', completed: 'green' };
 const f2 = (n: number) => n.toFixed(2);
 
@@ -64,41 +64,43 @@ function AddForm({ employees, onClose, onDone }: { employees: { id: string; name
 function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
   const toast = useToast();
   const [d, setD] = useState<Detail | null>(null); const [tab, setTab] = useState<Stage | 'summary'>('summary');
-  const [scores, setScores] = useState<Record<string, { score: number | null; comment: string | null }>>({}); const [overall, setOverall] = useState(''); const [info, setInfo] = useState<Info>({});
+  const [scoresBy, setScoresBy] = useState<Partial<Record<Stage, Record<string, { score: number | null; comment: string | null }>>>>({}); const [overallBy, setOverallBy] = useState<Partial<Record<Stage, string>>>({}); const [info, setInfo] = useState<Info>({});
   const [saving, setSaving] = useState(false); const [confirmSubmit, setConfirmSubmit] = useState(false); const [del, setDel] = useState(false); const [busy, setBusy] = useState(false);
-  const pending = useRef<{ scores: Record<string, any>; overall?: string; info?: Info }>({ scores: {} }); const timer = useRef<any>(null); const stageRef = useRef<Stage | null>(null);
+  const pending = useRef<{ st: Partial<Record<Stage, { scores: Record<string, any>; overall?: string }>>; info?: Info }>({ st: {} }); const timer = useRef<any>(null);
 
   const adopt = (x: Detail, first = false) => {
-    setD(x); setInfo(x.info ?? {}); const st = x.can.edit ?? (STAGES.find((s) => s.key === x.status)?.key ?? null);
-    const mine = x.can.edit ? x.stages[x.can.edit] : undefined; setScores(mine?.scores ?? {}); setOverall(mine?.overall_comment ?? ''); stageRef.current = x.can.edit;
-    if (first) setTab(x.can.edit ?? (st && x.stages[st] ? st : 'summary'));
+    setD(x); setInfo(x.info ?? {}); const st = x.can.submit ?? x.can.edit[0] ?? (STAGES.find((s) => s.key === x.status)?.key ?? null);
+    setScoresBy(Object.fromEntries(STAGES.filter((q) => x.stages[q.key]).map((q) => [q.key, x.stages[q.key]!.scores]))); setOverallBy(Object.fromEntries(STAGES.filter((q) => x.stages[q.key]).map((q) => [q.key, x.stages[q.key]!.overall_comment])));
+    if (first) setTab(x.can.submit ?? (st && x.stages[st] ? st : 'summary'));
   };
   useEffect(() => { api<Detail>(`/api/evaluations/${id}`).then((x) => adopt(x, true)).catch((e) => { toast(e.message, 'err'); onBack(); }); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   const flush = useCallback(async () => {
-    clearTimeout(timer.current); const p = pending.current; const stage = stageRef.current;
-    if (!Object.keys(p.scores).length && p.overall === undefined && !p.info) return;
-    pending.current = { scores: {} }; setSaving(true);
-    try { await api(`/api/evaluations/${id}`, { method: 'PUT', body: { stage: stage ?? 'self', ...(Object.keys(p.scores).length ? { scores: p.scores } : {}), ...(p.overall !== undefined ? { overall_comment: p.overall } : {}), ...(p.info ? { info: p.info } : {}) } }); }
-    catch (e: any) { toast(e.message, 'err'); } finally { setSaving(false); }
+    clearTimeout(timer.current); const p = pending.current; const stages = (Object.keys(p.st) as Stage[]).filter((k) => Object.keys(p.st[k]!.scores).length || p.st[k]!.overall !== undefined);
+    if (!stages.length && !p.info) return;
+    pending.current = { st: {} }; setSaving(true);
+    try {
+      let info = p.info;
+      for (const stg of stages.length ? stages : (['self'] as Stage[])) { const x = p.st[stg]; await api(`/api/evaluations/${id}`, { method: 'PUT', body: { stage: stg, ...(x && Object.keys(x.scores).length ? { scores: x.scores } : {}), ...(x?.overall !== undefined ? { overall_comment: x.overall } : {}), ...(info ? { info } : {}) } }); info = undefined; }
+    } catch (e: any) { toast(e.message, 'err'); } finally { setSaving(false); }
   }, [id, toast]);
   const queue = () => { clearTimeout(timer.current); timer.current = setTimeout(flush, 700); };
   useEffect(() => () => { clearTimeout(timer.current); }, []);
 
   if (!d) return <Spinner />;
-  const editable = d.can.edit; const editing = tab !== 'summary' && tab === editable;
+  const submitStage = d.can.submit; const canInfo = d.can.edit.length > 0; const editing = tab !== 'summary' && d.can.edit.includes(tab);
   const setItem = (key: string, patch: Partial<{ score: number | null; comment: string | null }>) => {
-    const cur = scores[key] ?? { score: null, comment: null }; const next = { ...cur, ...patch };
-    setScores({ ...scores, [key]: next }); pending.current.scores[key] = next; queue();
+    const st = tab as Stage; const cur = scoresBy[st]?.[key] ?? { score: null, comment: null }; const next = { ...cur, ...patch };
+    setScoresBy({ ...scoresBy, [st]: { ...(scoresBy[st] ?? {}), [key]: next } }); ((pending.current.st[st] ??= { scores: {} }).scores)[key] = next; queue();
   };
   const setI = (patch: Partial<Info>) => { const n = { ...info, ...patch }; setInfo(n); pending.current.info = n; queue(); };
   const setEdu = (i: number, k: 'degree' | 'major' | 'university' | 'year', v: string) => { const rows = [...(info.education ?? [])]; while (rows.length < 4) rows.push({ degree: '', major: '', university: '', year: '' }); rows[i] = { ...rows[i], [k]: v }; setI({ education: rows }); };
   const view = tab === 'summary' ? null : tab; const stageData = view ? d.stages[view] : undefined;
-  const liveScores = (s: Stage): Record<string, number | null> => Object.fromEntries((Object.entries(s === editable ? scores : d.stages[s]?.scores ?? {}) as [string, { score: number | null }][]).map(([k, v]) => [k, v.score]));
+  const liveScores = (s: Stage): Record<string, number | null> => Object.fromEntries((Object.entries(scoresBy[s] ?? d.stages[s]?.scores ?? {}) as [string, { score: number | null }][]).map(([k, v]) => [k, v.score]));
   const visible = STAGES.filter((s) => d.stages[s.key]);
-  const submit = async () => { setConfirmSubmit(false); setBusy(true); try { await flush(); const x = await api<Detail>(`/api/evaluations/${id}`, { method: 'PUT', body: { stage: editable!, submit: true } }); toast('Submitted'); adopt(x, true); setTab('summary'); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
+  const submit = async () => { setConfirmSubmit(false); setBusy(true); try { await flush(); const x = await api<Detail>(`/api/evaluations/${id}`, { method: 'PUT', body: { stage: submitStage!, submit: true } }); toast('Submitted'); adopt(x, true); setTab('summary'); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
   const reopen = async (to: Stage) => { setBusy(true); try { await api(`/api/evaluations/${id}/reopen`, { body: { to } }); toast('Sent back'); adopt(await api<Detail>(`/api/evaluations/${id}`), true); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
   const hrIn = (k: 'vacation_days' | 'sick_days' | 'late_hours', label: string) => <label className="flex items-center gap-2 text-sm"><span className="w-28 font-medium text-brand-700">{label}</span>{d.can.hr ? <input type="number" min={0} step="any" className="input w-24" value={info[k] ?? ''} onChange={(e) => setI({ [k]: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })} /> : <span className="rounded border border-slate-200 bg-white px-2 py-1">{info[k] ?? '—'}</span>}</label>;
-  const txt = (k: 'location' | 'employment_date' | 'department' | 'section', label: string, type = 'text') => <label className="grid grid-cols-[8rem_1fr] items-center gap-2 text-sm"><span className="font-medium text-brand-700">{label}</span>{editable ? <input type={type} className="input" value={info[k] ?? ''} onChange={(e) => setI({ [k]: e.target.value })} /> : <span className="rounded border border-slate-200 bg-white px-2 py-1">{info[k] || '—'}</span>}</label>;
+  const txt = (k: 'location' | 'employment_date' | 'department' | 'section', label: string, type = 'text') => <label className="grid grid-cols-[8rem_1fr] items-center gap-2 text-sm"><span className="font-medium text-brand-700">{label}</span>{canInfo ? <input type={type} className="input" value={info[k] ?? ''} onChange={(e) => setI({ [k]: e.target.value })} /> : <span className="rounded border border-slate-200 bg-white px-2 py-1">{info[k] || '—'}</span>}</label>;
   const edu = Array.from({ length: 4 }, (_, i) => info.education?.[i] ?? { degree: '', major: '', university: '', year: '' });
 
   return (
@@ -126,21 +128,22 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
           </div>
           <div className="flex flex-wrap gap-x-8 gap-y-2 border-t border-slate-200 pt-3">{hrIn('vacation_days', 'Vacation (days)')}{hrIn('sick_days', 'Sick (days)')}{hrIn('late_hours', 'Late (hrs)')}</div>
           <div className="overflow-x-auto border-t border-slate-200 pt-3"><table className="w-full text-left text-sm"><thead><tr>{['Degree', 'Major', 'University', 'Year'].map((h) => <th key={h} className="px-1 pb-1 text-center text-xs font-semibold text-brand-700">{h}</th>)}</tr></thead>
-            <tbody>{edu.map((r, i) => <tr key={i}>{(['degree', 'major', 'university', 'year'] as const).map((k) => <td key={k} className="p-0.5">{editable ? <input className="input w-full" value={r[k]} onChange={(e) => setEdu(i, k, e.target.value)} /> : <span className="block min-h-[2rem] rounded border border-slate-200 bg-white px-2 py-1">{r[k]}</span>}</td>)}</tr>)}</tbody></table></div>
+            <tbody>{edu.map((r, i) => <tr key={i}>{(['degree', 'major', 'university', 'year'] as const).map((k) => <td key={k} className="p-0.5">{canInfo ? <input className="input w-full" value={r[k]} onChange={(e) => setEdu(i, k, e.target.value)} /> : <span className="block min-h-[2rem] rounded border border-slate-200 bg-white px-2 py-1">{r[k]}</span>}</td>)}</tr>)}</tbody></table></div>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Evaluation parts">
         <button role="tab" aria-selected={tab === 'summary'} className={tab === 'summary' ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'} onClick={() => setTab('summary')}><ClipboardCheck size={14} />Summary</button>
         {visible.map((s) => <button key={s.key} role="tab" aria-selected={tab === s.key} className={tab === s.key ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'} onClick={() => setTab(s.key)}>{s.label}{d.stages[s.key]!.submitted_at ? ' ✓' : ''}</button>)}
-        {editable && <button className="btn-primary btn-sm ml-auto" disabled={busy} onClick={() => setConfirmSubmit(true)}><Send size={14} />Submit {stageLabel(editable).toLowerCase()}</button>}
+        {submitStage && <button className="btn-primary btn-sm ml-auto" disabled={busy} onClick={() => setConfirmSubmit(true)}><Send size={14} />Submit {stageLabel(submitStage).toLowerCase()}</button>}
       </div>
-      {editable && tab !== editable && <p className="rounded-lg bg-brand-50 p-3 text-sm text-brand-800">It is your turn: open the <b>{stageLabel(editable)}</b> tab to fill your evaluation.</p>}
+      {submitStage && tab !== submitStage && <p className="rounded-lg bg-brand-50 p-3 text-sm text-brand-800">It is your turn: open the <b>{stageLabel(submitStage)}</b> tab to fill the evaluation.</p>}
+      {editing && d.can.reopen && !(submitStage === tab) && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">You are editing this part as Administrator. Changes are saved automatically.</p>}
 
       {tab === 'summary' ? <Summary d={d} live={liveScores} /> : (
         <div className="space-y-4">
           {stageData?.submitted_at && <p className="text-xs text-slate-500">Submitted {fmtDate(stageData.submitted_at)}{stageData.submitted_by ? ` by ${stageData.submitted_by}` : ''}.</p>}
-          {SECTIONS.map((sec) => { const sc = liveScores(view!); const got = sectionScore(sec, sc); const src = editing ? scores : stageData?.scores ?? {};
+          {SECTIONS.map((sec) => { const sc = liveScores(view!); const got = sectionScore(sec, sc); const src = scoresBy[view!] ?? stageData?.scores ?? {};
             return (
               <section key={sec.extra + sec.code} className="card overflow-hidden">
                 <div className="flex flex-wrap items-center gap-3 bg-brand-600 px-3 py-2 text-white"><span className="rounded bg-white/20 px-2 text-sm font-semibold">{sec.extra ? 'Extra ' : ''}{sec.code}</span><h2 className="font-semibold">{sec.title}</h2>
@@ -154,11 +157,11 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
                       <td className="px-2 py-1 text-center">{editing ? <input type="number" min={0} max={10} step={0.5} className="input w-16 text-center" value={v?.score ?? ''} onChange={(e) => setItem(it.key, { score: e.target.value === '' ? null : cleanScore(e.target.value) })} aria-label={`Score of ${it.text}`} /> : <b>{v?.score ?? ''}</b>}</td>
                     </tr>); })}</tbody></table></div>
               </section>); })}
-          <div className="card p-3"><Field label={`Overall comments — ${stageLabel(view!)}`}>{editing ? <textarea className="input min-h-[5rem] w-full" maxLength={4000} value={overall} onChange={(e) => { setOverall(e.target.value); pending.current.overall = e.target.value; queue(); }} /> : <p className="whitespace-pre-wrap text-sm">{stageData?.overall_comment || '—'}</p>}</Field></div>
+          <div className="card p-3"><Field label={`Overall comments — ${stageLabel(view!)}`}>{editing ? <textarea className="input min-h-[5rem] w-full" maxLength={4000} value={overallBy[view!] ?? ''} onChange={(e) => { const v = e.target.value; setOverallBy({ ...overallBy, [view!]: v }); (pending.current.st[view!] ??= { scores: {} }).overall = v; queue(); }} /> : <p className="whitespace-pre-wrap text-sm">{stageData?.overall_comment || '—'}</p>}</Field></div>
           {(() => { const t = totals(liveScores(view!)); return <p className="text-sm">Total: <b>{f2(t.total)}</b> / 100 — Level <b>{t.level}</b> <span className="text-xs text-slate-500">(main sections {f2(t.core)} + extra activities {f2(t.extra)}, maximum 100)</span></p>; })()}
         </div>)}
 
-      <Confirm open={confirmSubmit} title="Submit evaluation" message={editable ? `Submit the ${stageLabel(editable).toLowerCase()}? After submitting you cannot change it${editable === 'self' ? (d.has_manager ? '; your direct manager is next.' : '; the department manager is next.') : editable === 'manager' ? '; the department manager is next.' : '; the evaluation will be completed.'} Every item of the main sections must be scored.` : ''} confirmLabel="Submit" onClose={() => setConfirmSubmit(false)} onConfirm={submit} />
+      <Confirm open={confirmSubmit} title="Submit evaluation" message={submitStage ? `Submit the ${stageLabel(submitStage).toLowerCase()}? After submitting you cannot change it${submitStage === 'self' ? (d.has_manager ? '; your direct manager is next.' : '; the department manager is next.') : submitStage === 'manager' ? '; the department manager is next.' : '; the evaluation will be completed.'} Every item of the main sections must be scored.` : ''} confirmLabel="Submit" onClose={() => setConfirmSubmit(false)} onConfirm={submit} />
       <Confirm open={del} danger title="Delete evaluation" message="Delete this evaluation with all its scores? This cannot be undone." confirmLabel="Delete" onClose={() => setDel(false)} onConfirm={async () => { setDel(false); try { await api(`/api/evaluations/${id}`, { method: 'DELETE' }); toast('Deleted'); onBack(); } catch (e: any) { toast(e.message, 'err'); } }} />
       <p className="text-xs text-slate-500">Each item is scored 0–10 (A 10-8 · F 8-6 · O 6-4 · S 4-2 · R 2→0 · N 0). Click a colour to set a typical score, then adjust the number if needed. Main sections count unscored items as 0; in the extra sections only the items you scored count.</p>
     </div>

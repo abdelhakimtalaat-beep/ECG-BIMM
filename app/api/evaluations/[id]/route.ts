@@ -51,6 +51,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
         await c.query('update evaluations set updated_at=now() where id=$1', [id]);
       }
       if (b.submit && mayStage) {
+        if (ev.status !== b.stage) throw new ApiError(400, 'Only the part the form is waiting on can be submitted');
         const have = await c.query<{ item_key: string }>('select item_key from evaluation_scores where evaluation_id=$1 and stage=$2 and score is not null', [id, b.stage]);
         const rated = new Set(have.rows.map((r) => r.item_key));
         const missing = SECTIONS.filter((s) => !s.extra).flatMap((s) => s.items).filter((i) => !rated.has(i.key)).length;

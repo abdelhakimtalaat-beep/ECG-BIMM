@@ -55,10 +55,12 @@ const isSelf = (me: Who, a: Actors) => !!me.employee_id && me.employee_id === a.
 const isManager = (me: Who, a: Actors) => !!me.employee_id && !!a.managerId && me.employee_id === a.managerId;
 const isDept = (me: Who, a: Actors) => !!me.employee_id && a.deptIds.includes(me.employee_id) && me.employee_id !== a.employeeId;
 export const stageActor = (me: Who, a: Actors, stage: Stage) => isAdmin(me) || (stage === 'self' ? isSelf(me, a) : stage === 'manager' ? isManager(me, a) : isDept(me, a));
-/** The stage the form is waiting on is the only one that can be edited. */
-export const canEditStage = (me: Who, a: Actors, status: EvStatus, stage: Stage) => status === stage && stageActor(me, a, stage);
+/** The stage the form is waiting on is the only one its owner can edit; the Administrator can edit any part at any time (even after it was submitted or the form was completed). */
+export const canEditStage = (me: Who, a: Actors, status: EvStatus, stage: Stage) => isAdmin(me) || (status === stage && stageActor(me, a, stage));
+/** Submitting moves the form on, so it is only possible for the stage the form is waiting on. */
+export const canSubmitStage = (me: Who, a: Actors, status: EvStatus): Stage | null => (status !== 'completed' && stageActor(me, a, status) ? status : null);
 /** Vacation / sick / late figures are HR data: managers and the Administrator only. */
-export const canEditHr = (me: Who, a: Actors, status: EvStatus) => status !== 'completed' && (isAdmin(me) || isManager(me, a) || isDept(me, a));
+export const canEditHr = (me: Who, a: Actors, status: EvStatus) => isAdmin(me) || (status !== 'completed' && (isManager(me, a) || isDept(me, a)));
 /** Stages whose scores the person may see; null = the form is not visible to him at all. The employee sees only his own part until the form is completed. */
 export function visibleStages(me: Who, a: Actors, status: EvStatus): Stage[] | null {
   const all: Stage[] = ['self', 'manager', 'department'];

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SECTIONS, bandOf, canEditHr, canEditStage, cleanScore, levelOf, nextStatus, sectionScore, totals, visibleStages, ITEM_KEYS, canCreate } from '../lib/evaluation.ts';
+import { canSubmitStage, SECTIONS, bandOf, canEditHr, canEditStage, cleanScore, levelOf, nextStatus, sectionScore, totals, visibleStages, ITEM_KEYS, canCreate } from '../lib/evaluation.ts';
 const A = { employeeId: 'e', managerId: 'm', deptIds: ['d'] };
 test('form definition matches the template', () => {
   assert.deepEqual(SECTIONS.map((s) => s.items.length), [3, 7, 2, 2, 11, 8, 4]);
@@ -27,7 +27,9 @@ test('flow and permissions', () => {
   assert.ok(canEditStage(mgr, A, 'manager', 'manager')); assert.ok(!canEditStage(mgr, A, 'self', 'manager')); assert.ok(canEditStage(dep, A, 'department', 'department')); assert.ok(canEditStage(adm, A, 'manager', 'manager'));
   assert.deepEqual(visibleStages(emp, A, 'manager'), ['self']); assert.deepEqual(visibleStages(emp, A, 'completed'), ['self', 'manager', 'department']);
   assert.deepEqual(visibleStages(mgr, A, 'department'), ['self', 'manager']); assert.equal(visibleStages(other, A, 'completed'), null); assert.equal(visibleStages(dep, A, 'self')!.length, 3);
-  assert.ok(!canEditHr(emp, A, 'self')); assert.ok(canEditHr(mgr, A, 'manager')); assert.ok(!canEditHr(adm, A, 'completed'));
+  assert.ok(!canEditHr(emp, A, 'self')); assert.ok(canEditHr(mgr, A, 'manager')); assert.ok(!canEditHr(mgr, A, 'completed')); assert.ok(canEditHr(adm, A, 'completed'));
+  assert.ok(canEditStage(adm, A, 'completed', 'self') && canEditStage(adm, A, 'department', 'self') && !canEditStage(emp, A, 'completed', 'self')); // the Administrator edits any part at any time
+  assert.equal(canSubmitStage(emp, A, 'self'), 'self'); assert.equal(canSubmitStage(adm, A, 'manager'), 'manager'); assert.equal(canSubmitStage(adm, A, 'completed'), null); assert.equal(canSubmitStage(emp, A, 'manager'), null);
   assert.ok(!canEditStage({ role: 'x', employee_id: 'e' }, { ...A, deptIds: ['e'] }, 'department', 'department')); // nobody evaluates himself as department manager
   assert.ok(canCreate(mgr, A) && canCreate(dep, A) && canCreate(adm, A) && !canCreate(emp, A));
 });

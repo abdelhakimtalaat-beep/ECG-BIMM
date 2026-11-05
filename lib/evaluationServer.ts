@@ -1,6 +1,6 @@
 import { ApiError } from './auth';
 import { one, q } from './db';
-import { STAGES, canEditHr, canEditStage, totals, visibleStages, type Actors, type EvStatus, type Stage, type Who } from './evaluation';
+import { STAGES, canEditHr, canEditStage, canSubmitStage, totals, visibleStages, type Actors, type EvStatus, type Stage, type Who } from './evaluation';
 import type { Me } from './types';
 
 export interface EvRow { id: string; employee_id: string; period: string; status: EvStatus; info: any; created_at: string; updated_at: string }
@@ -31,6 +31,6 @@ export async function detail(me: Me, ev: EvRow, a: Actors) {
     const scores = mapScores(sc.filter((r) => r.stage === s)); const meta = st.find((r) => r.stage === s);
     stages[s] = { scores, overall_comment: meta?.overall_comment ?? '', submitted_at: meta?.submitted_at ?? null, submitted_by: meta?.submitted_by ?? null, totals: totals(Object.fromEntries(Object.entries(scores).map(([k, v]) => [k, v.score]))) };
   }
-  const editing = STAGES.find((s) => canEditStage(who, a, ev.status, s.key))?.key ?? null;
-  return { id: ev.id, period: ev.period, status: ev.status, info: ev.info ?? {}, employee: emp, has_manager: !!a.managerId, stages, can: { edit: editing as Stage | null, hr: canEditHr(who, a, ev.status), reopen: me.role === 'admin', delete: me.role === 'admin' } };
+  const editing = STAGES.filter((s) => vis.includes(s.key) && canEditStage(who, a, ev.status, s.key)).map((s) => s.key);
+  return { id: ev.id, period: ev.period, status: ev.status, info: ev.info ?? {}, employee: emp, has_manager: !!a.managerId, stages, can: { edit: editing as Stage[], submit: canSubmitStage(who, a, ev.status), hr: canEditHr(who, a, ev.status), reopen: me.role === 'admin', delete: me.role === 'admin' } };
 }
