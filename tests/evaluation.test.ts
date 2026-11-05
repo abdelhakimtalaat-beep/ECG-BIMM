@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canSubmitStage, SECTIONS, bandOf, canEditHr, canEditStage, cleanScore, levelOf, nextStatus, sectionScore, totals, visibleStages, ITEM_KEYS, canCreate } from '../lib/evaluation.ts';
+import { cleanLabels, itemText, secTitle, canSubmitStage, SECTIONS, bandOf, canEditHr, canEditStage, cleanScore, levelOf, nextStatus, sectionScore, totals, visibleStages, ITEM_KEYS, canCreate } from '../lib/evaluation.ts';
 const A = { employeeId: 'e', managerId: 'm', deptIds: ['d'] };
 test('form definition matches the template', () => {
   assert.deepEqual(SECTIONS.map((s) => s.items.length), [3, 7, 2, 2, 11, 8, 4]);
@@ -32,4 +32,10 @@ test('flow and permissions', () => {
   assert.equal(canSubmitStage(emp, A, 'self'), 'self'); assert.equal(canSubmitStage(adm, A, 'manager'), 'manager'); assert.equal(canSubmitStage(adm, A, 'completed'), null); assert.equal(canSubmitStage(emp, A, 'manager'), null);
   assert.ok(!canEditStage({ role: 'x', employee_id: 'e' }, { ...A, deptIds: ['e'] }, 'department', 'department')); // nobody evaluates himself as department manager
   assert.ok(canCreate(mgr, A) && canCreate(dep, A) && canCreate(adm, A) && !canCreate(emp, A));
+});
+
+test('editable wording', () => {
+  const l = cleanLabels({ items: { '1.1': '  New text ', '1.2': 'Organizing of one\'s own work', 'zzz': 'x', '1.3': '   ' }, sections: { '1': 'Planning', E2: 'BD' } });
+  assert.deepEqual(l.items, { '1.1': 'New text' }); assert.deepEqual(l.sections, { '1': 'Planning', E2: 'BD' });
+  assert.equal(itemText(SECTIONS[0].items[0], l), 'New text'); assert.equal(itemText(SECTIONS[0].items[1], l), SECTIONS[0].items[1].text); assert.equal(secTitle(SECTIONS[6], l), 'BD'); assert.equal(secTitle(SECTIONS[1], null), 'Interpersonal Skills');
 });

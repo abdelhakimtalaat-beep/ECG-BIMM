@@ -1,15 +1,15 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CheckCircle2, ClipboardCheck, Plus, RotateCcw, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ClipboardCheck, Pencil, Plus, RotateCcw, Send, Trash2 } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, Spinner, useToast } from '@/components/ui';
 import { api, fmtDate } from '@/lib/client';
-import { BANDS, LEVELS, SECTIONS, STAGES, bandOf, cleanScore, levelOf, sectionScore, stageLabel, totals, type EvStatus, type Stage } from '@/lib/evaluation';
+import { BANDS, LEVELS, SECTIONS, STAGES, bandOf, cleanScore, itemText, secKey, secTitle, type Labels, levelOf, sectionScore, stageLabel, totals, type EvStatus, type Stage } from '@/lib/evaluation';
 
 interface Row { id: string; employee_id: string; period: string; status: EvStatus; updated_at: string; totals: Partial<Record<Stage, { total: number; level: string; rated: number }>> }
 interface StageData { scores: Record<string, { score: number | null; comment: string | null }>; overall_comment: string; submitted_at: string | null; submitted_by: string | null }
 interface Info { location?: string; employment_date?: string; department?: string; section?: string; vacation_days?: number | null; sick_days?: number | null; late_hours?: number | null; education?: { degree: string; major: string; university: string; year: string }[] }
-interface Detail { id: string; period: string; status: EvStatus; info: Info; employee: { id: string; name: string; job_title: string; photo_id: string | null; team_location: string | null }; has_manager: boolean; stages: Partial<Record<Stage, StageData>>; can: { edit: Stage[]; submit: Stage | null; hr: boolean; reopen: boolean; delete: boolean } }
+interface Detail { labels: Labels; id: string; period: string; status: EvStatus; info: Info; employee: { id: string; name: string; job_title: string; photo_id: string | null; team_location: string | null }; has_manager: boolean; stages: Partial<Record<Stage, StageData>>; can: { edit: Stage[]; submit: Stage | null; hr: boolean; reopen: boolean; delete: boolean } }
 const TONE: Record<EvStatus, 'gray' | 'blue' | 'amber' | 'green'> = { self: 'gray', manager: 'blue', department: 'amber', completed: 'green' };
 const f2 = (n: number) => n.toFixed(2);
 
@@ -65,11 +65,12 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
   const toast = useToast();
   const [d, setD] = useState<Detail | null>(null); const [tab, setTab] = useState<Stage | 'summary'>('summary');
   const [scoresBy, setScoresBy] = useState<Partial<Record<Stage, Record<string, { score: number | null; comment: string | null }>>>>({}); const [overallBy, setOverallBy] = useState<Partial<Record<Stage, string>>>({}); const [info, setInfo] = useState<Info>({});
+  const [labels, setLabels] = useState<Labels>({ items: {}, sections: {} }); const [wording, setWording] = useState(false); const labelTimer = useRef<any>(null);
   const [saving, setSaving] = useState(false); const [confirmSubmit, setConfirmSubmit] = useState(false); const [del, setDel] = useState(false); const [busy, setBusy] = useState(false);
   const pending = useRef<{ st: Partial<Record<Stage, { scores: Record<string, any>; overall?: string }>>; info?: Info }>({ st: {} }); const timer = useRef<any>(null);
 
   const adopt = (x: Detail, first = false) => {
-    setD(x); setInfo(x.info ?? {}); const st = x.can.submit ?? x.can.edit[0] ?? (STAGES.find((s) => s.key === x.status)?.key ?? null);
+    setD(x); setLabels(x.labels ?? { items: {}, sections: {} }); setInfo(x.info ?? {}); const st = x.can.submit ?? x.can.edit[0] ?? (STAGES.find((s) => s.key === x.status)?.key ?? null);
     setScoresBy(Object.fromEntries(STAGES.filter((q) => x.stages[q.key]).map((q) => [q.key, x.stages[q.key]!.scores]))); setOverallBy(Object.fromEntries(STAGES.filter((q) => x.stages[q.key]).map((q) => [q.key, x.stages[q.key]!.overall_comment])));
     if (first) setTab(x.can.submit ?? (st && x.stages[st] ? st : 'summary'));
   };
@@ -92,6 +93,10 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
     const st = tab as Stage; const cur = scoresBy[st]?.[key] ?? { score: null, comment: null }; const next = { ...cur, ...patch };
     setScoresBy({ ...scoresBy, [st]: { ...(scoresBy[st] ?? {}), [key]: next } }); ((pending.current.st[st] ??= { scores: {} }).scores)[key] = next; queue();
   };
+  const setLabel = (kind: 'items' | 'sections', key: string, text: string) => {
+    const n = { ...labels, [kind]: { ...labels[kind], [key]: text } }; setLabels(n); clearTimeout(labelTimer.current);
+    labelTimer.current = setTimeout(async () => { try { setSaving(true); await api('/api/evaluations/config', { method: 'PUT', body: n }); } catch (e: any) { toast(e.message, 'err'); } finally { setSaving(false); } }, 800);
+  };
   const setI = (patch: Partial<Info>) => { const n = { ...info, ...patch }; setInfo(n); pending.current.info = n; queue(); };
   const setEdu = (i: number, k: 'degree' | 'major' | 'university' | 'year', v: string) => { const rows = [...(info.education ?? [])]; while (rows.length < 4) rows.push({ degree: '', major: '', university: '', year: '' }); rows[i] = { ...rows[i], [k]: v }; setI({ education: rows }); };
   const view = tab === 'summary' ? null : tab; const stageData = view ? d.stages[view] : undefined;
@@ -110,6 +115,7 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
         {saving && <span className="text-xs text-slate-500">Saving…</span>}
         <span className="ml-auto flex flex-wrap gap-2">
           {d.can.reopen && d.status !== 'self' && <select className="input w-52" value="" onChange={(e) => e.target.value && reopen(e.target.value as Stage)} aria-label="Send back to"><option value="">Send back to…</option>{STAGES.filter((s) => s.key !== 'department' || d.status === 'completed' || d.status === 'department').map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}</select>}
+          {d.can.reopen && <button className={wording ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'} onClick={() => setWording(!wording)} title="Edit the description of the evaluation items (applies to every evaluation)"><Pencil size={14} />{wording ? 'Done editing items' : 'Edit items'}</button>}
           {d.can.delete && <button className="btn-ghost text-red-600" onClick={() => setDel(true)}><Trash2 size={16} />Delete</button>}
         </span></div>
 
@@ -140,18 +146,18 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
       {submitStage && tab !== submitStage && <p className="rounded-lg bg-brand-50 p-3 text-sm text-brand-800">It is your turn: open the <b>{stageLabel(submitStage)}</b> tab to fill the evaluation.</p>}
       {editing && d.can.reopen && !(submitStage === tab) && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">You are editing this part as Administrator. Changes are saved automatically.</p>}
 
-      {tab === 'summary' ? <Summary d={d} live={liveScores} /> : (
+      {tab === 'summary' ? <Summary d={d} live={liveScores} labels={labels} /> : (
         <div className="space-y-4">
           {stageData?.submitted_at && <p className="text-xs text-slate-500">Submitted {fmtDate(stageData.submitted_at)}{stageData.submitted_by ? ` by ${stageData.submitted_by}` : ''}.</p>}
           {SECTIONS.map((sec) => { const sc = liveScores(view!); const got = sectionScore(sec, sc); const src = scoresBy[view!] ?? stageData?.scores ?? {};
             return (
               <section key={sec.extra + sec.code} className="card overflow-hidden">
-                <div className="flex flex-wrap items-center gap-3 bg-brand-600 px-3 py-2 text-white"><span className="rounded bg-white/20 px-2 text-sm font-semibold">{sec.extra ? 'Extra ' : ''}{sec.code}</span><h2 className="font-semibold">{sec.title}</h2>
+                <div className="flex flex-wrap items-center gap-3 bg-brand-600 px-3 py-2 text-white"><span className="rounded bg-white/20 px-2 text-sm font-semibold">{sec.extra ? 'Extra ' : ''}{sec.code}</span>{wording ? <input className="input w-72 text-slate-900" value={labels.sections[secKey(sec)] ?? sec.title} onChange={(e) => setLabel('sections', secKey(sec), e.target.value)} aria-label="Section title" /> : <h2 className="font-semibold">{secTitle(sec, labels)}</h2>}
                   <span className="ml-auto text-sm">Total Weighted Score <b>{f2(got)}</b> / {f2(sec.weight)} = <b>{sec.weight ? Math.round((got / sec.weight) * 100) : 0}%</b></span></div>
                 <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="bg-slate-50 text-xs text-slate-600"><th className="w-12 px-2 py-1">Item</th><th className="px-2 py-1">Description</th><th className="px-2 py-1">Comments</th>{BANDS.map((b) => <th key={b.k} className="w-14 px-1 py-1 text-center">{b.k}</th>)}<th className="w-20 px-2 py-1 text-center">Score</th></tr></thead>
                   <tbody>{sec.items.map((it) => { const v = src[it.key]; const band = bandOf(v?.score);
                     return (<tr key={it.key} className="border-t border-slate-100">
-                      <td className="px-2 py-1 text-slate-500">{it.key.replace('E', '')}</td><td className="min-w-[16rem] px-2 py-1">{it.text}</td>
+                      <td className="px-2 py-1 text-slate-500">{it.key.replace('E', '')}</td><td className="min-w-[16rem] px-2 py-1">{wording ? <span className="flex gap-1"><input className="input w-full" maxLength={300} value={labels.items[it.key] ?? it.text} onChange={(e) => setLabel('items', it.key, e.target.value)} aria-label={`Description of item ${it.key}`} />{labels.items[it.key] && labels.items[it.key] !== it.text && <button type="button" className="btn-ghost btn-sm" title="Back to the original wording" onClick={() => setLabel('items', it.key, it.text)}><RotateCcw size={13} /></button>}</span> : itemText(it, labels)}</td>
                       <td className="min-w-[12rem] px-2 py-1">{editing ? <input className="input w-full" value={v?.comment ?? ''} maxLength={1000} onChange={(e) => setItem(it.key, { comment: e.target.value })} aria-label={`Comment on ${it.text}`} /> : <span className="text-xs text-slate-600">{v?.comment}</span>}</td>
                       {BANDS.map((b) => <td key={b.k} className="px-0.5 py-1 text-center"><button type="button" disabled={!editing} title={`${b.label} (${b.range})`} onClick={() => setItem(it.key, { score: band === b.k ? v!.score : b.pick })} className={`w-full rounded border px-1 py-1 text-xs ${band === b.k ? 'border-slate-800 font-bold ring-2 ring-slate-700' : 'border-slate-300 opacity-60'} ${editing ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`} style={{ background: b.bg, color: b.text }}>{b.range}</button></td>)}
                       <td className="px-2 py-1 text-center">{editing ? <input type="number" min={0} max={10} step={0.5} className="input w-16 text-center" value={v?.score ?? ''} onChange={(e) => setItem(it.key, { score: e.target.value === '' ? null : cleanScore(e.target.value) })} aria-label={`Score of ${it.text}`} /> : <b>{v?.score ?? ''}</b>}</td>
@@ -168,13 +174,13 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
   );
 }
 
-function Summary({ d, live }: { d: Detail; live: (s: Stage) => Record<string, number | null> }) {
+function Summary({ d, live, labels }: { d: Detail; live: (s: Stage) => Record<string, number | null>; labels: Labels }) {
   const vis = STAGES.filter((s) => d.stages[s.key]); const final = d.status === 'completed';
   const tot = Object.fromEntries(vis.map((s) => [s.key, totals(live(s.key))])) as Record<Stage, ReturnType<typeof totals>>;
   return (
     <div className="space-y-4">
       <div className="card overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr><th className="th">Section</th><th className="th text-center">Weight</th>{vis.map((s) => <th key={s.key} className="th text-center">{s.label}</th>)}</tr></thead>
-        <tbody>{SECTIONS.map((sec) => <tr key={sec.extra + sec.code} className="border-t border-slate-100"><td className="td">{sec.extra ? 'Extra: ' : `${sec.code}. `}{sec.title}</td><td className="td text-center">{f2(sec.weight)}</td>{vis.map((s) => <td key={s.key} className="td text-center">{f2(sectionScore(sec, live(s.key)))}</td>)}</tr>)}
+        <tbody>{SECTIONS.map((sec) => <tr key={sec.extra + sec.code} className="border-t border-slate-100"><td className="td">{sec.extra ? 'Extra: ' : `${sec.code}. `}{secTitle(sec, labels)}</td><td className="td text-center">{f2(sec.weight)}</td>{vis.map((s) => <td key={s.key} className="td text-center">{f2(sectionScore(sec, live(s.key)))}</td>)}</tr>)}
           <tr className="border-t-2 border-slate-300 bg-slate-50 font-semibold"><td className="td">Total (maximum 100)</td><td className="td text-center">100</td>{vis.map((s) => <td key={s.key} className="td text-center">{f2(tot[s.key].total)}</td>)}</tr>
           <tr className="bg-slate-50 font-semibold"><td className="td">Level</td><td className="td" />{vis.map((s) => <td key={s.key} className="td text-center"><Badge tone={tot[s.key].rated ? 'blue' : 'gray'}>{tot[s.key].rated ? levelOf(tot[s.key].total) : '—'}</Badge></td>)}</tr></tbody></table></div>
       {!final && d.stages.self && vis.length < 3 && <p className="text-xs text-slate-500"><RotateCcw size={12} className="mr-1 inline" />The next parts become visible to you as the evaluation moves forward.</p>}

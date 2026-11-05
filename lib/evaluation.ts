@@ -73,3 +73,18 @@ export function visibleStages(me: Who, a: Actors, status: EvStatus): Stage[] | n
 export const nextStatus = (s: EvStatus, hasManager: boolean): EvStatus => (s === 'self' ? (hasManager ? 'manager' : 'department') : s === 'manager' ? 'department' : 'completed');
 /** Who may create a form for this employee. */
 export const canCreate = (me: Who, a: Actors) => isAdmin(me) || isDept(me, a) || isManager(me, a);
+
+// ---------------------------------------------------------------- editable wording (Administrator)
+export interface Labels { items: Record<string, string>; sections: Record<string, string> }
+export const secKey = (s: EvSection) => `${s.extra ? 'E' : ''}${s.code}`;
+export const itemText = (it: { key: string; text: string }, l?: Labels | null) => l?.items?.[it.key] || it.text;
+export const secTitle = (s: EvSection, l?: Labels | null) => l?.sections?.[secKey(s)] || s.title;
+/** Keeps only known keys whose text differs from the built-in wording; returns what is stored. */
+export function cleanLabels(raw: Partial<Labels> | null | undefined): Labels {
+  const out: Labels = { items: {}, sections: {} };
+  for (const s of SECTIONS) {
+    const t = raw?.sections?.[secKey(s)]; if (typeof t === 'string' && t.trim() && t.trim() !== s.title) out.sections[secKey(s)] = t.trim().slice(0, 200);
+    for (const i of s.items) { const x = raw?.items?.[i.key]; if (typeof x === 'string' && x.trim() && x.trim() !== i.text.trim()) out.items[i.key] = x.trim().slice(0, 300); }
+  }
+  return out;
+}
