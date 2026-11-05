@@ -240,6 +240,7 @@ export default function OrgPage() {
             <button className="btn-secondary btn-sm" onClick={() => setEditing({ _new: true, job_category: 'bim_coordinator', reports_to: detail.id })}>Add direct report</button>
             <button className="btn-secondary btn-sm" onClick={() => (detail.active ? setConfirmDeact(detail) : api(`/api/employees/${detail.id}`, { method: 'PATCH', body: { active: true } }).then(refresh))}>{detail.active ? 'Deactivate' : 'Reactivate'}</button>
             <button className="btn-secondary btn-sm text-red-600" onClick={() => setConfirmDel(detail)}>Delete</button></div>}
+          {!!detail.education?.some((r) => r.degree || r.major || r.university || r.year) && <div><p className="label">Education</p><table className="w-full text-left text-sm"><thead><tr>{['Degree', 'Major', 'University', 'Year'].map((h) => <th key={h} className="pr-2 text-xs font-medium text-slate-500">{h}</th>)}</tr></thead><tbody>{detail.education!.filter((r) => r.degree || r.major || r.university || r.year).map((r, i) => <tr key={i}><td className="pr-2">{r.degree}</td><td className="pr-2">{r.major}</td><td className="pr-2">{r.university}</td><td>{r.year}</td></tr>)}</tbody></table></div>}
           <div><p className="label">Direct reports ({reports(detail.id).length})</p>{reports(detail.id).length ? <ul className="space-y-1">{reports(detail.id).map((r) => <li key={r.id}><button className="text-sm text-brand-700 hover:underline" onClick={() => { setOpen(r.id); setSel(r.id); }}>{r.name}</button> <span className="text-xs text-slate-500">{r.job_title}</span></li>)}</ul> : <p className="text-sm text-slate-500">None</p>}</div>
           <div><p className="label">Assigned projects ({projectsOf(detail.id).length})</p>
             {projectsOf(detail.id).length ? <ul className="max-h-80 divide-y divide-slate-100 overflow-auto rounded-lg border border-slate-200">{projectsOf(detail.id).map(({ a, p }) => <li key={a.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm"><span className="min-w-0"><span className="block truncate">{p.project_no ? `${p.project_no} · ` : ''}{p.name}</span><span className="text-xs text-slate-500">{a.role}</span></span><StatusBadge status={p.status} /></li>)}</ul>
@@ -262,7 +263,7 @@ export default function OrgPage() {
 
 function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { _new?: boolean }; onClose: () => void; onSaved: () => void }) {
   const { data } = useApp(); const toast = useToast();
-  const [f, setF] = useState({ employee_code: init.employee_code ?? '', name: init.name ?? '', job_title: init.job_title ?? '', job_category: init.job_category ?? 'bim_coordinator', discipline: init.discipline ?? '', year_value: init.year_value ?? ('' as any), team_location: init.team_location ?? '', email: init.email ?? '', mobile: init.mobile ?? '', ext: init.ext ?? '', notes: init.notes ?? '', reports_to: init.reports_to ?? '' });
+  const [f, setF] = useState({ employee_code: init.employee_code ?? '', name: init.name ?? '', job_title: init.job_title ?? '', job_category: init.job_category ?? 'bim_coordinator', discipline: init.discipline ?? '', year_value: init.year_value ?? ('' as any), team_location: init.team_location ?? '', email: init.email ?? '', mobile: init.mobile ?? '', ext: init.ext ?? '', notes: init.notes ?? '', reports_to: init.reports_to ?? '', education: Array.from({ length: 4 }, (_, i) => init.education?.[i] ?? { degree: '', major: '', university: '', year: '' }) });
   const [busy, setBusy] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [cropNew, setCropNew] = useState<File | null>(null);
@@ -272,7 +273,7 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
   const save = async () => {
     setBusy(true);
     try {
-      const body: any = { employee_code: f.employee_code || null, name: f.name, job_title: f.job_title, job_category: f.job_category, discipline: f.discipline || null, year_value: f.year_value === '' ? null : Number(f.year_value), team_location: f.team_location || null, email: f.email.trim() || null, mobile: f.mobile.trim() || null, ext: f.ext.trim() || null, notes: f.notes || null, reports_to: f.reports_to || null };
+      const body: any = { employee_code: f.employee_code || null, name: f.name, job_title: f.job_title, job_category: f.job_category, discipline: f.discipline || null, year_value: f.year_value === '' ? null : Number(f.year_value), team_location: f.team_location || null, email: f.email.trim() || null, mobile: f.mobile.trim() || null, ext: f.ext.trim() || null, notes: f.notes || null, reports_to: f.reports_to || null, education: f.education };
       let id = init.id as string | undefined;
       if (init._new) id = (await api<{ id: string }>('/api/employees', { body })).id; else await api(`/api/employees/${init.id}`, { method: 'PATCH', body });
       let photoErr = '';
@@ -300,6 +301,9 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
           {preview ? <img src={preview} alt="Selected photo" className="h-24 w-24 rounded-xl object-cover ring-1 ring-slate-200" /> : <span className="flex h-24 w-24 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-400">No photo</span>}
           <Field label="Photo (optional)" hint="PNG, JPEG or WebP. It is resized automatically."><input type="file" accept="image/png,image/jpeg,image/webp" className="text-sm" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; if (f) setCropNew(f); }} /></Field>
         </div>
+        <div className="sm:col-span-2"><p className="label mb-1">Education</p>
+          <div className="grid grid-cols-[1fr_1.4fr_1.4fr_5rem] gap-2 text-xs font-medium text-slate-500"><span>Degree</span><span>Major</span><span>University</span><span>Year</span></div>
+          {f.education.map((r, i) => <div key={i} className="mt-1 grid grid-cols-[1fr_1.4fr_1.4fr_5rem] gap-2">{(['degree', 'major', 'university', 'year'] as const).map((k) => <input key={k} className="input" aria-label={`${k} ${i + 1}`} value={r[k]} onChange={(e) => setF({ ...f, education: f.education.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)) })} />)}</div>)}</div>
         <div className="sm:col-span-2"><Field label="Notes"><textarea className="input" rows={2} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
       </div>
     </Modal>

@@ -27,7 +27,7 @@ test('flow and permissions', () => {
   assert.ok(canEditStage(mgr, A, 'manager', 'manager')); assert.ok(!canEditStage(mgr, A, 'self', 'manager')); assert.ok(canEditStage(dep, A, 'department', 'department')); assert.ok(canEditStage(adm, A, 'manager', 'manager'));
   assert.deepEqual(visibleStages(emp, A, 'manager'), ['self']); assert.deepEqual(visibleStages(emp, A, 'completed'), ['self', 'manager', 'department']);
   assert.deepEqual(visibleStages(mgr, A, 'department'), ['self', 'manager']); assert.equal(visibleStages(other, A, 'completed'), null); assert.equal(visibleStages(dep, A, 'self')!.length, 3);
-  assert.ok(!canEditHr(emp, A, 'self')); assert.ok(canEditHr(mgr, A, 'manager')); assert.ok(!canEditHr(mgr, A, 'completed')); assert.ok(canEditHr(adm, A, 'completed'));
+  assert.ok(!canEditHr(emp, A, 'self')); assert.ok(!canEditHr(mgr, A, 'manager')); assert.ok(!canEditHr(dep, A, 'department')); assert.ok(canEditHr(adm, A, 'completed'));
   assert.ok(canEditStage(adm, A, 'completed', 'self') && canEditStage(adm, A, 'department', 'self') && !canEditStage(emp, A, 'completed', 'self')); // the Administrator edits any part at any time
   assert.equal(canSubmitStage(emp, A, 'self'), 'self'); assert.equal(canSubmitStage(adm, A, 'manager'), 'manager'); assert.equal(canSubmitStage(adm, A, 'completed'), null); assert.equal(canSubmitStage(emp, A, 'manager'), null);
   assert.ok(!canEditStage({ role: 'x', employee_id: 'e' }, { ...A, deptIds: ['e'] }, 'department', 'department')); // nobody evaluates himself as department manager

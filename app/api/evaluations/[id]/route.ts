@@ -17,7 +17,6 @@ const str = (n: number) => z.string().trim().max(n);
 const infoSchema = z.object({
   location: str(120), employment_date: str(20), department: str(120), section: str(120),
   vacation_days: z.number().min(0).max(400).nullable(), sick_days: z.number().min(0).max(400).nullable(), late_hours: z.number().min(0).max(2000).nullable(),
-  education: z.array(z.object({ degree: str(60), major: str(80), university: str(80), year: str(10) })).max(4),
 }).partial();
 const HR = ['vacation_days', 'sick_days', 'late_hours'] as const;
 const body = z.object({

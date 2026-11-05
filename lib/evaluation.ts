@@ -59,8 +59,8 @@ export const stageActor = (me: Who, a: Actors, stage: Stage) => isAdmin(me) || (
 export const canEditStage = (me: Who, a: Actors, status: EvStatus, stage: Stage) => isAdmin(me) || (status === stage && stageActor(me, a, stage));
 /** Submitting moves the form on, so it is only possible for the stage the form is waiting on. */
 export const canSubmitStage = (me: Who, a: Actors, status: EvStatus): Stage | null => (status !== 'completed' && stageActor(me, a, status) ? status : null);
-/** Vacation / sick / late figures are HR data: managers and the Administrator only. */
-export const canEditHr = (me: Who, a: Actors, status: EvStatus) => isAdmin(me) || (status !== 'completed' && (isManager(me, a) || isDept(me, a)));
+/** Vacation / sick / late figures are HR data: the Administrator only. */
+export const canEditHr = (me: Who, _a: Actors, _status: EvStatus) => isAdmin(me);
 /** Stages whose scores the person may see; null = the form is not visible to him at all. The employee sees only his own part until the form is completed. */
 export function visibleStages(me: Who, a: Actors, status: EvStatus): Stage[] | null {
   const all: Stage[] = ['self', 'manager', 'department'];

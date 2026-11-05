@@ -23,7 +23,7 @@ export async function detail(me: Me, ev: EvRow, a: Actors) {
   const who = whoOf(me); const vis = visibleStages(who, a, ev.status);
   if (!vis) throw new ApiError(403, 'You do not have access to this evaluation');
   const [emp, sc, st] = await Promise.all([
-    one<any>('select id,name,job_title,photo_id,team_location from employees where id=$1', [ev.employee_id]),
+    one<any>('select id,name,job_title,photo_id,team_location,education from employees where id=$1', [ev.employee_id]),
     q<any>('select stage,item_key,score,comment from evaluation_scores where evaluation_id=$1', [ev.id]),
     q<any>('select stage,overall_comment,submitted_at,submitted_by from evaluation_stages where evaluation_id=$1', [ev.id]),
   ]);

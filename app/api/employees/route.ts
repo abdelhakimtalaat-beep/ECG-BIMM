@@ -15,14 +15,15 @@ const empFields = {
   mobile: z.string().trim().max(40).nullish().transform((v) => v || null),
   ext: z.string().trim().max(40).nullish().transform((v) => v || null),
   email: z.string().trim().toLowerCase().email().max(200).nullish().or(z.literal('')).transform((v) => v || null),
+  education: z.array(z.object({ degree: z.string().trim().max(60), major: z.string().trim().max(80), university: z.string().trim().max(80), year: z.string().trim().max(10) })).max(4).nullish().transform((v) => (v ?? []).filter((r) => r.degree || r.major || r.university || r.year)),
 };
 export async function POST(req: Request) {
   return handle(async () => {
     const me = await requireUser(['admin']);
     const b = z.object({ ...empFields, reports_to: z.string().uuid().nullish() }).parse(await json(req));
     const id = await tx(async (c) => {
-      const r = await c.query('insert into employees(employee_code,name,job_title,job_category,discipline,year_value,team_location,notes,email,mobile,ext) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning id',
-        [b.employee_code, b.name, b.job_title, b.job_category, b.discipline, b.year_value, b.team_location, b.notes, b.email, b.mobile, b.ext]);
+      const r = await c.query('insert into employees(employee_code,name,job_title,job_category,discipline,year_value,team_location,notes,email,mobile,ext,education) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id',
+        [b.employee_code, b.name, b.job_title, b.job_category, b.discipline, b.year_value, b.team_location, b.notes, b.email, b.mobile, b.ext, JSON.stringify(b.education)]);
       if (b.reports_to) await c.query('insert into reporting_relationships(employee_id,manager_id) values($1,$2)', [r.rows[0].id, b.reports_to]);
       await audit(c, me.email, 'create', 'employee', r.rows[0].id, `Added employee ${b.name}`, undefined, b);
       return r.rows[0].id;

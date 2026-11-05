@@ -18,6 +18,7 @@ const patch = z.object({
   ext: z.string().trim().max(40).nullable().or(z.literal('').transform(() => null)),
   email: z.string().trim().toLowerCase().email().max(200).nullable().or(z.literal('').transform(() => null)),
   active: z.boolean(),
+  education: z.array(z.object({ degree: z.string().trim().max(60), major: z.string().trim().max(80), university: z.string().trim().max(80), year: z.string().trim().max(10) })).max(4),
   reports_to: z.string().uuid().nullable(),
 }).partial();
 
@@ -34,7 +35,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       const { reports_to, ...cols } = b as any;
       const keys = Object.keys(cols);
       if (keys.length) {
-        const vals = keys.map((k) => cols[k]); vals.push(id);
+        const vals = keys.map((k) => (k === 'education' ? JSON.stringify(cols[k].filter((r: any) => r.degree || r.major || r.university || r.year)) : cols[k])); vals.push(id);
         await c.query(`update employees set ${keys.map((k, i) => `${k}=$${i + 1}`).join(',')}, updated_at=now() where id=$${vals.length}`, vals);
       }
       if ('reports_to' in b && (reports_to ?? null) !== cur.reports_to) {

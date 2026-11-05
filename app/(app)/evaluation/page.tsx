@@ -9,7 +9,7 @@ import { BANDS, LEVELS, SECTIONS, STAGES, bandOf, cleanScore, itemText, secKey, 
 interface Row { id: string; employee_id: string; period: string; status: EvStatus; updated_at: string; totals: Partial<Record<Stage, { total: number; level: string; rated: number }>> }
 interface StageData { scores: Record<string, { score: number | null; comment: string | null }>; overall_comment: string; submitted_at: string | null; submitted_by: string | null }
 interface Info { location?: string; employment_date?: string; department?: string; section?: string; vacation_days?: number | null; sick_days?: number | null; late_hours?: number | null; education?: { degree: string; major: string; university: string; year: string }[] }
-interface Detail { labels: Labels; id: string; period: string; status: EvStatus; info: Info; employee: { id: string; name: string; job_title: string; photo_id: string | null; team_location: string | null }; has_manager: boolean; stages: Partial<Record<Stage, StageData>>; can: { edit: Stage[]; submit: Stage | null; hr: boolean; reopen: boolean; delete: boolean } }
+interface Detail { labels: Labels; id: string; period: string; status: EvStatus; info: Info; employee: { id: string; name: string; job_title: string; photo_id: string | null; team_location: string | null; education?: { degree: string; major: string; university: string; year: string }[] | null }; has_manager: boolean; stages: Partial<Record<Stage, StageData>>; can: { edit: Stage[]; submit: Stage | null; hr: boolean; reopen: boolean; delete: boolean } }
 const TONE: Record<EvStatus, 'gray' | 'blue' | 'amber' | 'green'> = { self: 'gray', manager: 'blue', department: 'amber', completed: 'green' };
 const f2 = (n: number) => n.toFixed(2);
 
@@ -98,7 +98,6 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
     labelTimer.current = setTimeout(async () => { try { setSaving(true); await api('/api/evaluations/config', { method: 'PUT', body: n }); } catch (e: any) { toast(e.message, 'err'); } finally { setSaving(false); } }, 800);
   };
   const setI = (patch: Partial<Info>) => { const n = { ...info, ...patch }; setInfo(n); pending.current.info = n; queue(); };
-  const setEdu = (i: number, k: 'degree' | 'major' | 'university' | 'year', v: string) => { const rows = [...(info.education ?? [])]; while (rows.length < 4) rows.push({ degree: '', major: '', university: '', year: '' }); rows[i] = { ...rows[i], [k]: v }; setI({ education: rows }); };
   const view = tab === 'summary' ? null : tab; const stageData = view ? d.stages[view] : undefined;
   const liveScores = (s: Stage): Record<string, number | null> => Object.fromEntries((Object.entries(scoresBy[s] ?? d.stages[s]?.scores ?? {}) as [string, { score: number | null }][]).map(([k, v]) => [k, v.score]));
   const visible = STAGES.filter((s) => d.stages[s.key]);
@@ -106,7 +105,7 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
   const reopen = async (to: Stage) => { setBusy(true); try { await api(`/api/evaluations/${id}/reopen`, { body: { to } }); toast('Sent back'); adopt(await api<Detail>(`/api/evaluations/${id}`), true); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
   const hrIn = (k: 'vacation_days' | 'sick_days' | 'late_hours', label: string) => <label className="flex items-center gap-2 text-sm"><span className="w-28 font-medium text-brand-700">{label}</span>{d.can.hr ? <input type="number" min={0} step="any" className="input w-24" value={info[k] ?? ''} onChange={(e) => setI({ [k]: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) })} /> : <span className="rounded border border-slate-200 bg-white px-2 py-1">{info[k] ?? '—'}</span>}</label>;
   const txt = (k: 'location' | 'employment_date' | 'department' | 'section', label: string, type = 'text') => <label className="grid grid-cols-[8rem_1fr] items-center gap-2 text-sm"><span className="font-medium text-brand-700">{label}</span>{canInfo ? <input type={type} className="input" value={info[k] ?? ''} onChange={(e) => setI({ [k]: e.target.value })} /> : <span className="rounded border border-slate-200 bg-white px-2 py-1">{info[k] || '—'}</span>}</label>;
-  const edu = Array.from({ length: 4 }, (_, i) => info.education?.[i] ?? { degree: '', major: '', university: '', year: '' });
+  const edu = Array.from({ length: 4 }, (_, i) => d.employee.education?.[i] ?? { degree: '', major: '', university: '', year: '' }); // read from the employee's record in the Org Chart
 
   return (
     <div className="space-y-4">
@@ -135,7 +134,7 @@ function EvaluationForm({ id, onBack }: { id: string; onBack: () => void }) {
           </div>
           <div className="flex flex-wrap gap-x-8 gap-y-2 border-t border-slate-200 pt-3">{hrIn('vacation_days', 'Vacation (days)')}{hrIn('sick_days', 'Sick (days)')}{hrIn('late_hours', 'Late (hrs)')}</div>
           <div className="overflow-x-auto border-t border-slate-200 pt-3"><table className="w-full text-left text-sm"><thead><tr>{['Degree', 'Major', 'University', 'Year'].map((h) => <th key={h} className="px-1 pb-1 text-center text-xs font-semibold text-brand-700">{h}</th>)}</tr></thead>
-            <tbody>{edu.map((r, i) => <tr key={i}>{(['degree', 'major', 'university', 'year'] as const).map((k) => <td key={k} className="p-0.5">{canInfo ? <input className="input w-full" value={r[k]} onChange={(e) => setEdu(i, k, e.target.value)} /> : <span className="block min-h-[2rem] rounded border border-slate-200 bg-white px-2 py-1">{r[k]}</span>}</td>)}</tr>)}</tbody></table></div>
+            <tbody>{edu.map((r, i) => <tr key={i}>{(['degree', 'major', 'university', 'year'] as const).map((k) => <td key={k} className="p-0.5"><span className="block min-h-[2rem] rounded border border-slate-200 bg-white px-2 py-1">{r[k]}</span></td>)}</tr>)}</tbody></table></div>
         </div>
       </div>
 

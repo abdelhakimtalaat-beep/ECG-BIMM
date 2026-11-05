@@ -36,6 +36,7 @@ create table if not exists employees (
 alter table employees add column if not exists photo_id uuid;
 alter table employees add column if not exists cv_id uuid;
 alter table employees add column if not exists email text;
+alter table employees add column if not exists education jsonb not null default '[]'::jsonb;   -- [{degree,major,university,year}] up to 4 rows
 create unique index if not exists employees_email_uq on employees (lower(email)) where email is not null;   -- upgrades databases created before photos existed
 
 create table if not exists employee_aliases (     -- spellings found in other sources
