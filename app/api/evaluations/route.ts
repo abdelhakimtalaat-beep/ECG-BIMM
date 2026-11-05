@@ -31,18 +31,20 @@ const EMPTY_INFO = (loc: string | null) => ({ location: loc ?? '', employment_da
 export async function POST(req: Request) {
   return handle(async () => {
     const me = await requireTab('/evaluation'); const who = whoOf(me);
-    const b = z.union([z.object({ all: z.literal(true), period: z.string().trim().min(1).max(30) }), z.object({ employee_id: z.string().uuid(), period: z.string().trim().min(1).max(30) })]).parse(await json(req));
+    const b = z.object({ period: z.string().trim().min(1).max(30), all: z.boolean().optional(), employee_id: z.string().uuid().optional() }).parse(await json(req));
     const depts = await deptManagerIds();
-    if ('all' in b) {
+    if (b.all) {
       if (!isAdmin(me) && !(me.employee_id && depts.includes(me.employee_id))) throw new ApiError(403, 'Only the Administrator or the Department Manager can create forms for everybody');
       const r = await q<{ id: string }>(`insert into evaluations(employee_id,period,info,created_by) select e.id,$1,jsonb_build_object('location',coalesce(e.team_location,''),'employment_date','','department','BIM MANAGEMENT DEPARTMENT','section','','vacation_days',null,'sick_days',null,'late_hours',null,'education','[]'::jsonb),$2 from employees e where e.active on conflict (employee_id,period) do nothing returning id`, [b.period, me.email]);
       await audit(null, me.email, 'create', 'evaluation', null, `Created ${r.length} evaluation form(s) for ${b.period}`);
       return ok({ created: r.length }, 201);
     }
-    const emp = await q<any>('select id,name,team_location from employees where id=$1', [b.employee_id]);
+    if (!b.employee_id) throw new ApiError(400, 'Choose an engineer');
+    const empId: string = b.employee_id;
+    const emp = await q<any>('select id,name,team_location from employees where id=$1', [empId]);
     if (!emp[0]) throw new ApiError(404, 'Employee not found');
-    if (!canCreate(who, await actorsFor(b.employee_id, depts))) throw new ApiError(403, 'You cannot create an evaluation for this employee');
-    const r = await q<{ id: string }>('insert into evaluations(employee_id,period,info,created_by) values($1,$2,$3,$4) on conflict (employee_id,period) do nothing returning id', [b.employee_id, b.period, JSON.stringify(EMPTY_INFO(emp[0].team_location)), me.email]);
+    if (!canCreate(who, await actorsFor(empId, depts))) throw new ApiError(403, 'You cannot create an evaluation for this employee');
+    const r = await q<{ id: string }>('insert into evaluations(employee_id,period,info,created_by) values($1,$2,$3,$4) on conflict (employee_id,period) do nothing returning id', [empId, b.period, JSON.stringify(EMPTY_INFO(emp[0].team_location)), me.email]);
     if (!r[0]) throw new ApiError(409, `${emp[0].name} already has an evaluation for ${b.period}`);
     await audit(null, me.email, 'create', 'evaluation', r[0].id, `Created evaluation ${b.period} for ${emp[0].name}`);
     return ok({ id: r[0].id }, 201);
