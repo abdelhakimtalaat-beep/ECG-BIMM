@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { canSeeTab, firstAllowedTab, tabOfPath } from '@/lib/tabs';
 import clsx from 'clsx';
-import { LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown } from 'lucide-react';
+import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown } from 'lucide-react';
 import { api, roleLabel } from '@/lib/client';
 import { useApp } from './store';
 import { Field, Modal, useToast } from './ui';
@@ -23,6 +23,7 @@ const NAV = [
   { href: '/process-map', label: 'BIM Process Map', short: 'Process Map', icon: Workflow },
   { href: '/proposals', label: 'Proposals', short: 'Proposals', icon: FileText },
   { href: '/email-templates', label: 'Emails Template', short: 'Emails Template', icon: Mail },
+  { href: '/evaluation', label: 'Evaluation', short: 'Evaluation', icon: ClipboardCheck },
   { href: '/wishes', label: 'Wish List', short: 'Wish List', icon: Lightbulb },
 ];
 

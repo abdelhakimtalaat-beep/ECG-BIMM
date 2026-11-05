@@ -164,3 +164,6 @@ Photos: the un-cropped original is kept for every project and employee photo upl
 
 ## View-only users outside the org chart (migration 027)
 Run `db/migrations/027_user_tabs.sql` in the Supabase SQL Editor before deploying. In Administration → Users → Add user choose "Outside the org chart (view only)", enter name, e-mail, temporary password and tick the permitted tabs. Use the **Tabs** button on any Viewer row to change them later.
+
+## Evaluation tab (migration 028)
+Run `db/migrations/028_evaluation.sql` in the Supabase SQL Editor before deploying. The Administrator, the Department Manager (employee with job category "Department Manager" in the org chart) or a direct manager creates a form per engineer and period (Evaluation → Add evaluation). Flow: self evaluation → direct manager (the employee's "reports to" in the org chart) → department manager. The Administrator can act at any stage and send a form back.

@@ -8,5 +8,5 @@ test('tabs', () => {
   assert.equal(canSeeTab({ role: 'admin', allowed_tabs: ['/projects'] }, '/contacts'), true);
   assert.equal(firstAllowedTab(v), '/projects'); assert.equal(firstAllowedTab({ role: 'viewer', allowed_tabs: [] }), null);
   assert.equal(tabOfPath('/projects/abc'), '/projects'); assert.equal(tabOfPath('/process-map'), '/process-map'); assert.equal(tabOfPath('/'), '/'); assert.equal(tabOfPath('/admin'), null);
-  assert.equal(TAB_LIST.length, 12);
+  assert.equal(TAB_LIST.length, 13);
 });

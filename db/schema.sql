@@ -396,6 +396,35 @@ create table if not exists contacts (
   updated_at timestamptz not null default now()
 );
 
+-- ----------------------------------------------------------- performance evaluation
+create table if not exists evaluations (
+  id          uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id) on delete cascade,
+  period      text not null,
+  status      text not null default 'self' check (status in ('self','manager','department','completed')),
+  info        jsonb not null default '{}'::jsonb,   -- location, employment date, department, section, vacation/sick/late, education rows
+  created_by  text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now(),
+  unique (employee_id, period)
+);
+create table if not exists evaluation_scores (
+  evaluation_id uuid not null references evaluations(id) on delete cascade,
+  stage         text not null check (stage in ('self','manager','department')),
+  item_key      text not null,
+  score         numeric(3,1) check (score is null or (score >= 0 and score <= 10)),
+  comment       text,
+  primary key (evaluation_id, stage, item_key)
+);
+create table if not exists evaluation_stages (
+  evaluation_id   uuid not null references evaluations(id) on delete cascade,
+  stage           text not null check (stage in ('self','manager','department')),
+  overall_comment text,
+  submitted_at    timestamptz,
+  submitted_by    text,
+  primary key (evaluation_id, stage)
+);
+
 -- ------------------------------------------------------------------ security
 -- The Next.js server is the only database client and enforces roles in code.
 -- Row level security is switched on with no policies so that the Supabase anon /
@@ -404,7 +433,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','calendar_feeds','calendar_events','wishes','wish_votes','contacts'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','calendar_feeds','calendar_events','wishes','wish_votes','contacts','evaluations','evaluation_scores','evaluation_stages'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;
