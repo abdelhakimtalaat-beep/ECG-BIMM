@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { compareByStatusThenManager, managerNames } from '@/lib/projectSort';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Download, Maximize2, Minus, Plus, Search, UserPlus, ChevronsDownUp, ChevronsUpDown, FileDown, ImagePlus, Trash2, Crop } from 'lucide-react';
 import { useApp } from '@/components/store';
@@ -138,7 +139,8 @@ export default function OrgPage() {
   };
 
   const detail = open ? emp.get(open) : null;
-  const projectsOf = (id: string) => data.assignments.filter((a) => a.employee_id === id).map((a) => ({ a, p: data.projects.find((p) => p.id === a.project_id)! })).filter((x) => x.p);
+  const byStatusMgr = useMemo(() => compareByStatusThenManager(managerNames(data.assignments, data.employees)), [data.assignments, data.employees]);
+  const projectsOf = (id: string) => data.assignments.filter((a) => a.employee_id === id).map((a) => ({ a, p: data.projects.find((p) => p.id === a.project_id)! })).filter((x) => x.p).sort((x, y) => byStatusMgr(x.p, y.p));
   const reports = (id: string) => data.employees.filter((e) => e.reports_to === id);
 
   return (

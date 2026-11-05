@@ -1,4 +1,5 @@
 'use client';
+import { compareByStatusThenManager, managerNames } from '@/lib/projectSort';
 import { useMemo, useState } from 'react';
 import { BellRing, ChevronDown, ChevronRight, FolderPlus, Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
 import { useApp } from '@/components/store';
@@ -13,6 +14,7 @@ export default function TasksPage() {
   const { me, data, emp, refresh, today } = useApp(); const toast = useToast();
   const areas = data.task_areas ?? [], tasks = data.tasks ?? [];
   const pById = useMemo(() => new Map(data.projects.map((p) => [p.id, p])), [data.projects]);
+  const byStatusMgr = useMemo(() => compareByStatusThenManager(managerNames(data.assignments, data.employees)), [data.assignments, data.employees]);
 
   // one area per BIM Manager: employees tagged BIM Manager plus anybody who manages a project
   const managers = useMemo(() => {
@@ -62,7 +64,7 @@ export default function TasksPage() {
       </div>
 
       {!shown.length ? <Empty title="No BIM Managers or teams found" /> : shown.map((m) => {
-        const myAreas = areas.filter((a) => (m.kind === 'team' ? a.team_id : a.manager_id) === m.id).sort((a, b) => (pById.get(a.project_id)?.project_no ?? '').localeCompare(pById.get(b.project_id)?.project_no ?? ''));
+        const myAreas = areas.filter((a) => (m.kind === 'team' ? a.team_id : a.manager_id) === m.id).sort((a, b) => { const pa = pById.get(a.project_id), pb = pById.get(b.project_id); return pa && pb ? byStatusMgr(pa, pb) : 0; });
         const all = tasks.filter((t) => myAreas.some((a) => a.id === t.area_id));
         const st = taskStats(all, today);
         const editor = m.kind === 'team' ? canEditTeamTasks(me.role, me.employee_id, m.team!.member_ids) : canEditTasks(me.role, me.employee_id, m.id, data.assignments);
@@ -127,7 +129,7 @@ function AddArea({ group, onClose, onDone }: { group: { id: string; kind: 'manag
   const { data } = useApp(); const toast = useToast(); const [pid, setPid] = useState('');
   const isTeam = group.kind === 'team';
   const used = new Set((data.task_areas ?? []).filter((a) => (isTeam ? a.team_id : a.manager_id) === group.id).map((a) => a.project_id));
-  const opts = (isTeam ? data.projects.map((p) => p.id) : managedProjectIds(group.id, data.assignments)).filter((id) => !used.has(id)).map((id) => data.projects.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p).sort((a, b) => (a.project_no ?? '').localeCompare(b.project_no ?? ''));
+  const opts = (isTeam ? data.projects.map((p) => p.id) : managedProjectIds(group.id, data.assignments)).filter((id) => !used.has(id)).map((id) => data.projects.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p).sort(compareByStatusThenManager(managerNames(data.assignments, data.employees)));
   const save = async () => { try { await api('/api/task-areas', { body: { ...(isTeam ? { team_id: group.id } : { manager_id: group.id }), project_id: pid } }); toast('Project added'); onDone(); } catch (e: any) { toast(e.message, 'err'); } };
   return <Modal open onClose={onClose} title="Add project" footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!pid} onClick={save}>Add</button></>}>
     <Field label={isTeam ? 'Project' : "Project (one of this BIM Manager's projects)"}><select className="input" value={pid} onChange={(e) => setPid(e.target.value)}><option value="">— select —</option>{opts.map((p) => <option key={p.id} value={p.id}>{p.project_no ? `${p.project_no} · ` : ''}{p.name}</option>)}</select></Field>

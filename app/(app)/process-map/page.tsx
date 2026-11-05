@@ -1,4 +1,5 @@
 'use client';
+import { compareByStatusThenManager, managerNames } from '@/lib/projectSort';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { ArrowLeft, Minus, Plus, Search, Trash2, Workflow } from 'lucide-react';
@@ -28,9 +29,10 @@ export default function ProcessMapPage() {
   const sumBy = useMemo(() => new Map((sum ?? []).map((s) => [s.project_id, s])), [sum]);
   const myIds = useMemo(() => new Set(data.assignments.filter((a) => a.employee_id === me.employee_id && (a.role === 'manager' || a.role === 'coordinator')).map((a) => a.project_id)), [data.assignments, me.employee_id]);
   const mgrsOf = useMemo(() => { const m = new Map<string, string[]>(); for (const a of data.assignments) if (a.role === 'manager') (m.get(a.project_id) ?? m.set(a.project_id, []).get(a.project_id)!).push(a.employee_id); return m; }, [data.assignments]);
+  const mgrNameOf = useMemo(() => managerNames(data.assignments, data.employees), [data.assignments, data.employees]);
   const mgrOptions = useMemo(() => { const ids = new Set([...mgrsOf.values()].flat()); return data.employees.filter((e) => ids.has(e.id)).sort((a, b) => a.name.localeCompare(b.name)); }, [mgrsOf, data.employees]);
   const empName = useMemo(() => new Map(data.employees.map((e) => [e.id, e.name])), [data.employees]);
-  const list = useMemo(() => { const t = q.trim().toLowerCase(); return data.projects.filter((p) => (!mine || myIds.has(p.id)) && (!stat || p.status === stat) && (!mgr || (mgr === '__none' ? !(mgrsOf.get(p.id)?.length) : !!mgrsOf.get(p.id)?.includes(mgr))) && (!t || p.name.toLowerCase().includes(t) || (p.project_no ?? '').toLowerCase().includes(t))).sort((a, b) => (sumBy.get(b.id)?.buildings ?? 0) - (sumBy.get(a.id)?.buildings ?? 0) || (a.project_no ?? '').localeCompare(b.project_no ?? '')); }, [data.projects, q, mine, myIds, sumBy, mgr, stat, mgrsOf]);
+  const list = useMemo(() => { const t = q.trim().toLowerCase(); return data.projects.filter((p) => (!mine || myIds.has(p.id)) && (!stat || p.status === stat) && (!mgr || (mgr === '__none' ? !(mgrsOf.get(p.id)?.length) : !!mgrsOf.get(p.id)?.includes(mgr))) && (!t || p.name.toLowerCase().includes(t) || (p.project_no ?? '').toLowerCase().includes(t))).sort(compareByStatusThenManager(mgrNameOf)); }, [data.projects, q, mine, myIds, mgr, stat, mgrsOf, mgrNameOf]);
 
   if (pid) return <Dashboard projectId={pid} onBack={() => { setPid(null); loadSum(); }} />;
   return (

@@ -1,4 +1,5 @@
 'use client';
+import { compareByManagerThenStatus, compareByStatusThenManager } from '@/lib/projectSort';
 import { Suspense, useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Download, ExternalLink, FileSpreadsheet, LayoutGrid, Plus, Table2, Upload } from 'lucide-react';
@@ -17,7 +18,7 @@ function Inner() {
   const { me, data, projects, filters, emp, refresh } = useApp(); const toast = useToast();
   const sp = useSearchParams(); const router = useRouter();
   const [view, setView] = useState<'cards' | 'table'>('table');
-  const [sort, setSort] = useState<'name' | 'area' | 'status' | 'manager'>('name');
+  const [sort, setSort] = useState<'name' | 'area' | 'status' | 'manager'>('status');
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [openId, setOpenId] = useState<string | null>(sp.get('id'));
   const [bulk, setBulk] = useState<Status | ''>(''); const [bulkReason, setBulkReason] = useState(''); const [confirmBulk, setConfirmBulk] = useState(false);
@@ -33,6 +34,8 @@ function Inner() {
   const open = (id: string | null) => { setOpenId(id); router.replace(id ? `/projects?id=${id}` : '/projects', { scroll: false }); };
 
   const sorted = useMemo(() => {
+    if (sort === 'status') return [...projects].sort(compareByStatusThenManager(mgrOf.m)); // default: status, then BIM Manager
+    if (sort === 'manager') return [...projects].sort(compareByManagerThenStatus(mgrOf.m));
     const order: Record<string, number> = { 'In Progress': 0, 'Not Started': 1, 'On Hold': 2, Closed: 3 };
     const f: Record<string, (p: Project) => any> = { name: (p) => p.name.toLowerCase(), area: (p) => -(p.built_up_area ?? -1), status: (p) => order[p.status], manager: (p) => (mgrOf.m.get(p.id) || 'zzz').toLowerCase() };
     return [...projects].sort((a, b) => (f[sort](a) > f[sort](b) ? 1 : f[sort](a) < f[sort](b) ? -1 : 0));
