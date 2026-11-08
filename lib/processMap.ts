@@ -213,7 +213,7 @@ export function wrapLabel(text: string, max: number): string[] {
   if (cur) out.push(cur); return out;
 }
 
-export interface NodeState { status: ProcessStatus; comment?: string | null; updated_by?: string | null; updated_at?: string | null }
+export interface NodeState { status: ProcessStatus; comment?: string | null; outcome?: 'yes' | 'no' | null; outcome_date?: string | null; updated_by?: string | null; updated_at?: string | null }
 export type StateMap = Record<string, NodeState | undefined>;
 export const statusOf = (s: StateMap, id: string): ProcessStatus => s[id]?.status ?? 'Not Started';
 /** Rework connectors (labelled "No") go back to an earlier step; every other incoming connector is a prerequisite. */

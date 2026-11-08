@@ -26,10 +26,10 @@ export async function PUT(req: Request) {
       if ((before?.status ?? 'Not Started') !== it.status) changed++;
       if (it.status === 'Not Started' && !before?.comment) await q('delete from process_nodes where building_id=$1 and node_key=$2', [b.building_id, it.node_key]);
       else await q(`insert into process_nodes(building_id,node_key,status,comment,updated_by,updated_at) values($1,$2,$3,null,$4,now())
-        on conflict (building_id,node_key) do update set status=excluded.status, updated_by=excluded.updated_by, updated_at=now()`, [b.building_id, it.node_key, it.status, who]);
+        on conflict (building_id,node_key) do update set status=excluded.status, outcome=case when excluded.status='Completed' then process_nodes.outcome else null end, outcome_date=case when excluded.status='Completed' then process_nodes.outcome_date else null end, updated_by=excluded.updated_by, updated_at=now()`, [b.building_id, it.node_key, it.status, who]);
       if (b.apply_all) {
         await q(`insert into process_nodes(building_id,node_key,status,comment,updated_by,updated_at) select id,$2,$3,null,$4,now() from process_buildings where project_id=$1 and id<>$5
-          on conflict (building_id,node_key) do update set status=excluded.status, updated_by=excluded.updated_by, updated_at=now()`, [bl.project_id, it.node_key, it.status, who, b.building_id]);
+          on conflict (building_id,node_key) do update set status=excluded.status, outcome=case when excluded.status='Completed' then process_nodes.outcome else null end, outcome_date=case when excluded.status='Completed' then process_nodes.outcome_date else null end, updated_by=excluded.updated_by, updated_at=now()`, [bl.project_id, it.node_key, it.status, who, b.building_id]);
         if (it.status === 'Not Started') await q(`delete from process_nodes where node_key=$2 and status='Not Started' and coalesce(comment,'')='' and building_id in (select id from process_buildings where project_id=$1)`, [bl.project_id, it.node_key]);
         await q(`insert into process_project_nodes(project_id,node_key,status,updated_by,updated_at) values($1,$2,$3,$4,now())
           on conflict (project_id,node_key) do update set status=excluded.status, updated_by=excluded.updated_by, updated_at=now()`, [bl.project_id, it.node_key, it.status, who]);

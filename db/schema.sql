@@ -338,6 +338,8 @@ create table if not exists process_nodes (
   node_key    text not null,
   status      text not null default 'Not Started' check (status in ('Not Started','In Progress','On Hold','Completed')),
   comment     text,
+  outcome     text check (outcome in ('yes','no')),
+  outcome_date date,
   updated_by  text,
   updated_at  timestamptz not null default now(),
   primary key (building_id, node_key)

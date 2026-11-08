@@ -13,7 +13,7 @@ import { NODES, PHASES, phaseOf, PROCESS_COLORS, STARTED, alarmsOf, unmetPrereqs
 
 interface Content { id: string; name: string; kind: string }
 interface Building { id: string; content_id: string; name: string; kind: string }
-interface Row { building_id: string; node_key: string; status: ProcessStatus; comment: string | null; updated_by: string | null; updated_at: string }
+interface Row { building_id: string; node_key: string; status: ProcessStatus; comment: string | null; outcome?: 'yes' | 'no' | null; outcome_date?: string | null; updated_by: string | null; updated_at: string }
 interface Summary { project_id: string; buildings: number; done: number; doing: number; hold: number }
 
 const Legend = () => <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs" aria-label="Status colours">{PROCESS_STATUSES.map((s) => <span key={s} className="flex items-center gap-1.5"><span className="h-3 w-3 rounded" style={{ background: PROCESS_COLORS[s] }} />{PROCESS_COLOR_NAMES[s]} — {s}</span>)}</div>;
@@ -78,7 +78,7 @@ function Dashboard({ projectId, onBack }: { projectId: string; onBack: () => voi
     };
     mapEl.addEventListener('wheel', onWheel, { passive: false }); return () => mapEl.removeEventListener('wheel', onWheel);
   }, [mapEl]);
-  const states = useMemo(() => { const m: Record<string, StateMap> = {}; for (const r of d?.nodes ?? []) (m[r.building_id] ??= {})[r.node_key] = { status: r.status, comment: r.comment, updated_by: r.updated_by, updated_at: r.updated_at }; return m; }, [d]);
+  const states = useMemo(() => { const m: Record<string, StateMap> = {}; for (const r of d?.nodes ?? []) (m[r.building_id] ??= {})[r.node_key] = { status: r.status, comment: r.comment, outcome: r.outcome, outcome_date: r.outcome_date, updated_by: r.updated_by, updated_at: r.updated_at }; return m; }, [d]);
   if (!p) return null;
   const free = (d?.contents ?? []).filter((c) => !d!.buildings.some((b) => b.content_id === c.id));
   const b = d?.buildings.find((x) => x.id === cur) ?? null; const st: StateMap = (b && states[b.id]) || {};
@@ -124,15 +124,21 @@ function NodeModal({ linked, building, buildings, allStates, nodeKey, state, edi
   const toast = useToast(); const n = nodeById.get(nodeKey)!; const lane = laneOf(nodeKey);
   const [status, setStatus] = useState<ProcessStatus>(state?.status ?? 'Not Started'); const [comment, setComment] = useState(state?.comment ?? '');
   const [all, setAll] = useState(linked);
+  const isGate = n.kind === 'decision'; const what = /valid/i.test(n.label) ? 'Valid' : 'Approved';
+  const [outcome, setOutcome] = useState<'yes' | 'no' | ''>(state?.outcome ?? ''); const [odate, setOdate] = useState(state?.outcome_date ?? '');
+  const pickOutcome = (o: 'yes' | 'no') => { setOutcome(o); if (!odate) setOdate(new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })); };
   const started = STARTED.includes(status);
   const unmet = started ? unmetPrereqs(allStates[building.id] ?? {}, nodeKey) : [];
   const others = all && started ? buildings.filter((x) => x.id !== building.id).map((x) => ({ x, u: unmetPrereqs(allStates[x.id] ?? {}, nodeKey) })).filter((r) => r.u.length) : [];
-  const save = async () => { try { await api('/api/process/nodes', { method: 'PUT', body: { building_id: building.id, node_key: nodeKey, status, comment: comment.trim() || null, apply_all: all } }); toast(all ? 'Status saved for all buildings' : 'Status saved'); onSaved(); } catch (e: any) { toast(e.message, 'err'); } };
+  const save = async () => { try { await api('/api/process/nodes', { method: 'PUT', body: { building_id: building.id, node_key: nodeKey, status, comment: comment.trim() || null, outcome: isGate && status === 'Completed' && outcome ? outcome : null, outcome_date: isGate && status === 'Completed' && outcome && odate ? odate : null, apply_all: all } }); toast(all ? 'Status saved for all buildings' : 'Status saved'); onSaved(); } catch (e: any) { toast(e.message, 'err'); } };
   return <Modal open onClose={onClose} title={n.label} footer={<><button className="btn-secondary" onClick={onClose}>{editable ? 'Cancel' : 'Close'}</button>{editable && <button className={unmet.length ? 'btn-danger' : 'btn-primary'} onClick={save}>{unmet.length ? 'Save anyway' : 'Save'}</button>}</>}>
     <div className="space-y-3">
       <p className="text-xs text-slate-500"><Workflow size={12} className="mr-1 inline" />{lane?.label} · {building.name}</p>
       {n.note && <p className="rounded bg-slate-50 p-2 text-xs text-slate-600">{n.note}</p>}
       <div><p className="label">Status</p><div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Status">{PROCESS_STATUSES.map((s) => <button key={s} type="button" role="radio" aria-checked={status === s} disabled={!editable} onClick={() => setStatus(s)} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm ${status === s ? 'border-2' : 'border-slate-300'} ${editable ? '' : 'opacity-70'}`} style={status === s ? { borderColor: PROCESS_COLORS[s] } : undefined}><span className="h-3 w-3 shrink-0 rounded" style={{ background: PROCESS_COLORS[s] }} />{s}</button>)}</div></div>
+      {isGate && status === 'Completed' && <div className="rounded-lg border border-slate-300 p-3"><p className="label">Decision</p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Decision">{([['yes', `Yes, it is ${what}`], ['no', `No, it is not ${what}`]] as const).map(([o, t]) => <button key={o} type="button" role="radio" aria-checked={outcome === o} disabled={!editable} onClick={() => pickOutcome(o)} className={`rounded-lg border px-3 py-2 text-left text-sm ${outcome === o ? 'border-2' : 'border-slate-300'}`} style={outcome === o ? { borderColor: o === 'yes' ? '#16a34a' : '#dc2626' } : undefined}>{o === 'yes' ? '✔' : '✖'} {t}</button>)}</div>
+        <div className="mt-2"><Field label="Date"><input type="date" className="input" disabled={!editable} value={odate} onChange={(e) => setOdate(e.target.value)} /></Field></div></div>}
       {(unmet.length > 0 || others.length > 0) && <div role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800"><p className="font-semibold">⚠ Warning — this activity is being started before the previous activities are completed.</p>
         {unmet.length > 0 && <ul className="mt-1 list-disc pl-5">{unmet.map((i) => <li key={i}>{nodeById.get(i)!.label} <span className="text-xs">({allStates[building.id]?.[i]?.status ?? 'Not Started'})</span></li>)}</ul>}
         {others.map((r) => <p key={r.x.id} className="mt-1 text-xs">Also in {r.x.name}: {r.u.map((i) => nodeById.get(i)!.label).join(', ')}</p>)}</div>}
