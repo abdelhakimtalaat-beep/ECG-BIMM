@@ -1,5 +1,5 @@
 'use client';
-import { DIAGRAM_H, DIAGRAM_W, EDGES, LANES, LANE_LABEL_W, NODES, PHASES, PHASE_H, PROCESS_COLORS, phaseProgress, alarmsOf, nodeById, nodeSize, labelPos, pathOf, routeEdge, statusOf, wrapLabel, type PNode, type StateMap } from '@/lib/processMap';
+import { DIAGRAM_H, DIAGRAM_W, EDGES, LANES, LANE_LABEL_W, NODES, PHASES, PHASE_H, PROCESS_COLORS, phaseProgress, alarmsOf, isRejected, nodeById, nodeSize, labelPos, pathOf, routeEdge, statusOf, wrapLabel, type PNode, type StateMap } from '@/lib/processMap';
 
 const LINE = '#c0392b';
 function Shape({ n, color }: { n: PNode; color: string }) {
@@ -49,14 +49,14 @@ export function ProcessDiagram({ states, selected, onSelect, zoom, onPhaseClick 
       </g>
       <g aria-label="Activities">
         {NODES.map((n) => {
-          const st = statusOf(states, n.id); const color = PROCESS_COLORS[st]; const { w, h } = nodeSize(n);
+          const st = statusOf(states, n.id); const rej = isRejected(states, n.id); const color = rej ? '#dc2626' : PROCESS_COLORS[st]; const { w, h } = nodeSize(n);
           const fs = n.kind === 'decision' ? 8 : 8.5; const maxc = Math.max(8, Math.floor((n.kind === 'decision' ? w * 0.72 : w - 8) / (fs * 0.52)));
           const lines = wrapLabel(n.label, maxc); const lh = fs + 1.6; const y0 = -((lines.length - 1) * lh) / 2 + 2.6;
           const sel = selected === n.id;
           return (
             <g key={n.id} data-node={n.id} data-status={st} transform={`translate(${n.x} ${n.y})`} role="button" tabIndex={0} aria-label={`${n.label} — ${st}${alarms[n.id] ? ' — warning: previous activities not completed' : ''}`} className="cursor-pointer outline-none [&:focus-visible_.ring]:stroke-brand-600"
               onClick={() => onSelect(n.id)} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onSelect(n.id); } }}>
-              <title>{`${n.label} — ${st}${alarms[n.id] ? '\nWARNING: started before completing the previous activities: ' + alarms[n.id].map((i) => nodeById.get(i)!.label).join(', ') : ''}${n.note ? '\n' + n.note : ''}`}</title>
+              <title>{`${n.label} — ${st}${rej ? ' — NOT ' + (/valid/i.test(n.label) ? 'valid' : 'approved') : ''}${alarms[n.id] ? '\nWARNING: started before completing the previous activities: ' + alarms[n.id].map((i) => nodeById.get(i)!.label).join(', ') : ''}${n.note ? '\n' + n.note : ''}`}</title>
               <rect className="ring" x={-w / 2 - 4} y={-h / 2 - 4} width={w + 8} height={h + 8} rx={6} fill="none" stroke={sel ? 'rgb(var(--brand-600))' : 'transparent'} strokeWidth={2} />
               <Shape n={n} color={color} />
               <text textAnchor="middle" fontSize={fs} fontWeight={600} className="pointer-events-none fill-slate-800">{lines.map((t, i) => <tspan key={i} x={0} y={y0 + i * lh}>{t}</tspan>)}</text>

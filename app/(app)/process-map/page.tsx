@@ -9,7 +9,7 @@ import { Confirm, Empty, Field, Modal, PageHeader, Spinner, StatusBadge, useToas
 import { api, fmtDateTime } from '@/lib/client';
 import { STATUSES } from '@/lib/types';
 import { canEditProject } from '@/lib/can';
-import { NODES, PHASES, phaseOf, PROCESS_COLORS, STARTED, alarmsOf, unmetPrereqs, PROCESS_COLOR_NAMES, PROCESS_STATUSES, laneOf, nodeById, progressOf, type NodeState, type ProcessStatus, type StateMap } from '@/lib/processMap';
+import { NODES, PHASES, phaseOf, PROCESS_COLORS, STARTED, alarmsOf, reworkSet, unmetPrereqs, PROCESS_COLOR_NAMES, PROCESS_STATUSES, laneOf, nodeById, progressOf, type NodeState, type ProcessStatus, type StateMap } from '@/lib/processMap';
 
 interface Content { id: string; name: string; kind: string }
 interface Building { id: string; content_id: string; name: string; kind: string }
@@ -128,7 +128,8 @@ function NodeModal({ linked, building, buildings, allStates, nodeKey, state, edi
   const [outcome, setOutcome] = useState<'yes' | 'no' | ''>(state?.outcome ?? ''); const [odate, setOdate] = useState(state?.outcome_date ?? '');
   const pickOutcome = (o: 'yes' | 'no') => { setOutcome(o); if (!odate) setOdate(new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' })); };
   const started = STARTED.includes(status);
-  const unmet = started ? unmetPrereqs(allStates[building.id] ?? {}, nodeKey) : [];
+  const rejecting = isGate && status === 'Completed' && outcome === 'no';
+  const unmet = started && !rejecting ? unmetPrereqs(allStates[building.id] ?? {}, nodeKey) : [];
   const others = all && started ? buildings.filter((x) => x.id !== building.id).map((x) => ({ x, u: unmetPrereqs(allStates[x.id] ?? {}, nodeKey) })).filter((r) => r.u.length) : [];
   const save = async () => { try { await api('/api/process/nodes', { method: 'PUT', body: { building_id: building.id, node_key: nodeKey, status, comment: comment.trim() || null, outcome: isGate && status === 'Completed' && outcome ? outcome : null, outcome_date: isGate && status === 'Completed' && outcome && odate ? odate : null, apply_all: all } }); toast(all ? 'Status saved for all buildings' : 'Status saved'); onSaved(); } catch (e: any) { toast(e.message, 'err'); } };
   return <Modal open onClose={onClose} title={n.label} footer={<><button className="btn-secondary" onClick={onClose}>{editable ? 'Cancel' : 'Close'}</button>{editable && <button className={unmet.length ? 'btn-danger' : 'btn-primary'} onClick={save}>{unmet.length ? 'Save anyway' : 'Save'}</button>}</>}>
@@ -138,6 +139,7 @@ function NodeModal({ linked, building, buildings, allStates, nodeKey, state, edi
       <div><p className="label">Status</p><div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Status">{PROCESS_STATUSES.map((s) => <button key={s} type="button" role="radio" aria-checked={status === s} disabled={!editable} onClick={() => setStatus(s)} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm ${status === s ? 'border-2' : 'border-slate-300'} ${editable ? '' : 'opacity-70'}`} style={status === s ? { borderColor: PROCESS_COLORS[s] } : undefined}><span className="h-3 w-3 shrink-0 rounded" style={{ background: PROCESS_COLORS[s] }} />{s}</button>)}</div></div>
       {isGate && status === 'Completed' && <div className="rounded-lg border border-slate-300 p-3"><p className="label">Decision</p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Decision">{([['yes', `Yes, it is ${what}`], ['no', `No, it is not ${what}`]] as const).map(([o, t]) => <button key={o} type="button" role="radio" aria-checked={outcome === o} disabled={!editable} onClick={() => pickOutcome(o)} className={`rounded-lg border px-3 py-2 text-left text-sm ${outcome === o ? 'border-2' : 'border-slate-300'}`} style={outcome === o ? { borderColor: o === 'yes' ? '#16a34a' : '#dc2626' } : undefined}>{o === 'yes' ? '✔' : '✖'} {t}</button>)}</div>
+        {rejecting && <p role="alert" className="mt-2 rounded bg-red-50 p-2 text-xs text-red-800">The gate turns red and these previous activities return to <b>In Progress</b>: {reworkSet(nodeKey).map((k) => nodeById.get(k)!.label).join(', ')}.</p>}
         <div className="mt-2"><Field label="Date"><input type="date" className="input" disabled={!editable} value={odate} onChange={(e) => setOdate(e.target.value)} /></Field></div></div>}
       {(unmet.length > 0 || others.length > 0) && <div role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800"><p className="font-semibold">⚠ Warning — this activity is being started before the previous activities are completed.</p>
         {unmet.length > 0 && <ul className="mt-1 list-disc pl-5">{unmet.map((i) => <li key={i}>{nodeById.get(i)!.label} <span className="text-xs">({allStates[building.id]?.[i]?.status ?? 'Not Started'})</span></li>)}</ul>}

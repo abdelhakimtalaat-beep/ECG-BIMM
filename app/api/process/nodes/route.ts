@@ -3,7 +3,7 @@ import { handle, json, ok } from '@/lib/api';
 import { ApiError, requireUser } from '@/lib/auth';
 import { audit, one, q } from '@/lib/db';
 import { assertScope } from '@/lib/perm';
-import { NODE_KEYS, PROCESS_STATUSES, nodeById } from '@/lib/processMap';
+import { NODE_KEYS, PROCESS_STATUSES, nodeById, reworkSet } from '@/lib/processMap';
 
 /** Sets the status (and an optional comment) of one node of one building. Administrator or the assigned BIM Manager / Coordinator. */
 export async function PUT(req: Request) {
@@ -19,6 +19,13 @@ export async function PUT(req: Request) {
     if (b.status === 'Not Started' && !b.comment) await q('delete from process_nodes where building_id=$1 and node_key=$2', [b.building_id, b.node_key]);
     else await q(`insert into process_nodes(building_id,node_key,status,comment,outcome,outcome_date,updated_by,updated_at) values($1,$2,$3,$4,$6,$7,$5,now())
       on conflict (building_id,node_key) do update set status=excluded.status, comment=excluded.comment, outcome=excluded.outcome, outcome_date=excluded.outcome_date, updated_by=excluded.updated_by, updated_at=now()`, [b.building_id, b.node_key, b.status, b.comment, me.full_name || me.email, outcome, outcomeDate]);
+    if (outcome === 'no') {
+      // gate answered "No": the previous related activities go back to In Progress (comments kept; gates among them lose their answer)
+      const back = reworkSet(b.node_key);
+      for (const k of back) await q(`insert into process_nodes(building_id,node_key,status,comment,updated_by,updated_at) values($1,$2,'In Progress',null,$3,now())
+        on conflict (building_id,node_key) do update set status='In Progress', outcome=null, outcome_date=null, updated_by=excluded.updated_by, updated_at=now()`, [b.building_id, k, me.full_name || me.email]);
+      if (back.length) await audit(null, me.email, 'status', 'process_node', b.building_id, `${bl.pname} / ${bl.name}: "${nodeById.get(b.node_key)!.label}" answered No — returned to In Progress: ${back.map((k) => nodeById.get(k)!.label).join(', ')}`);
+    }
     if (b.apply_all) {
       // linked: every building of the project (also buildings added later) follows this activity's status; each keeps its own comment
       await q(`insert into process_nodes(building_id,node_key,status,comment,updated_by,updated_at) select id,$2,$3,null,$4,now() from process_buildings where project_id=$1 and id<>$5

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { polyHitsBox } from '../lib/processRoute.ts';
-import { NODE_BOXES, PREREQS, alarmsOf, unmetPrereqs, DIAGRAM_H, DIAGRAM_W, EDGES, LANES, NODES, NODE_KEYS, PROCESS_COLORS, PROCESS_STATUSES, nodeById, nodeSize, PHASES, phaseOf, phaseProgress, progressOf, routeEdge, wrapLabel } from '../lib/processMap.ts';
+import { NODE_BOXES, PREREQS, reworkSet, isRejected, alarmsOf, unmetPrereqs, DIAGRAM_H, DIAGRAM_W, EDGES, LANES, NODES, NODE_KEYS, PROCESS_COLORS, PROCESS_STATUSES, nodeById, nodeSize, PHASES, phaseOf, phaseProgress, progressOf, routeEdge, wrapLabel } from '../lib/processMap.ts';
 
 test('process map: ids unique, every node sits in its lane, every connector joins existing nodes', () => {
   assert.equal(NODE_KEYS.size, NODES.length);
@@ -66,4 +66,14 @@ test('process map: alarm when an activity starts before the previous ones are co
   for (const id of ['pm_mob', 'ar_consult', 'ar_tidp', 'st_tidp', 'me_tidp', 'in_tidp', 'bm_midp']) s[id] = { status: 'Completed' }; s.bm_midp = { status: 'Completed' };
   assert.deepEqual(alarmsOf(s), {});
   s.bm_pinfo = { status: 'On Hold' }; assert.deepEqual(alarmsOf(s), {}, 'On Hold is not a start');
+});
+
+test('a gate answered No: rework set and red state', () => {
+  assert.deepEqual(reworkSet('bm_appr1').sort(), ['bm_coord', 'bm_squad', 'bm_visual']);
+  assert.ok(reworkSet('ar_review').includes('ar_refine'));
+  assert.ok(!reworkSet('ar_review').includes('ar_review'));
+  const s: any = { bm_valid2: { status: 'Completed', outcome: 'no' } };
+  assert.equal(isRejected(s, 'bm_valid2'), true);
+  assert.ok(!('bm_valid2' in alarmsOf(s)));
+  assert.equal(isRejected({ bm_valid2: { status: 'In Progress', outcome: 'no' } } as any, 'bm_valid2'), false);
 });

@@ -221,14 +221,29 @@ export const PREREQS: Map<string, string[]> = (() => { const m = new Map<string,
 export const STARTED: ProcessStatus[] = ['In Progress', 'Completed'];
 /** Previous activities that are not Completed yet. */
 export const unmetPrereqs = (s: StateMap, id: string): string[] => (PREREQS.get(id) ?? []).filter((p) => statusOf(s, p) !== 'Completed');
+/** A gate answered "No" sends the work back: the "No" target(s) and every activity between them and the gate, plus the activities feeding the gate when no loop exists. */
+export function reworkSet(gateId: string): string[] {
+  const fwd = new Map<string, string[]>(), back = new Map<string, string[]>();
+  for (const e of EDGES) { if (e.label === 'No') continue; (fwd.get(e.from) ?? fwd.set(e.from, []).get(e.from)!).push(e.to); (back.get(e.to) ?? back.set(e.to, []).get(e.to)!).push(e.from); }
+  const reach = (starts: string[], g: Map<string, string[]>) => { const seen = new Set<string>(starts); const st = [...starts]; while (st.length) { const x = st.pop()!; for (const y of g.get(x) ?? []) if (!seen.has(y)) { seen.add(y); st.push(y); } } return seen; };
+  const targets = EDGES.filter((e) => e.from === gateId && e.label === 'No').map((e) => e.to);
+  const f = reach(targets, fwd), b = reach([gateId], back);
+  const out = new Set<string>(targets);
+  for (const id of f) if (b.has(id)) out.add(id);
+  if (out.size === targets.length) for (const p of PREREQS.get(gateId) ?? []) out.add(p);
+  out.delete(gateId);
+  return [...out];
+}
+/** A gate that was completed with the answer "No". */
+export const isRejected = (s: StateMap, id: string) => nodeById.get(id)?.kind === 'decision' && statusOf(s, id) === 'Completed' && s[id]?.outcome === 'no';
 /** Alarms: activities that are In Progress / Completed while a previous activity is not Completed. */
 export function alarmsOf(s: StateMap): Record<string, string[]> {
   const out: Record<string, string[]> = {};
-  for (const n of NODES) if (STARTED.includes(statusOf(s, n.id))) { const u = unmetPrereqs(s, n.id); if (u.length) out[n.id] = u; }
+  for (const n of NODES) if (STARTED.includes(statusOf(s, n.id)) && !isRejected(s, n.id)) { const u = unmetPrereqs(s, n.id); if (u.length) out[n.id] = u; }
   return out;
 }
 export function phaseProgress(s: StateMap) {
-  return PHASES.map((p) => { const ns = NODES.filter((n) => phaseOf(n).id === p.id); const done = ns.filter((n) => statusOf(s, n.id) === 'Completed').length; return { ...p, total: ns.length, done, pct: ns.length ? Math.round((done / ns.length) * 100) : 0 }; });
+  return PHASES.map((p) => { const ns = NODES.filter((n) => phaseOf(n).id === p.id); const done = ns.filter((n) => statusOf(s, n.id) === 'Completed' && !isRejected(s, n.id)).length; return { ...p, total: ns.length, done, pct: ns.length ? Math.round((done / ns.length) * 100) : 0 }; });
 }
 export function progressOf(s: StateMap) {
   const by: Record<ProcessStatus, number> = { 'Not Started': 0, 'In Progress': 0, 'On Hold': 0, Completed: 0 };
