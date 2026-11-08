@@ -149,7 +149,10 @@ function PhaseModal({ linked, phaseId, building, buildings, state, editable, onC
   const [vals, setVals] = useState<Record<string, ProcessStatus>>(() => Object.fromEntries(nodes.map((n) => [n.id, state[n.id]?.status ?? 'Not Started'])));
   const [all, setAll] = useState(nodes.length > 0 && nodes.every((n) => linked.includes(n.id)));
   const [busy, setBusy] = useState(false);
-  const setEvery = (s: ProcessStatus) => setVals(Object.fromEntries(nodes.map((n) => [n.id, s])));
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const allPicked = nodes.length > 0 && picked.size === nodes.length;
+  const togglePick = (id: string) => setPicked((p) => { const x = new Set(p); if (x.has(id)) x.delete(id); else x.add(id); return x; });
+  const setEvery = (s: ProcessStatus) => setVals((v) => { const o = { ...v }; for (const n of nodes) if (!picked.size || picked.has(n.id)) o[n.id] = s; return o; });
   const changed = nodes.filter((n) => (state[n.id]?.status ?? 'Not Started') !== vals[n.id]);
   const save = async () => {
     setBusy(true);
@@ -159,9 +162,10 @@ function PhaseModal({ linked, phaseId, building, buildings, state, editable, onC
   return <Modal open onClose={onClose} title={`${PHASES.indexOf(ph) + 1}. ${ph.label} — all activities`} footer={<><button className="btn-secondary" onClick={onClose}>{editable ? 'Cancel' : 'Close'}</button>{editable && <button className="btn-primary" disabled={busy || (!all && !changed.length)} onClick={save}>Save{!all && changed.length ? ` (${changed.length})` : ''}</button>}</>}>
     <div className="space-y-3">
       <p className="text-xs text-slate-500"><Workflow size={12} className="mr-1 inline" />{building.name} · {nodes.length} activities</p>
-      {editable && <div><p className="label">Set all to</p><div className="flex flex-wrap gap-2">{PROCESS_STATUSES.map((s) => <button key={s} type="button" className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-2 py-1 text-xs" onClick={() => setEvery(s)}><span className="h-3 w-3 rounded" style={{ background: PROCESS_COLORS[s] }} />{s}</button>)}</div></div>}
+      {editable && <div><p className="label">{picked.size ? `Set the ${picked.size} selected to` : 'Set all to'}</p><div className="flex flex-wrap gap-2">{PROCESS_STATUSES.map((s) => <button key={s} type="button" className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-2 py-1 text-xs" onClick={() => setEvery(s)}><span className="h-3 w-3 rounded" style={{ background: PROCESS_COLORS[s] }} />{s}</button>)}</div></div>}
+      {editable && <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" className="h-4 w-4" checked={allPicked} ref={(el) => { if (el) el.indeterminate = picked.size > 0 && !allPicked; }} onChange={() => setPicked(allPicked ? new Set() : new Set(nodes.map((n) => n.id)))} />Select all activities{picked.size ? ` (${picked.size} selected)` : ''}</label>}
       <ul className="max-h-[50vh] divide-y divide-slate-100 overflow-auto rounded-lg border border-slate-200">
-        {nodes.map((n) => <li key={n.id} className="flex items-center gap-2 px-2 py-1.5 text-sm"><span className="h-3 w-3 shrink-0 rounded" style={{ background: PROCESS_COLORS[vals[n.id]] }} /><span className="min-w-0 flex-1"><span className="block truncate" title={n.label}>{n.label}</span><span className="block text-[11px] text-slate-500">{laneOf(n.id)?.label}</span></span>
+        {nodes.map((n) => <li key={n.id} className={`flex items-center gap-2 px-2 py-1.5 text-sm ${picked.has(n.id) ? 'bg-blue-50' : ''}`}>{editable && <input type="checkbox" className="h-4 w-4 shrink-0" aria-label={`Select ${n.label}`} checked={picked.has(n.id)} onChange={() => togglePick(n.id)} />}<span className="h-3 w-3 shrink-0 rounded" style={{ background: PROCESS_COLORS[vals[n.id]] }} /><span className="min-w-0 flex-1"><span className="block truncate" title={n.label}>{n.label}</span><span className="block text-[11px] text-slate-500">{laneOf(n.id)?.label}</span></span>
           <select aria-label={`Status of ${n.label}`} className="input w-36 py-1 text-xs" disabled={!editable} value={vals[n.id]} onChange={(e) => setVals((v) => ({ ...v, [n.id]: e.target.value as ProcessStatus }))}>{PROCESS_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></li>)}
       </ul>
       {editable && <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-4 w-4" checked={all} onChange={(e) => setAll(e.target.checked)} /><span>Apply these statuses to <b>all buildings</b> of the project ({buildings.length}), not only {building.name}<span className="block text-xs text-slate-500">Keeps these activities the same in every building. Untick to change only this building. Comments are kept.</span></span></label>}
