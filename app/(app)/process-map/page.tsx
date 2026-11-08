@@ -9,7 +9,7 @@ import { Confirm, Empty, Field, Modal, PageHeader, Spinner, StatusBadge, useToas
 import { api, fmtDateTime } from '@/lib/client';
 import { STATUSES } from '@/lib/types';
 import { canEditProject } from '@/lib/can';
-import { NODES, PROCESS_COLORS, STARTED, alarmsOf, unmetPrereqs, PROCESS_COLOR_NAMES, PROCESS_STATUSES, laneOf, nodeById, progressOf, type NodeState, type ProcessStatus, type StateMap } from '@/lib/processMap';
+import { NODES, PHASES, phaseOf, PROCESS_COLORS, STARTED, alarmsOf, unmetPrereqs, PROCESS_COLOR_NAMES, PROCESS_STATUSES, laneOf, nodeById, progressOf, type NodeState, type ProcessStatus, type StateMap } from '@/lib/processMap';
 
 interface Content { id: string; name: string; kind: string }
 interface Building { id: string; content_id: string; name: string; kind: string }
@@ -63,7 +63,7 @@ function Dashboard({ projectId, onBack }: { projectId: string; onBack: () => voi
   const asg = data.assignments.filter((a) => a.project_id === projectId);
   const editable = canEditProject(me, asg.filter((a) => a.role === 'manager').map((a) => a.employee_id), asg.filter((a) => a.role === 'coordinator').map((a) => a.employee_id)) !== 'none';
   const [d, setD] = useState<{ contents: Content[]; buildings: Building[]; nodes: Row[]; linked: string[] } | null>(null);
-  const [cur, setCur] = useState<string | null>(null); const [sel, setSel] = useState<string | null>(null); const [zoom, setZoom] = useState(1.25); const [mapEl, setMapEl] = useState<HTMLDivElement | null>(null); const zoomRef = useRef(1.25); zoomRef.current = zoom;
+  const [cur, setCur] = useState<string | null>(null); const [sel, setSel] = useState<string | null>(null); const [phase, setPhase] = useState<string | null>(null); const [zoom, setZoom] = useState(1.25); const [mapEl, setMapEl] = useState<HTMLDivElement | null>(null); const zoomRef = useRef(1.25); zoomRef.current = zoom;
   const [add, setAdd] = useState(''); const [del, setDel] = useState<Building | null>(null);
   const load = useCallback(async () => { try { const r = await api<{ contents: Content[]; buildings: Building[]; nodes: Row[]; linked: string[] }>(`/api/process?project_id=${projectId}`); setD(r); setCur((c) => (c && r.buildings.some((b) => b.id === c) ? c : r.buildings[0]?.id ?? null)); } catch (e: any) { toast(e.message, 'err'); } }, [projectId, toast]);
   useEffect(() => { load(); }, [load]);
@@ -107,11 +107,12 @@ function Dashboard({ projectId, onBack }: { projectId: string; onBack: () => voi
               <span className="ml-auto flex items-center gap-1"><button className="btn-secondary btn-sm" aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.15).toFixed(2)))}><Minus size={14} /></button><span className="w-12 text-center text-xs">{Math.round(zoom * 100)}%</span><button className="btn-secondary btn-sm" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.15).toFixed(2)))}><Plus size={14} /></button>
                 {editable && <button className="btn-ghost btn-sm text-red-600" aria-label="Remove building from the map" onClick={() => setDel(b)}><Trash2 size={14} /></button>}</span></div>
             <div className="mb-2"><Legend /></div>
-            <div ref={setMapEl} className="max-h-[calc(100vh-20rem)] min-h-[24rem] overflow-auto rounded-lg border border-slate-200 text-slate-400"><ProcessDiagram states={st} selected={sel} onSelect={setSel} zoom={zoom} /></div>
+            <div ref={setMapEl} className="max-h-[calc(100vh-20rem)] min-h-[24rem] overflow-auto rounded-lg border border-slate-200 text-slate-400"><ProcessDiagram states={st} selected={sel} onSelect={setSel} zoom={zoom} onPhaseClick={setPhase} /></div>
             {Object.keys(alarmsOf(st)).length > 0 && <p className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-700" role="alert">⚠ {Object.keys(alarmsOf(st)).length} activit{Object.keys(alarmsOf(st)).length === 1 ? 'y was' : 'ies were'} started before the previous activities were completed (red triangle on the map).</p>}
             <p className="mt-2 text-xs text-slate-500">Hold Ctrl and scroll the mouse wheel over the map to zoom. {editable ? 'Click any activity or decision to set its status and add a comment.' : 'Click an activity to see its details.'} Solid arrows are the process flow; dashed arrows are information and deliverables.</p>
           </div>}
         </>}
+        {phase && b && <PhaseModal linked={d.linked} phaseId={phase} building={b} buildings={d.buildings} state={st} editable={editable} onClose={() => setPhase(null)} onSaved={async () => { setPhase(null); await load(); }} />}
         {sel && b && <NodeModal linked={d.linked.includes(sel)} building={b} buildings={d.buildings} allStates={states} nodeKey={sel} state={st[sel]} editable={editable} onClose={() => setSel(null)} onSaved={async () => { setSel(null); await load(); }} />}
         <Confirm open={!!del} title="Remove building from the map" message={`Remove ${del?.name} from the BIM Process Map? Its status history is deleted (the project content itself stays).`} confirmLabel="Remove" danger onClose={() => setDel(null)} onConfirm={async () => { const x = del!; setDel(null); try { await api(`/api/process/buildings/${x.id}`, { method: 'DELETE' }); toast('Building removed'); await load(); } catch (e: any) { toast(e.message, 'err'); } }} />
       </>}
@@ -138,6 +139,32 @@ function NodeModal({ linked, building, buildings, allStates, nodeKey, state, edi
       {editable && <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-4 w-4" checked={all} onChange={(e) => setAll(e.target.checked)} /><span>Apply this status to <b>all buildings</b> of the project ({buildings.length}), not only {building.name}<span className="block text-xs text-slate-500">While ticked, this activity is kept the same in every building, including buildings added to the map later. Untick and save to manage it per building. The comment stays on this building only.</span></span></label>}
       <Field label="Comment"><textarea rows={3} className="input" disabled={!editable} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={status === 'On Hold' ? 'What is it waiting for?' : ''} /></Field>
       {state?.updated_at && <p className="text-xs text-slate-500">Last updated by {state.updated_by ?? '—'} on {fmtDateTime(new Date(state.updated_at))}</p>}
+    </div>
+  </Modal>;
+}
+
+function PhaseModal({ linked, phaseId, building, buildings, state, editable, onClose, onSaved }: { linked: string[]; phaseId: string; building: Building; buildings: Building[]; state: StateMap; editable: boolean; onClose: () => void; onSaved: () => void }) {
+  const toast = useToast(); const ph = PHASES.find((p) => p.id === phaseId)!;
+  const nodes = useMemo(() => NODES.filter((n) => phaseOf(n).id === phaseId), [phaseId]);
+  const [vals, setVals] = useState<Record<string, ProcessStatus>>(() => Object.fromEntries(nodes.map((n) => [n.id, state[n.id]?.status ?? 'Not Started'])));
+  const [all, setAll] = useState(nodes.length > 0 && nodes.every((n) => linked.includes(n.id)));
+  const [busy, setBusy] = useState(false);
+  const setEvery = (s: ProcessStatus) => setVals(Object.fromEntries(nodes.map((n) => [n.id, s])));
+  const changed = nodes.filter((n) => (state[n.id]?.status ?? 'Not Started') !== vals[n.id]);
+  const save = async () => {
+    setBusy(true);
+    try { await api('/api/process/phase', { method: 'PUT', body: { building_id: building.id, items: (all ? nodes : changed).map((n) => ({ node_key: n.id, status: vals[n.id] })), apply_all: all } }); toast(all ? 'Saved for all buildings' : `${changed.length} activities updated`); onSaved(); }
+    catch (e: any) { toast(e.message, 'err'); setBusy(false); }
+  };
+  return <Modal open onClose={onClose} title={`${PHASES.indexOf(ph) + 1}. ${ph.label} — all activities`} footer={<><button className="btn-secondary" onClick={onClose}>{editable ? 'Cancel' : 'Close'}</button>{editable && <button className="btn-primary" disabled={busy || (!all && !changed.length)} onClick={save}>Save{!all && changed.length ? ` (${changed.length})` : ''}</button>}</>}>
+    <div className="space-y-3">
+      <p className="text-xs text-slate-500"><Workflow size={12} className="mr-1 inline" />{building.name} · {nodes.length} activities</p>
+      {editable && <div><p className="label">Set all to</p><div className="flex flex-wrap gap-2">{PROCESS_STATUSES.map((s) => <button key={s} type="button" className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-2 py-1 text-xs" onClick={() => setEvery(s)}><span className="h-3 w-3 rounded" style={{ background: PROCESS_COLORS[s] }} />{s}</button>)}</div></div>}
+      <ul className="max-h-[50vh] divide-y divide-slate-100 overflow-auto rounded-lg border border-slate-200">
+        {nodes.map((n) => <li key={n.id} className="flex items-center gap-2 px-2 py-1.5 text-sm"><span className="h-3 w-3 shrink-0 rounded" style={{ background: PROCESS_COLORS[vals[n.id]] }} /><span className="min-w-0 flex-1"><span className="block truncate" title={n.label}>{n.label}</span><span className="block text-[11px] text-slate-500">{laneOf(n.id)?.label}</span></span>
+          <select aria-label={`Status of ${n.label}`} className="input w-36 py-1 text-xs" disabled={!editable} value={vals[n.id]} onChange={(e) => setVals((v) => ({ ...v, [n.id]: e.target.value as ProcessStatus }))}>{PROCESS_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></li>)}
+      </ul>
+      {editable && <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-4 w-4" checked={all} onChange={(e) => setAll(e.target.checked)} /><span>Apply these statuses to <b>all buildings</b> of the project ({buildings.length}), not only {building.name}<span className="block text-xs text-slate-500">Keeps these activities the same in every building. Untick to change only this building. Comments are kept.</span></span></label>}
     </div>
   </Modal>;
 }

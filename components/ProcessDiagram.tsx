@@ -12,7 +12,7 @@ function Shape({ n, color }: { n: PNode; color: string }) {
 }
 
 /** The workflow, drawn from data: every node and connector is its own SVG element. Colour = status. */
-export function ProcessDiagram({ states, selected, onSelect, zoom }: { states: StateMap; selected: string | null; onSelect: (id: string) => void; zoom: number }) {
+export function ProcessDiagram({ states, selected, onSelect, zoom, onPhaseClick }: { states: StateMap; selected: string | null; onSelect: (id: string) => void; zoom: number; onPhaseClick?: (phaseId: string) => void }) {
   const alarms = alarmsOf(states);
   return (
     <svg width={DIAGRAM_W * zoom} height={(DIAGRAM_H + PHASE_H) * zoom} viewBox={`0 0 ${DIAGRAM_W} ${DIAGRAM_H + PHASE_H}`} role="group" aria-label="Design Stage BIM Workflow" className="block select-none">
@@ -21,7 +21,8 @@ export function ProcessDiagram({ states, selected, onSelect, zoom }: { states: S
       </defs>
       <g aria-label="Phases">
         {phaseProgress(states).map((p) => (
-          <g key={p.id} data-phase={p.id}>
+          <g key={p.id} data-phase={p.id} {...(onPhaseClick ? { role: 'button', tabIndex: 0, style: { cursor: 'pointer' }, onClick: () => onPhaseClick(p.id), onKeyDown: (ev: { key: string; preventDefault: () => void }) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPhaseClick(p.id); } } } : {})}>
+            <title>{`Click to set the status of all ${p.label} activities`}</title>
             <rect x={p.x0} y={0} width={p.x1 - p.x0} height={PHASE_H} fill={p.tint} fillOpacity={0.9} stroke="rgb(var(--surface))" strokeWidth={1.5} />
             <text x={(p.x0 + p.x1) / 2} y={PHASE_H / 2 + 4} textAnchor="middle" fontSize={12} fontWeight={700} fill="#fff">{`${PHASES.indexOf(PHASES.find((q) => q.id === p.id)!) + 1}. ${p.label} — ${p.done}/${p.total} done (${p.pct}%)`}</text>
           </g>
