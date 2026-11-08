@@ -10,6 +10,7 @@ import { useApp } from './store';
 import { Field, Modal, useToast } from './ui';
 import { useInstall } from './pwa';
 import { useTheme } from './theme';
+import { BirthdayAlarm } from './BirthdayAlarm';
 
 const NAV = [
   { href: '/', label: 'Executive Dashboard', short: 'Dashboard', icon: LayoutDashboard },
@@ -77,7 +78,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </div>}
           </div>
         </header>
-        <main className="flex-1 p-4 sm:p-6">{blocked ? <p className="text-slate-600">{first ? 'Redirecting…' : 'No pages are enabled for your account. Please contact the BIM Department Administrator.'}</p> : children}</main>
+        <main className="flex-1 p-4 sm:p-6">{me.role === 'admin' && <BirthdayAlarm />}{blocked ? <p className="text-slate-600">{first ? 'Redirecting…' : 'No pages are enabled for your account. Please contact the BIM Department Administrator.'}</p> : children}</main>
         <footer className="no-print border-t border-slate-200 px-6 py-3 text-xs text-slate-400">ECG BIM Department Management Portal · A Dorsch Global Company</footer>
       </div>
       <Modal open={help} onClose={() => setHelp(false)} title="Install the portal on your phone" footer={<button className="btn-primary" onClick={() => setHelp(false)}>Got it</button>}>
