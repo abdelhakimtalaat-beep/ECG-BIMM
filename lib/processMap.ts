@@ -17,22 +17,25 @@ export const LANES: Lane[] = [
   { id: 'mep', label: 'MEP Engineer', y0: 617, y1: 706 },
   { id: 'infra', label: 'Infrastructure Engineer', y0: 706, y1: 795 },
 ];
-export const DIAGRAM_W = 2250, DIAGRAM_H = 795, LANE_LABEL_W = 34;
+/** Horizontal spread of the hand-placed sheet (x as drawn on the original ~2250 wide sheet): gives every box clear space around it for arrows. */
+export const X_SCALE = 1.5;
+const sx = (x: number) => Math.round(34 + (x - 34) * X_SCALE);
+export const DIAGRAM_W = sx(2250), DIAGRAM_H = 795, LANE_LABEL_W = 34;
 
 /** The four phases (groups) of the workflow, as column ranges of the sheet. */
 export interface Phase { id: string; label: string; x0: number; x1: number; tint: string }
 export const PHASES: Phase[] = [
-  { id: 'mob', label: 'Mobilization', x0: 0, x1: 596, tint: '#6366f1' },
-  { id: 'prod', label: 'Production', x0: 596, x1: 1409, tint: '#0d9488' },
-  { id: 'coord', label: 'Coordination', x0: 1409, x1: 1787, tint: '#d97706' },
-  { id: 'qc', label: 'Quality Control & Submission', x0: 1787, x1: 2250, tint: '#7c3aed' },
+  { id: 'mob', label: 'Mobilization', x0: 0, x1: sx(560), tint: '#6366f1' },
+  { id: 'prod', label: 'Production', x0: sx(560), x1: sx(1409), tint: '#0d9488' },
+  { id: 'coord', label: 'Coordination', x0: sx(1409), x1: sx(1799), tint: '#d97706' },
+  { id: 'qc', label: 'Quality Control & Submission', x0: sx(1799), x1: sx(2250), tint: '#7c3aed' },
 ];
 export const PHASE_H = 26;
 export const phaseOf = (n: PNode) => PHASES.find((p) => n.x < p.x1) ?? PHASES[PHASES.length - 1];
 
 export type NodeKind = 'task' | 'input' | 'decision' | 'start' | 'end';
 export interface PNode { id: string; lane: string; x: number; y: number; label: string; kind: NodeKind; w?: number; h?: number; note?: string }
-const N = (id: string, lane: string, x: number, y: number, label: string, kind: NodeKind = 'task', extra: Partial<PNode> = {}): PNode => ({ id, lane, x, y, label, kind, ...extra });
+const N = (id: string, lane: string, x: number, y: number, label: string, kind: NodeKind = 'task', extra: Partial<PNode> = {}): PNode => ({ id, lane, x: sx(x), y, label, kind, ...extra });
 
 export const NODES: PNode[] = [
   // Project Management
@@ -55,29 +58,29 @@ export const NODES: PNode[] = [
   N('bm_rcp', 'bim', 951, 152, 'RCP Validation'),
   N('bm_valid1', 'bim', 1043, 152, 'Valid?', 'decision'),
   N('bm_valid2', 'bim', 1240, 152, 'Valid?', 'decision'),
-  N('bm_coord', 'bim', 1547, 152, 'Coordination Meeting/s Internal & External'),
-  N('bm_squad', 'bim', 1547, 196, 'Squad Check Workshop/s', 'task', { h: 28 }),
-  N('bm_visual', 'bim', 1547, 233, 'Visual Check, Hard Clashes, Audit Report, Assign Issues', 'task', { h: 44 }),
+  N('bm_coord', 'bim', 1547, 146, 'Coordination Meeting/s Internal & External', 'task', { w: 170 }),
+  N('bm_squad', 'bim', 1547, 190, 'Squad Check Workshop/s', 'task', { w: 170, h: 28 }),
+  N('bm_visual', 'bim', 1547, 238, 'Visual Check, Hard Clashes, Audit Report, Assign Issues', 'task', { w: 170 }),
   N('bm_appr1', 'bim', 1648, 152, 'Approved?', 'decision'),
-  N('bm_qcc', 'bim', 1952, 238, 'BIM Quality Control Check'),
+  N('bm_qcc', 'bim', 1952, 232, 'BIM Quality Control Check', 'task', { w: 104 }),
   N('bm_appr2', 'bim', 2020, 152, 'Approved?', 'decision'),
   N('bm_subfolder', 'bim', 2113, 152, 'Create submission folder structure'),
   N('bm_lessons', 'bim', 2203, 152, 'Prepare Learned Lessons'),
   // TRC & Document Control
-  N('trc_qc', 'trc', 1952, 308, 'TRC & DC Quality Control Review'),
+  N('trc_qc', 'trc', 1952, 300, 'TRC & DC Quality Control Review', 'task', { w: 104 }),
   // Architect / Interior Designer
   N('ar_consult', 'arch', 110, 368, 'Provide Consultation', 'input', { note: 'For Model Segregation, Linking, and Grouping Scenarios' }),
   N('ar_tidp', 'arch', 380, 418, 'Provide TIDP', 'input', { w: 66, h: 28 }),
   N('ar_keyplan', 'arch', 284, 368, 'Provide KeyPlan/s', 'input', { note: 'As a single line building boundary, Match Lines, and Building/Parts number' }),
   N('ar_datum', 'arch', 645, 368, 'Create Datum Model', 'task', { w: 60 }),
   N('ar_dummy', 'arch', 716, 368, 'Create Structure Dummy Model', 'task', { w: 60, h: 40 }),
-  N('ar_model', 'arch', 787, 368, 'Create Architectural Model', 'task', { w: 60, h: 40, note: 'Basic Elements (e.g. Blockwork, openings, ceilings)' }),
-  N('ar_ceiling', 'arch', 795, 418, 'Provide Ceiling Level and Design', 'input'),
+  N('ar_model', 'arch', 787, 364, 'Create Architectural Model', 'task', { w: 60, h: 40, note: 'Basic Elements (e.g. Blockwork, openings, ceilings)' }),
+  N('ar_ceiling', 'arch', 795, 419, 'Provide Ceiling Level and Design', 'input', { w: 110 }),
   N('ar_reflected', 'arch', 951, 368, 'Confirm Reflected Ceiling Fixtures Layout'),
   N('ar_wallfin', 'arch', 1116, 368, 'Complete Modelling Internal Wall Finishes', 'task', { h: 44 }),
   N('ar_adjust', 'arch', 1240, 368, 'Adjust The project Coordinates (Datum Model)', 'task', { h: 44 }),
   N('ar_acquire', 'arch', 1370, 368, 'Acquire Coordinates to Architecture Model', 'task', { w: 62, h: 44 }),
-  N('ar_publish', 'arch', 1448, 368, 'Provide Published views/ NWC files', 'task', { w: 62, h: 44 }),
+  N('ar_publish', 'arch', 1472, 368, 'Provide Published views/ NWC files', 'task', { w: 62, h: 44 }),
   N('ar_resolve', 'arch', 1595, 368, 'Resolve Issues', 'task', { w: 66 }),
   N('ar_refine', 'arch', 1747, 368, 'Refine modelling and Generate 2D sheets', 'task', { w: 66, h: 40 }),
   N('ar_review', 'arch', 1835, 368, 'Internal Review Approved?', 'decision', { w: 82, h: 52 }),
@@ -91,7 +94,7 @@ export const NODES: PNode[] = [
   N('st_super', 'struct', 998, 572, 'Provide Superstructure 3D Model'),
   N('st_complete', 'struct', 1240, 572, 'Complete Super and substructure 3D Model', 'task', { w: 92, h: 40 }),
   N('st_acquire', 'struct', 1370, 572, 'Acquire Coordinates to Structure Model', 'task', { w: 62, h: 44 }),
-  N('st_publish', 'struct', 1448, 572, 'Provide Published views/ NWC files', 'task', { w: 62, h: 44 }),
+  N('st_publish', 'struct', 1472, 572, 'Provide Published views/ NWC files', 'task', { w: 62, h: 44 }),
   N('st_resolve', 'struct', 1598, 572, 'Resolve Issues', 'task', { w: 66 }),
   N('st_refine', 'struct', 1747, 572, 'Refine modelling and Generate 2D sheets', 'task', { w: 66, h: 40 }),
   N('st_review', 'struct', 1835, 572, 'Internal Review Approved?', 'decision', { w: 82, h: 52 }),
@@ -99,10 +102,10 @@ export const NODES: PNode[] = [
   // MEP Engineer
   N('me_tidp', 'mep', 380, 662, 'Provide TIDP', 'input', { w: 66, h: 28 }),
   N('me_req', 'mep', 782, 662, 'Provide MEP Requirements', 'input', { w: 96 }),
-  N('me_ceil', 'mep', 998, 662, 'Provide MEP 3D Models (Ceiling Fixtures Only)', 'task', { w: 64, h: 50 }),
+  N('me_ceil', 'mep', 998, 662, 'Provide MEP 3D Models (Ceiling Fixtures Only)', 'task', { w: 100, h: 50 }),
   N('me_complete', 'mep', 1116, 662, 'Complete MEP 3D Models (Add Above Ceiling Connections, and wall Fixtures)', 'task', { w: 72, h: 62 }),
   N('me_acquire', 'mep', 1370, 662, 'Acquire Coordinates to MEP Models', 'task', { w: 62, h: 44 }),
-  N('me_publish', 'mep', 1448, 662, 'Provide Published views/ NWC files', 'task', { w: 62, h: 44 }),
+  N('me_publish', 'mep', 1472, 662, 'Provide Published views/ NWC files', 'task', { w: 62, h: 44 }),
   N('me_resolve', 'mep', 1598, 662, 'Resolve Issues', 'task', { w: 66 }),
   N('me_refine', 'mep', 1747, 662, 'Refine modelling and Generate 2D sheets', 'task', { w: 66, h: 40 }),
   N('me_review', 'mep', 1835, 662, 'Internal Review Approved?', 'decision', { w: 82, h: 52 }),
@@ -111,7 +114,7 @@ export const NODES: PNode[] = [
   N('in_tidp', 'infra', 380, 755, 'Provide TIDP', 'input', { w: 66, h: 28 }),
   N('in_utility', 'infra', 786, 755, 'Provide Utility Corridor Requirements', 'input', { w: 96, h: 40 }),
   N('in_civil', 'infra', 1240, 755, 'Create Civil3D Model', 'task', { w: 70 }),
-  N('in_nwc', 'infra', 1448, 755, 'Provide NWC files', 'task', { w: 62 }),
+  N('in_nwc', 'infra', 1472, 755, 'Provide NWC files', 'task', { w: 62 }),
   N('in_resolve', 'infra', 1598, 755, 'Resolve Issues', 'task', { w: 66 }),
   N('in_gen', 'infra', 1747, 755, 'Generate 2D sheets', 'task', { w: 66 }),
   N('in_review', 'infra', 1835, 755, 'Internal Review Approved?', 'decision', { w: 82, h: 52 }),
@@ -120,9 +123,9 @@ export const NODES: PNode[] = [
 
 import { Router, polyHitsBox, type Box, type Pt } from './processRoute.ts';
 export type { Pt };
-export interface PEdge { id: string; from: string; to: string; label?: string; dashed?: boolean; bx?: number }
+export interface PEdge { id: string; from: string; to: string; label?: string; dashed?: boolean; bx?: number; enter?: 'top' | 'bottom' }
 let _e = 0;
-const E = (from: string, to: string, o: Partial<PEdge> = {}): PEdge => ({ id: `e${++_e}_${from}_${to}`, from, to, ...o });
+const E = (from: string, to: string, o: Partial<PEdge> = {}): PEdge => ({ id: `e${++_e}_${from}_${to}`, from, to, ...o, ...(o.bx != null ? { bx: sx(o.bx) } : {}) });
 export const EDGES: PEdge[] = [
   // main spine (solid)
   E('bm_bep', 'bm_kickoff'), E('bm_kickoff', 'bm_midp'), E('bm_midp', 'bm_pinfo'), E('bm_pinfo', 'bm_folder'), E('bm_folder', 'bm_validate'), E('bm_validate', 'bm_zoning'), E('bm_zoning', 'bm_rcp'), E('bm_rcp', 'bm_valid1'),
@@ -142,7 +145,7 @@ export const EDGES: PEdge[] = [
   E('ar_model', 'bm_validate', { dashed: true }),
   E('ar_ceiling', 'bm_zoning', { dashed: true, bx: 877 }), E('st_statical', 'bm_zoning', { dashed: true, bx: 877 }), E('me_req', 'bm_zoning', { dashed: true, bx: 877 }), E('in_utility', 'bm_zoning', { dashed: true, bx: 877 }),
   // RCP validation inputs
-  E('ar_reflected', 'bm_rcp', { dashed: true }), E('st_super', 'bm_rcp', { dashed: true, bx: 974 }), E('me_ceil', 'bm_rcp', { dashed: true, bx: 975 }),
+  E('ar_reflected', 'bm_rcp', { dashed: true }), E('st_super', 'bm_rcp', { dashed: true, enter: 'bottom' }), E('me_ceil', 'bm_rcp', { dashed: true, enter: 'bottom' }),
   E('bm_valid1', 'me_ceil', { label: 'No', dashed: true, bx: 1043 }),
   E('bm_valid1', 'ar_wallfin', { label: 'Yes', dashed: true, bx: 1116 }), E('ar_wallfin', 'me_complete', { dashed: true }),
   // second validation: coordinates and master plan
@@ -150,7 +153,7 @@ export const EDGES: PEdge[] = [
   E('ur_master', 'in_civil', { dashed: true, bx: 1178 }), E('st_complete', 'bm_valid2', { dashed: true, bx: 1285 }),
   E('bm_valid2', 'ar_acquire', { label: 'Yes', dashed: true, bx: 1327 }), E('bm_valid2', 'st_acquire', { dashed: true, bx: 1327 }), E('bm_valid2', 'me_acquire', { dashed: true, bx: 1327 }),
   E('ar_acquire', 'ar_publish'), E('st_acquire', 'st_publish'), E('me_acquire', 'me_publish'), E('in_civil', 'in_nwc'),
-  E('ar_publish', 'bm_coord', { dashed: true, bx: 1500 }), E('st_publish', 'bm_coord', { dashed: true, bx: 1500 }), E('me_publish', 'bm_coord', { dashed: true, bx: 1500 }), E('in_nwc', 'bm_coord', { dashed: true, bx: 1500 }),
+  E('ar_publish', 'bm_coord', { dashed: true, bx: 1516 }), E('st_publish', 'bm_coord', { dashed: true, bx: 1516 }), E('me_publish', 'bm_coord', { dashed: true, bx: 1516 }), E('in_nwc', 'bm_coord', { dashed: true, bx: 1516 }),
   E('pm_squad_dates', 'bm_coord', { dashed: true }),
   // issues, refinement, internal review
   E('bm_visual', 'ar_resolve', { dashed: true, bx: 1547 }), E('bm_visual', 'st_resolve', { dashed: true, bx: 1547 }), E('bm_visual', 'me_resolve', { dashed: true, bx: 1547 }), E('bm_visual', 'in_resolve', { dashed: true, bx: 1547 }),
@@ -162,7 +165,7 @@ export const EDGES: PEdge[] = [
   // quality control and submission
   E('ar_review', 'bm_qcc', { label: 'Yes', bx: 1902 }), E('st_review', 'bm_qcc', { label: 'Yes', bx: 1902 }), E('me_review', 'bm_qcc', { label: 'Yes', bx: 1902 }), E('in_review', 'bm_qcc', { label: 'Yes', bx: 1902 }),
   E('bm_qcc', 'trc_qc', { dashed: true }), E('trc_qc', 'bm_appr2', { dashed: true, bx: 1986 }),
-  E('bm_appr2', 'pm_guidelines', { label: 'Yes', dashed: true }), E('bm_appr2', 'ar_refine', { label: 'No', bx: 1698 }),
+  E('bm_appr2', 'pm_guidelines', { label: 'Yes', dashed: true }), E('bm_appr2', 'ar_refine', { label: 'No', bx: 1790 }),
   E('ar_upload', 'bm_subfolder', { dashed: true, bx: 2113 }), E('st_upload', 'bm_subfolder', { dashed: true, bx: 2113 }), E('me_upload', 'bm_subfolder', { dashed: true, bx: 2113 }), E('in_upload', 'bm_subfolder', { dashed: true, bx: 2113 }),
   E('bm_subfolder', 'pm_release', { dashed: true }),
 ];
@@ -170,15 +173,40 @@ export const EDGES: PEdge[] = [
 export const NODE_KEYS = new Set(NODES.map((n) => n.id));
 export const nodeById = new Map(NODES.map((n) => [n.id, n]));
 export const laneOf = (id: string) => LANES.find((l) => l.id === nodeById.get(id)?.lane);
-export const nodeSize = (n: PNode) => ({ w: n.w ?? (n.kind === 'decision' ? 60 : n.kind === 'start' || n.kind === 'end' ? 66 : 76), h: n.h ?? (n.kind === 'decision' ? 36 : n.kind === 'start' || n.kind === 'end' ? 28 : 34) });
+/** Text metrics of the 8.5px bold label and the box that fully holds it (explicit w / h are minimums). */
+const CHAR_W = 5.4, LINE_H = 10.1;
+const layoutCache = new Map<string, { w: number; h: number; lines: string[] }>();
+export function nodeLayout(n: PNode): { w: number; h: number; lines: string[] } {
+  const hit = layoutCache.get(n.id); if (hit) return hit;
+  const minW = n.w ?? (n.kind === 'decision' ? 60 : n.kind === 'start' || n.kind === 'end' ? 66 : 90), minH = n.h ?? (n.kind === 'decision' ? 36 : n.kind === 'start' || n.kind === 'end' ? 28 : 34);
+  const usable = (ww: number) => n.kind === 'decision' ? ww * 0.58 : n.kind === 'input' ? ww - 22 : n.kind === 'start' || n.kind === 'end' ? ww - 18 : ww - 12;
+  const grow = (need: number) => n.kind === 'decision' ? Math.ceil(need / 0.58) : Math.ceil(need + (n.kind === 'input' ? 22 : n.kind === 'start' || n.kind === 'end' ? 18 : 12));
+  // widen (up to 150) until the label fits in at most 3 lines; the box is then exactly as wide as its longest line needs
+  let w = minW, lines = wrapLabel(n.label, Math.max(6, Math.floor(usable(minW) / CHAR_W)));
+  for (let ww = minW; ww <= 150; ww += 6) {
+    const ls = wrapLabel(n.label, Math.max(6, Math.floor(usable(ww) / CHAR_W)));
+    lines = ls; w = Math.max(minW, grow(Math.max(...ls.map((t) => t.length)) * CHAR_W));
+    if (ls.length <= 3) break;
+  }
+  const textH = lines.length * LINE_H;
+  const h = Math.max(minH, Math.ceil(n.kind === 'decision' ? textH / 0.5 : textH + 12));
+  const r = { w: Math.ceil(w / 2) * 2, h: Math.ceil(h / 2) * 2, lines }; layoutCache.set(n.id, r); return r;
+}
+export const nodeSize = (n: PNode) => { const { w, h } = nodeLayout(n); return { w, h }; };
 
 /** Orthogonal connector between two nodes: straight when aligned, otherwise horizontal - vertical - horizontal around a bend column. */
 function legacyRoute(e: PEdge): Pt[] {
   const a = nodeById.get(e.from)!, b = nodeById.get(e.to)!; const sa = nodeSize(a), sb = nodeSize(b);
   const dx = b.x - a.x, dy = b.y - a.y;
+  // merge into the target's bottom / top: up (down) the source's column, along a rail just outside the target, then into it
+  if (e.enter) { const up = e.enter === 'bottom'; const rail = up ? b.y + sb.h / 2 + 12 : b.y - sb.h / 2 - 12; const sy = a.y + (up ? -1 : 1) * sa.h / 2; return [[a.x, sy], [a.x, rail], [b.x, rail], [b.x, b.y + (up ? 1 : -1) * sb.h / 2]]; }
   if (Math.abs(dy) < 6) { const dir = dx >= 0 ? 1 : -1; return [[a.x + dir * sa.w / 2, a.y], [b.x - dir * sb.w / 2, b.y]]; }
   if (Math.abs(dx) < 14 && e.bx == null) { const dir = dy >= 0 ? 1 : -1; return [[a.x, a.y + dir * sa.h / 2], [a.x, b.y - dir * sb.h / 2]]; }
   if (e.bx != null && Math.abs(e.bx - a.x) < 3 && Math.abs(e.bx - b.x) < 3) { const dir = dy >= 0 ? 1 : -1; return [[a.x, a.y + dir * sa.h / 2], [a.x, b.y - dir * sb.h / 2]]; }
+  // bend column over the source: leave through its top / bottom, then run into the target's side
+  if (e.bx != null && Math.abs(e.bx - a.x) < 3) { const vd = dy >= 0 ? 1 : -1, hd = dx >= 0 ? 1 : -1; return [[a.x, a.y + vd * sa.h / 2], [a.x, b.y], [b.x - hd * sb.w / 2, b.y]]; }
+  // bend column over the target: leave through the source's side, then enter the target's top / bottom
+  if (e.bx != null && Math.abs(e.bx - b.x) < 3) { const vd = dy >= 0 ? 1 : -1, hd = dx >= 0 ? 1 : -1; return [[a.x + hd * sa.w / 2, a.y], [b.x, a.y], [b.x, b.y - vd * sb.h / 2]]; }
   const dir = dx >= 0 ? 1 : -1;
   const x0 = a.x + dir * sa.w / 2, x1 = b.x - dir * sb.w / 2;
   const bx = e.bx ?? (x0 + x1) / 2;
@@ -198,7 +226,10 @@ export function routeEdge(e: PEdge): Pt[] {
   const hit = _cache.get(e.id); if (hit) return hit;
   const legacy = legacyRoute(e);
   let out = legacy;
-  if (NODE_BOXES.some((b) => b.id !== e.from && b.id !== e.to && polyHitsBox(legacy, b, 2))) {
+  const A = nodeById.get(e.from)!, B = nodeById.get(e.to)!;
+  // the hand-tuned route is kept only while it keeps a clear margin to every other box and does not run through its own two boxes
+  const ownHit = (b: Box, pts: Pt[]) => polyHitsBox(pts.slice(1, -1).length ? pts : [pts[0], pts[pts.length - 1]], b, -1);
+  if (NODE_BOXES.some((b) => b.id !== e.from && b.id !== e.to && polyHitsBox(legacy, b, 7)) || ownHit(boxOf(A), legacy) || ownHit(boxOf(B), legacy)) {
     _router ??= new Router(NODE_BOXES, DIAGRAM_W, DIAGRAM_H);
     out = _router.route(boxOf(nodeById.get(e.from)!), boxOf(nodeById.get(e.to)!)) ?? legacy;
   }

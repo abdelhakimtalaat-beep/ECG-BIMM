@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { polyHitsBox } from '../lib/processRoute.ts';
-import { NODE_BOXES, PREREQS, reworkSet, isRejected, alarmsOf, unmetPrereqs, DIAGRAM_H, DIAGRAM_W, EDGES, LANES, NODES, NODE_KEYS, PROCESS_COLORS, PROCESS_STATUSES, nodeById, nodeSize, PHASES, phaseOf, phaseProgress, progressOf, routeEdge, wrapLabel } from '../lib/processMap.ts';
+import { NODE_BOXES, nodeLayout, PREREQS, reworkSet, isRejected, alarmsOf, unmetPrereqs, DIAGRAM_H, DIAGRAM_W, EDGES, LANES, NODES, NODE_KEYS, PROCESS_COLORS, PROCESS_STATUSES, nodeById, nodeSize, PHASES, phaseOf, phaseProgress, progressOf, routeEdge, wrapLabel } from '../lib/processMap.ts';
 
 test('process map: ids unique, every node sits in its lane, every connector joins existing nodes', () => {
   assert.equal(NODE_KEYS.size, NODES.length);
@@ -48,7 +48,7 @@ test('process map: four phases cover every node', () => {
 });
 
 test('process map: no connector runs through another node', () => {
-  for (const e of EDGES) { const p = routeEdge(e); for (const b of NODE_BOXES) if (b.id !== e.from && b.id !== e.to) assert.ok(!polyHitsBox(p, b, 1), `${e.id} crosses ${b.id}`); }
+  for (const e of EDGES) { const p = routeEdge(e); for (const b of NODE_BOXES) if (b.id !== e.from && b.id !== e.to) assert.ok(!polyHitsBox(p, b, 4), `${e.id} comes within 4 units of ${b.id}`); }
 });
 test('process map: coordination starts at the published views / NWC files, quality control at the internal review', () => {
   for (const id of ['ar_publish', 'st_publish', 'me_publish', 'in_nwc', 'bm_coord']) assert.equal(phaseOf(nodeById.get(id)!).id, 'coord', id);
@@ -76,4 +76,21 @@ test('a gate answered No: rework set and red state', () => {
   assert.equal(isRejected(s, 'bm_valid2'), true);
   assert.ok(!('bm_valid2' in alarmsOf(s)));
   assert.equal(isRejected({ bm_valid2: { status: 'In Progress', outcome: 'no' } } as any, 'bm_valid2'), false);
+});
+
+test('process map: every label fits its box and no two boxes touch', () => {
+  for (const n of NODES) {
+    const l = nodeLayout(n); const longest = Math.max(...l.lines.map((t) => t.length)) * 5.4;
+    assert.ok(longest <= (n.kind === 'decision' ? l.w * 0.58 : l.w - 12) + 0.5, `${n.id} text fits the width`);
+    assert.ok(l.lines.length * 10.1 <= (n.kind === 'decision' ? l.h * 0.5 : l.h - 10) + 0.5, `${n.id} text fits the height`);
+    assert.equal(l.lines.join(' '), n.label.split(/\s+/).join(' '));
+  }
+  for (let i = 0; i < NODE_BOXES.length; i++) for (let j = i + 1; j < NODE_BOXES.length; j++) {
+    const a = NODE_BOXES[i], b = NODE_BOXES[j];
+    const gap = Math.max(a.x0 - b.x1, b.x0 - a.x1, a.y0 - b.y1, b.y0 - a.y1);
+    assert.ok(gap >= 12, `${a.id} and ${b.id} are ${gap.toFixed(0)} apart`);
+  }
+});
+test('process map: a connector never runs through its own boxes', () => {
+  for (const e of EDGES) { const p = routeEdge(e); for (const id of [e.from, e.to]) { const b = NODE_BOXES.find((x) => x.id === id)!; assert.ok(!polyHitsBox(p, b, -1), `${e.id} runs through ${id}`); } }
 });

@@ -28,7 +28,7 @@ export function simplify(pts: Pt[]): Pt[] {
 }
 
 const DX = [1, 0, -1, 0], DY = [0, 1, 0, -1];
-const BEND = 18, RING = 4, PAD = 3, SELF_PAD = 1.5;
+const BEND = 18, RING = 4, PAD = 7, SELF_PAD = 1.5;
 
 export class Router {
   boxes: Box[]; width: number; height: number;
