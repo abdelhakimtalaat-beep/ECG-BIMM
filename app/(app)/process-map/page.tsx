@@ -2,13 +2,14 @@
 import { compareByStatusThenManager, managerNames } from '@/lib/projectSort';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { ArrowLeft, Minus, Plus, Search, Trash2, Workflow } from 'lucide-react';
+import { ArrowLeft, Download, Minus, Plus, Search, Trash2, Workflow } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { ProcessDiagram } from '@/components/ProcessDiagram';
 import { Confirm, Empty, Field, Modal, PageHeader, Spinner, StatusBadge, useToast } from '@/components/ui';
 import { api, fmtDateTime } from '@/lib/client';
 import { STATUSES } from '@/lib/types';
 import { canEditProject } from '@/lib/can';
+import { processMapPng } from '@/lib/processExport';
 import { NODES, PHASES, phaseOf, PROCESS_COLORS, STARTED, alarmsOf, reworkSet, unmetPrereqs, PROCESS_COLOR_NAMES, PROCESS_STATUSES, laneOf, nodeById, progressOf, type NodeState, type ProcessStatus, type StateMap } from '@/lib/processMap';
 
 interface Content { id: string; name: string; kind: string }
@@ -78,6 +79,29 @@ function Dashboard({ projectId, onBack }: { projectId: string; onBack: () => voi
     };
     mapEl.addEventListener('wheel', onWheel, { passive: false }); return () => mapEl.removeEventListener('wheel', onWheel);
   }, [mapEl]);
+  // left-button drag pans the map; a drag of more than 4px never counts as a click on an activity
+  useEffect(() => {
+    if (!mapEl) return;
+    let sx = 0, sy = 0, sl = 0, st = 0, down = false, moved = false;
+    const onDown = (ev: PointerEvent) => { if (ev.button !== 0) return; down = true; moved = false; sx = ev.clientX; sy = ev.clientY; sl = mapEl.scrollLeft; st = mapEl.scrollTop; };
+    const onMove = (ev: PointerEvent) => {
+      if (!down) return; const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (!moved && Math.hypot(dx, dy) < 5) return;
+      if (!moved) { moved = true; mapEl.style.cursor = 'grabbing'; try { mapEl.setPointerCapture(ev.pointerId); } catch { /* ignore */ } }
+      mapEl.scrollLeft = sl - dx; mapEl.scrollTop = st - dy;
+    };
+    const onUp = () => { down = false; mapEl.style.cursor = ''; };
+    const onClick = (ev: MouseEvent) => { if (moved) { ev.stopPropagation(); ev.preventDefault(); moved = false; } };
+    mapEl.addEventListener('pointerdown', onDown); mapEl.addEventListener('pointermove', onMove); mapEl.addEventListener('pointerup', onUp); mapEl.addEventListener('pointercancel', onUp); mapEl.addEventListener('click', onClick, true);
+    return () => { mapEl.removeEventListener('pointerdown', onDown); mapEl.removeEventListener('pointermove', onMove); mapEl.removeEventListener('pointerup', onUp); mapEl.removeEventListener('pointercancel', onUp); mapEl.removeEventListener('click', onClick, true); };
+  }, [mapEl]);
+  const exportPng = async () => {
+    const svg = mapEl?.querySelector('svg') as SVGSVGElement | null; if (!svg || !b || !p) return;
+    try {
+      const blob = await processMapPng(svg, `${p.project_no ? p.project_no + ' · ' : ''}${p.name} — ${b.name}`, `BIM Process Map · ${new Date().toLocaleDateString('en-GB', { timeZone: 'Africa/Cairo' })} · ${prog.pct}% complete`);
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Process Map - ${p.name} - ${b.name}.png`.replace(/[\\/:*?"<>|]+/g, '-'); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    } catch (e: any) { toast(e.message, 'err'); }
+  };
   const states = useMemo(() => { const m: Record<string, StateMap> = {}; for (const r of d?.nodes ?? []) (m[r.building_id] ??= {})[r.node_key] = { status: r.status, comment: r.comment, outcome: r.outcome, outcome_date: r.outcome_date, updated_by: r.updated_by, updated_at: r.updated_at }; return m; }, [d]);
   if (!p) return null;
   const free = (d?.contents ?? []).filter((c) => !d!.buildings.some((b) => b.content_id === c.id));
@@ -105,11 +129,12 @@ function Dashboard({ projectId, onBack }: { projectId: string; onBack: () => voi
             <div className="mb-2 flex flex-wrap items-center gap-3"><h2 className="font-semibold text-brand-900">{b.name} <span className="text-xs font-normal text-slate-500">({b.kind})</span></h2>
               <span className="flex flex-wrap gap-2 text-xs">{PROCESS_STATUSES.map((s) => <span key={s} className="flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5"><span className="h-2.5 w-2.5 rounded-full" style={{ background: PROCESS_COLORS[s] }} />{s}: <b>{prog.by[s]}</b></span>)}<b className="px-1 py-0.5">{prog.pct}% complete</b></span>
               <span className="ml-auto flex items-center gap-1"><button className="btn-secondary btn-sm" aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(0.4, +(z - 0.15).toFixed(2)))}><Minus size={14} /></button><span className="w-12 text-center text-xs">{Math.round(zoom * 100)}%</span><button className="btn-secondary btn-sm" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(2.5, +(z + 0.15).toFixed(2)))}><Plus size={14} /></button>
+                <button className="btn-secondary btn-sm ml-2" onClick={exportPng}><Download size={14} />Image</button>
                 {editable && <button className="btn-ghost btn-sm text-red-600" aria-label="Remove building from the map" onClick={() => setDel(b)}><Trash2 size={14} /></button>}</span></div>
             <div className="mb-2"><Legend /></div>
-            <div ref={setMapEl} className="max-h-[calc(100vh-20rem)] min-h-[24rem] overflow-auto rounded-lg border border-slate-200 text-slate-400"><ProcessDiagram states={st} selected={sel} onSelect={setSel} zoom={zoom} onPhaseClick={setPhase} /></div>
+            <div ref={setMapEl} className="max-h-[calc(100vh-20rem)] min-h-[24rem] cursor-grab touch-pan-x touch-pan-y overflow-auto rounded-lg border border-slate-200 text-slate-400"><ProcessDiagram states={st} selected={sel} onSelect={setSel} zoom={zoom} onPhaseClick={setPhase} /></div>
             {Object.keys(alarmsOf(st)).length > 0 && <p className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-700" role="alert">⚠ {Object.keys(alarmsOf(st)).length} activit{Object.keys(alarmsOf(st)).length === 1 ? 'y was' : 'ies were'} started before the previous activities were completed (red triangle on the map).</p>}
-            <p className="mt-2 text-xs text-slate-500">Hold Ctrl and scroll the mouse wheel over the map to zoom. {editable ? 'Click any activity or decision to set its status and add a comment.' : 'Click an activity to see its details.'} Solid arrows are the process flow; dashed arrows are information and deliverables.</p>
+            <p className="mt-2 text-xs text-slate-500">Drag with the left mouse button to move the map; hold Ctrl and scroll the mouse wheel to zoom. {editable ? 'Click any activity or decision to set its status and add a comment.' : 'Click an activity to see its details.'} Solid arrows are the process flow; dashed arrows are information and deliverables.</p>
           </div>}
         </>}
         {phase && b && <PhaseModal linked={d.linked} phaseId={phase} building={b} buildings={d.buildings} state={st} editable={editable} onClose={() => setPhase(null)} onSaved={async () => { setPhase(null); await load(); }} />}

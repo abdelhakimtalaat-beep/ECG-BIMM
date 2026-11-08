@@ -145,7 +145,7 @@ export const EDGES: PEdge[] = [
   E('ar_model', 'bm_validate', { dashed: true }),
   E('ar_ceiling', 'bm_zoning', { dashed: true, bx: 877 }), E('st_statical', 'bm_zoning', { dashed: true, bx: 877 }), E('me_req', 'bm_zoning', { dashed: true, bx: 877 }), E('in_utility', 'bm_zoning', { dashed: true, bx: 877 }),
   // RCP validation inputs
-  E('ar_reflected', 'bm_rcp', { dashed: true }), E('st_super', 'bm_rcp', { dashed: true, enter: 'bottom' }), E('me_ceil', 'bm_rcp', { dashed: true, enter: 'bottom' }),
+  E('ar_reflected', 'bm_rcp', { dashed: true }), E('st_super', 'bm_rcp', { dashed: true, enter: 'bottom' }), E('me_ceil', 'bm_rcp', { dashed: true, enter: 'bottom', bx: 1040 }),
   E('bm_valid1', 'me_ceil', { label: 'No', dashed: true, bx: 1043 }),
   E('bm_valid1', 'ar_wallfin', { label: 'Yes', dashed: true, bx: 1116 }), E('ar_wallfin', 'me_complete', { dashed: true }),
   // second validation: coordinates and master plan
@@ -199,6 +199,7 @@ function legacyRoute(e: PEdge): Pt[] {
   const a = nodeById.get(e.from)!, b = nodeById.get(e.to)!; const sa = nodeSize(a), sb = nodeSize(b);
   const dx = b.x - a.x, dy = b.y - a.y;
   // merge into the target's bottom / top: up (down) the source's column, along a rail just outside the target, then into it
+  if (e.enter && e.bx != null) { const up = e.enter === 'bottom'; const rail = up ? b.y + sb.h / 2 + 12 : b.y - sb.h / 2 - 12; const hd = e.bx >= a.x ? 1 : -1; return [[a.x + hd * sa.w / 2, a.y], [e.bx, a.y], [e.bx, rail], [b.x, rail], [b.x, b.y + (up ? 1 : -1) * sb.h / 2]]; }
   if (e.enter) { const up = e.enter === 'bottom'; const rail = up ? b.y + sb.h / 2 + 12 : b.y - sb.h / 2 - 12; const sy = a.y + (up ? -1 : 1) * sa.h / 2; return [[a.x, sy], [a.x, rail], [b.x, rail], [b.x, b.y + (up ? 1 : -1) * sb.h / 2]]; }
   if (Math.abs(dy) < 6) { const dir = dx >= 0 ? 1 : -1; return [[a.x + dir * sa.w / 2, a.y], [b.x - dir * sb.w / 2, b.y]]; }
   if (Math.abs(dx) < 14 && e.bx == null) { const dir = dy >= 0 ? 1 : -1; return [[a.x, a.y + dir * sa.h / 2], [a.x, b.y - dir * sb.h / 2]]; }
