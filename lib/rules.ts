@@ -16,6 +16,10 @@ export const REEL_EDITORS: RoleName[] = ['admin', 'bim_manager', 'bim_coordinato
 export const canEditReels = (role: RoleName | undefined | null) => !!role && REEL_EDITORS.includes(role);
 /** BIM Managers/Coordinators may edit a reel only while it is still Planned (and may add new Planned ones). */
 export const canEditReel = (role: RoleName | undefined | null, status: string) => role === 'admin' || (canEditReels(role) && status === 'Planned');
+/** BIM Specialists and R&D BIM Engineers may edit the topic and software of their OWN reel while it is still Planned. */
+export const REEL_OWN_EDITORS: RoleName[] = ['bim_specialist', 'rd_engineer'];
+export const OWN_REEL_FIELDS = ['topic', 'software'] as const;
+export const canEditOwnReel = (role: RoleName | undefined | null, status: string, isOwner: boolean) => !!role && REEL_OWN_EDITORS.includes(role) && isOwner && status === 'Planned';
 /** Changing a reel's status is Administrator-only. */
 export const canChangeReelStatus = (role: RoleName | undefined | null) => role === 'admin';
 /** Org chart, team assignments, workload settings, imports, users: administrator only. */

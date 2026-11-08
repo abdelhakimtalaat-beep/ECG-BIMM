@@ -69,3 +69,11 @@ test('project stages and LOD: fixed choices, canonical order, editable by the Ad
   const { PROJECT_FIELDS } = await import('../lib/rules.ts');
   for (const sc of ['full', 'manager'] as const) for (const f of ['stages', 'lods']) assert.ok(PROJECT_FIELDS[sc].includes(f), `${sc} ${f}`);
 });
+
+test('specialists and R&D engineers edit the topic of their own Planned reel', async () => {
+  const { canEditOwnReel, OWN_REEL_FIELDS } = await import('../lib/rules.ts');
+  assert.equal(canEditOwnReel('bim_specialist', 'Planned', true), true); assert.equal(canEditOwnReel('rd_engineer', 'Planned', true), true);
+  assert.equal(canEditOwnReel('bim_specialist', 'Planned', false), false); assert.equal(canEditOwnReel('rd_engineer', 'Completed', true), false);
+  assert.equal(canEditOwnReel('viewer', 'Planned', true), false); assert.equal(canEditOwnReel('bim_coordinator', 'Planned', true), false);
+  assert.deepEqual([...OWN_REEL_FIELDS], ['topic', 'software']);
+});

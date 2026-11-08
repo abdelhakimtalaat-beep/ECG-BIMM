@@ -9,7 +9,7 @@ import { Badge, Confirm, Empty, Field, Modal, PageHeader, useToast } from '@/com
 import { api, download, fmtDate, fmtDateTime } from '@/lib/client';
 import { DEFAULT_MEETING_LINK, DEFAULT_REEL_CC, DEFAULT_REEL_TO, reelMailContent, toAddresses } from '@/lib/reelEml';
 import { drawReelImage, REEL_IMG_H, REEL_IMG_W } from '@/lib/reelImage';
-import { canEditReels, canEditReel } from '@/lib/can';
+import { canEditReels, canEditReel, canEditOwnReel } from '@/lib/can';
 import { reelConflicts, reelStats, upcomingReels, incompleteReels, weekdayOf } from '@/lib/metrics';
 import { REEL_STATUSES, SOFTWARES, type Reel, type ReelStatus } from '@/lib/types';
 
@@ -22,6 +22,7 @@ export default function ReelsPage() {
   const { me, data, reels, today, refresh } = useApp(); const toast = useToast();
   const admin = canEditReels(me); // may add Planned reels
   const isAdm = me.role === 'admin'; // only the Administrator changes status
+  const edOwn = (r: Reel) => canEditReel(me, r.status) || canEditOwnReel(me, r); // topic / software: managers, or the speaker himself if BIM Specialist / R&D Engineer
   const ed = (r: Reel) => canEditReel(me, r.status); // BIM Manager/Coordinator: Planned reels only
   const canDelete = me.role === 'admin';
   const [view, setView] = useState<'table' | 'calendar' | 'week' | 'month' | 'upcoming'>('table');
@@ -65,8 +66,8 @@ export default function ReelsPage() {
       <tbody>{rows.map((r, i) => (
         <tr key={r.id} className={`border-t border-slate-100 ${i % 2 ? 'bg-amber-50/70' : 'bg-brand-50/70'}`}>
           <td className="td">{r.weekday}</td><td className="td whitespace-nowrap">{fmtDate(r.session_date)}</td>
-          <td className="td min-w-[14rem]">{ed(r) ? <input className="input" defaultValue={r.topic ?? ''} placeholder="Add topic…" onBlur={(e) => e.target.value !== (r.topic ?? '') && quick(r, { topic: e.target.value || null })} aria-label={`Topic for ${r.presenter_name}`} /> : (r.topic ?? <span className="text-slate-400">—</span>)}</td>
-          <td className="td">{ed(r) ? <select className="input w-32" value={r.software ?? ''} onChange={(e) => quick(r, { software: e.target.value || null })} aria-label={`Software for ${r.presenter_name}`}><option value="">—</option>{SOFTWARES.map((s) => <option key={s}>{s}</option>)}</select> : (r.software ?? <span className="text-slate-400">—</span>)}</td>
+          <td className="td min-w-[14rem]">{edOwn(r) ? <input className="input" defaultValue={r.topic ?? ''} placeholder="Add topic…" onBlur={(e) => e.target.value !== (r.topic ?? '') && quick(r, { topic: e.target.value || null })} aria-label={`Topic for ${r.presenter_name}`} /> : (r.topic ?? <span className="text-slate-400">—</span>)}</td>
+          <td className="td">{edOwn(r) ? <select className="input w-32" value={r.software ?? ''} onChange={(e) => quick(r, { software: e.target.value || null })} aria-label={`Software for ${r.presenter_name}`}><option value="">—</option>{SOFTWARES.map((s) => <option key={s}>{s}</option>)}</select> : (r.software ?? <span className="text-slate-400">—</span>)}</td>
           <td className="td font-medium">{r.presenter_name}{conflicts.has(r.id) && <span className="ml-1 cursor-help text-amber-600" title={conflicts.get(r.id)!.join('\n')}><AlertTriangle size={14} className="inline" /></span>}{!r.employee_id && <span title="Speaker is not in the org chart"> <Badge tone="amber">not in org chart</Badge></span>}</td>
           <td className="td">{isAdm ? <select className="input w-36" value={r.status} onChange={(e) => quick(r, { status: e.target.value as ReelStatus })} aria-label={`Status for ${r.presenter_name}`}>{REEL_STATUSES.map((s) => <option key={s}>{s}</option>)}</select> : <Badge tone={TONE[r.status]}>{r.status}</Badge>}</td>
           <td className="td text-xs">{r.link ? <a className="text-brand-600 underline" href={r.link} target="_blank" rel="noopener noreferrer">Open link</a> : <span className="text-slate-400">—</span>}</td>
