@@ -25,8 +25,8 @@ export const DIAGRAM_W = sx(2250), DIAGRAM_H = 795, LANE_LABEL_W = 34;
 /** The four phases (groups) of the workflow, as column ranges of the sheet. */
 export interface Phase { id: string; label: string; x0: number; x1: number; tint: string }
 export const PHASES: Phase[] = [
-  { id: 'mob', label: 'Mobilization', x0: 0, x1: sx(560), tint: '#6366f1' },
-  { id: 'prod', label: 'Production', x0: sx(560), x1: sx(1409), tint: '#0d9488' },
+  { id: 'mob', label: 'Mobilization', x0: 0, x1: sx(543), tint: '#6366f1' },
+  { id: 'prod', label: 'Production', x0: sx(543), x1: sx(1409), tint: '#0d9488' },
   { id: 'coord', label: 'Coordination', x0: sx(1409), x1: sx(1799), tint: '#d97706' },
   { id: 'qc', label: 'Quality Control & Submission', x0: sx(1799), x1: sx(2250), tint: '#7c3aed' },
 ];
@@ -40,7 +40,7 @@ const N = (id: string, lane: string, x: number, y: number, label: string, kind: 
 export const NODES: PNode[] = [
   // Project Management
   N('pm_mob', 'pm', 110, 42, 'Mobilization and Kick-Off', 'input', { w: 96, h: 38, note: 'Project Information, Data Collection, Contact List, Contract, EIR, Pre-Appointment BEP, Proposal, SOW, RACI matrix, Schedules, Milestones, and Stakeholders data' }),
-  N('pm_client', 'pm', 270, 42, "Get The Client's Approval", 'task', { note: 'For the BEP including the project Title Block and the Building Coding System' }),
+  N('pm_client', 'pm', 270, 42, 'Client BEP Approval', 'decision', { w: 112, h: 54, note: 'Gate: the Client approves the BEP, including the project Title Block and the Building Coding System' }),
   N('pm_squad_dates', 'pm', 1547, 42, 'Squad Check Dates'),
   N('pm_sub_dates', 'pm', 1750, 42, 'Submittal Dates'),
   N('pm_guidelines', 'pm', 2020, 42, 'Prepare Submittal Guidelines'),
@@ -71,7 +71,7 @@ export const NODES: PNode[] = [
   // Architect / Interior Designer
   N('ar_consult', 'arch', 110, 368, 'Provide Consultation', 'input', { note: 'For Model Segregation, Linking, and Grouping Scenarios' }),
   N('ar_tidp', 'arch', 380, 418, 'Provide TIDP', 'input', { w: 66, h: 28 }),
-  N('ar_keyplan', 'arch', 284, 368, 'Provide KeyPlan/s', 'input', { note: 'As a single line building boundary, Match Lines, and Building/Parts number' }),
+  N('ar_keyplan', 'arch', 608, 419, 'Provide KeyPlan/s', 'input', { note: 'As a single line building boundary, Match Lines, and Building/Parts number' }),
   N('ar_datum', 'arch', 645, 368, 'Create Datum Model', 'task', { w: 60 }),
   N('ar_dummy', 'arch', 716, 368, 'Create Structure Dummy Model', 'task', { w: 60, h: 40 }),
   N('ar_model', 'arch', 787, 364, 'Create Architectural Model', 'task', { w: 60, h: 40, note: 'Basic Elements (e.g. Blockwork, openings, ceilings)' }),
@@ -86,7 +86,7 @@ export const NODES: PNode[] = [
   N('ar_review', 'arch', 1835, 368, 'Internal Review Approved?', 'decision', { w: 82, h: 52 }),
   N('ar_upload', 'arch', 2062, 368, 'Upload Submission Files', 'task', { w: 66 }),
   // Urban / Landscape
-  N('ur_site', 'urban', 400, 485, 'Provide The Site Key Plan and North Arrow', 'input', { w: 96, h: 46, note: 'As a single line, Match Lines, Building Distribution, Survey Point and the North Arrow' }),
+  N('ur_site', 'urban', 608, 485, 'Provide The Site Key Plan and North Arrow', 'input', { w: 96, h: 46, note: 'As a single line, Match Lines, Building Distribution, Survey Point and the North Arrow' }),
   N('ur_master', 'urban', 1240, 482, 'Provide Confirmed Site Master Plan', 'input', { w: 96, h: 40, note: 'Include buildings Distribution and Numbering "as per the numbering system mentioned at the project BEP"' }),
   // Structural Engineer
   N('st_tidp', 'struct', 380, 572, 'Provide TIDP', 'input', { w: 66, h: 28 }),
@@ -134,14 +134,14 @@ export const EDGES: PEdge[] = [
   E('bm_appr2', 'bm_subfolder', { label: 'Yes' }), E('bm_qcc', 'bm_appr2', { bx: 2020 }), E('bm_subfolder', 'bm_lessons'),
   E('pm_guidelines', 'pm_release'), E('pm_release', 'pm_close'),
   // kick-off and BEP (dashed = information / deliverable)
-  E('pm_mob', 'bm_bep', { dashed: true }), E('bm_bep', 'pm_client', { dashed: true, bx: 190 }), E('pm_client', 'bm_kickoff', { dashed: true }),
+  E('pm_mob', 'bm_bep', { dashed: true }), E('bm_bep', 'pm_client', { dashed: true, bx: 190 }), E('pm_client', 'bm_kickoff', { label: 'Approved', dashed: true }),
   // after the kick-off: Task Teams provide TIDPs, the BIM Manager consolidates the MIDP, the Client approves it (gate)
   E('bm_kickoff', 'ar_tidp', { dashed: true, bx: 328 }), E('bm_kickoff', 'st_tidp', { dashed: true, bx: 328 }), E('bm_kickoff', 'me_tidp', { dashed: true, bx: 328 }), E('bm_kickoff', 'in_tidp', { dashed: true, bx: 328 }),
   E('ar_tidp', 'bm_midp', { dashed: true, bx: 440 }), E('st_tidp', 'bm_midp', { dashed: true, bx: 440 }), E('me_tidp', 'bm_midp', { dashed: true, bx: 440 }), E('in_tidp', 'bm_midp', { dashed: true, bx: 440 }),
   E('bm_midp', 'pm_midp_gate', { dashed: true }), E('pm_midp_gate', 'bm_pinfo', { label: 'Approved', dashed: true, bx: 560 }),
   E('ar_consult', 'bm_bep', { dashed: true }),
-  E('ar_keyplan', 'bm_pinfo', { dashed: true, bx: 545 }), E('ur_site', 'bm_pinfo', { dashed: true, bx: 545 }),
-  E('ar_keyplan', 'ar_datum', { dashed: true }), E('ar_datum', 'ar_dummy', { dashed: true }), E('ar_dummy', 'ar_model', { dashed: true }),
+  E('ar_keyplan', 'bm_pinfo', { dashed: true }), E('ur_site', 'bm_pinfo', { dashed: true, enter: 'bottom', bx: 565 }),
+  E('ar_datum', 'ar_dummy', { dashed: true }), E('ar_dummy', 'ar_model', { dashed: true }),
   E('ar_model', 'bm_validate', { dashed: true }),
   E('ar_ceiling', 'bm_zoning', { dashed: true, bx: 877 }), E('st_statical', 'bm_zoning', { dashed: true, bx: 877 }), E('me_req', 'bm_zoning', { dashed: true, bx: 877 }), E('in_utility', 'bm_zoning', { dashed: true, bx: 877 }),
   // RCP validation inputs
