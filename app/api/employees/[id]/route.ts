@@ -19,7 +19,8 @@ const patch = z.object({
   email: z.string().trim().toLowerCase().email().max(200).nullable().or(z.literal('').transform(() => null)),
   active: z.boolean(),
   birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), job_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), gender: z.enum(['Male', 'Female']).nullable(),
-  education: z.array(z.object({ degree: z.string().trim().max(60), major: z.string().trim().max(80), university: z.string().trim().max(80), year: z.string().trim().max(10) })).max(4),
+  other_certificates: z.array(z.object({ name: z.string().trim().max(120), provider: z.string().trim().max(120), doc_id: z.string().uuid().nullish() })).max(20),
+  education: z.array(z.object({ degree: z.string().trim().max(60), major: z.string().trim().max(80), university: z.string().trim().max(80), year: z.string().trim().max(10), cert_doc_id: z.string().uuid().nullish() })).max(4),
   reports_to: z.string().uuid().nullable(),
 }).partial();
 
@@ -34,9 +35,15 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if ('reports_to' in b && wouldCreateCycle(ds.employees, id, b.reports_to ?? null)) throw new ApiError(400, 'That reporting line would create a loop in the hierarchy');
     await tx(async (c) => {
       const { reports_to, ...cols } = b as any;
+      if (cols.education || cols.other_certificates) { // a certificate file must be one of this employee's own documents
+        const ids: string[] = [...(cols.education ?? []).map((r: any) => r.cert_doc_id), ...(cols.other_certificates ?? []).map((r: any) => r.doc_id)].filter(Boolean);
+        const ok = new Set(ids.length ? (await c.query('select id from employee_documents where employee_id=$1 and id = any($2::uuid[])', [id, ids])).rows.map((r: any) => r.id) : []);
+        if (cols.education) cols.education = cols.education.map((r: any) => ({ ...r, cert_doc_id: r.cert_doc_id && ok.has(r.cert_doc_id) ? r.cert_doc_id : null }));
+        if (cols.other_certificates) cols.other_certificates = cols.other_certificates.filter((r: any) => r.name || r.provider || r.doc_id).map((r: any) => ({ ...r, doc_id: r.doc_id && ok.has(r.doc_id) ? r.doc_id : null }));
+      }
       const keys = Object.keys(cols);
       if (keys.length) {
-        const vals = keys.map((k) => (k === 'education' ? JSON.stringify(cols[k].filter((r: any) => r.degree || r.major || r.university || r.year)) : cols[k])); vals.push(id);
+        const vals = keys.map((k) => (k === 'education' ? JSON.stringify(cols[k].filter((r: any) => r.degree || r.major || r.university || r.year || r.cert_doc_id)) : k === 'other_certificates' ? JSON.stringify(cols[k]) : cols[k])); vals.push(id);
         await c.query(`update employees set ${keys.map((k, i) => `${k}=$${i + 1}`).join(',')}, updated_at=now() where id=$${vals.length}`, vals);
       }
       if ('reports_to' in b && (reports_to ?? null) !== cur.reports_to) {

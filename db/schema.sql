@@ -192,6 +192,7 @@ create table if not exists attachments (
 alter table employees add column if not exists birth_date date;
 alter table employees add column if not exists gender text;
 alter table employees add column if not exists job_start_date date;
+alter table employees add column if not exists other_certificates jsonb not null default '[]'::jsonb;   -- [{name,provider,doc_id}]
 do $$ begin
   if not exists (select 1 from pg_constraint where conname = 'employees_gender_check') then
     alter table employees add constraint employees_gender_check check (gender is null or gender in ('Male','Female'));

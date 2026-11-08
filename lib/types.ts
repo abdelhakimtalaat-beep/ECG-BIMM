@@ -8,7 +8,7 @@ export const STATUS_COLORS: Record<Status, string> = {
 export type ReelStatus = 'Not recorded' | 'Planned' | 'Completed' | 'Postponed' | 'Cancelled';
 export const REEL_STATUSES: ReelStatus[] = ['Not recorded', 'Planned', 'Completed', 'Postponed', 'Cancelled'];
 
-export interface Education { degree: string; major: string; university: string; year: string }
+export interface Education { degree: string; major: string; university: string; year: string; cert_doc_id?: string | null }
 export interface Employee {
   id: string; employee_code: string | null; name: string; job_title: string;
   job_category: 'department_manager' | 'bim_manager' | 'bim_coordinator' | 'bim_specialist' | 'rd_engineer' | 'other';

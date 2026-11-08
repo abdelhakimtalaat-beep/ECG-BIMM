@@ -233,10 +233,7 @@ export default function OrgPage() {
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             {[['Employee ID', detail.employee_code ?? 'Not supplied'], ['Email', detail.email ?? '—'], ['Mobile', detail.mobile ?? '—'], ['Ext.', detail.ext ?? '—'], ['Role', detail.job_title], ['Category', CAT_LABEL[detail.job_category]], ['Discipline', detail.discipline ?? '—'], ['Year (as supplied)', detail.year_value ?? '—'], ['Team location', detail.team_location ?? '—'],
-              ['Reports to', detail.reports_to ? emp.get(detail.reports_to)?.name : '—'], ['Status', detail.active ? 'Active' : 'Inactive']].map(([k, v]) => (k === 'Mobile' || k === 'Ext.') && canUpload(detail)
-              ? <label key={`${detail.id}${k}${v}`} className="block"><span className="label">{k}</span><input className="input mt-0.5 w-full" defaultValue={v === '—' ? '' : String(v)} placeholder="Add…" maxLength={40} aria-label={`${k} of ${detail.name}`}
-                  onBlur={async (e) => { const val = e.target.value.trim(); if (val === (v === '—' ? '' : String(v))) return; try { await api(`/api/employees/${detail.id}/contact`, { method: 'PUT', body: { mobile: k === 'Mobile' ? val : detail.mobile ?? null, ext: k === 'Ext.' ? val : detail.ext ?? null } }); toast('Saved'); refresh(); } catch (er: any) { toast(er.message, 'err'); } }} /></label>
-              : <div key={String(k)}><p className="label">{k}</p><p>{v}</p></div>)}
+              ['Reports to', detail.reports_to ? emp.get(detail.reports_to)?.name : '—'], ['Status', detail.active ? 'Active' : 'Inactive']].map(([k, v]) => <div key={String(k)}><p className="label">{k}</p><p>{v}</p></div>)}
           </div>
           {canUpload(detail) && <EmployeeHr id={detail.id} />}
           {detail.notes && <p className="rounded bg-slate-50 p-3 text-sm">{detail.notes}</p>}
@@ -269,7 +266,27 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
   const { data } = useApp(); const toast = useToast();
   const [f, setF] = useState({ employee_code: init.employee_code ?? '', name: init.name ?? '', job_title: init.job_title ?? '', job_category: init.job_category ?? 'bim_coordinator', discipline: init.discipline ?? '', year_value: init.year_value ?? ('' as any), team_location: init.team_location ?? '', email: init.email ?? '', mobile: init.mobile ?? '', ext: init.ext ?? '', notes: init.notes ?? '', reports_to: init.reports_to ?? '', birth_date: '', gender: '', job_start_date: '', education: Array.from({ length: 4 }, (_, i) => init.education?.[i] ?? { degree: '', major: '', university: '', year: '' }) });
   const [busy, setBusy] = useState(false); const [hrLoaded, setHrLoaded] = useState(!!init._new); // birthday / gender / job start date are private: loaded separately
-  useEffect(() => { if (init._new || !init.id) return; api<any>(`/api/employees/${init.id}/hr`).then((h) => { setF((x) => ({ ...x, birth_date: h.birth_date ?? '', gender: h.gender ?? '', job_start_date: h.job_start_date ?? '' })); setHrLoaded(true); }).catch(() => {}); }, [init.id, init._new]);
+  type Doc = { id: string; doc_type: string; attachment_id: string; filename: string; size_bytes: number };
+  const [docs, setDocs] = useState<Doc[]>([]); const [others, setOthers] = useState<{ name: string; provider: string; doc_id: string | null }[]>([]); const [upBusy, setUpBusy] = useState(false);
+  const [docType, setDocType] = useState('National ID'); const fileIn = useRef<HTMLInputElement>(null); const pick = useRef<{ kind: 'edu' | 'other' | 'doc'; i: number } | null>(null);
+  const loadHr = useCallback(() => (init._new || !init.id ? Promise.resolve() : api<any>(`/api/employees/${init.id}/hr`).then((h) => { setF((x) => ({ ...x, birth_date: h.birth_date ?? '', gender: h.gender ?? '', job_start_date: h.job_start_date ?? '' })); setDocs(h.documents ?? []); setOthers(h.other_certificates ?? []); setHrLoaded(true); }).catch(() => {})), [init.id, init._new]);
+  useEffect(() => { loadHr(); }, [loadHr]);
+  const docOf = (id?: string | null) => docs.find((d) => d.id === id);
+  /** Uploads a file now (it needs the saved employee); the link to the education row / certificate is saved with the Save button. */
+  const sendDoc = async (file: File, type: string): Promise<string | null> => {
+    if (file.size > 4 * 1024 * 1024) { toast('A document must be 4 MB or smaller', 'err'); return null; }
+    setUpBusy(true);
+    try { const r = await api<{ id: string }>(`/api/employees/${init.id}/documents`, { raw: file, headers: { 'Content-Type': 'application/octet-stream', 'x-filename': encodeURIComponent(file.name), 'x-doc-type': encodeURIComponent(type) } }); await loadHr(); toast('Uploaded'); return r.id; }
+    catch (e: any) { toast(e.message, 'err'); return null; } finally { setUpBusy(false); }
+  };
+  const dropDoc = async (docId: string) => { try { await api(`/api/employees/${init.id}/documents?doc=${docId}`, { method: 'DELETE' }); await loadHr(); } catch (e: any) { toast(e.message, 'err'); } };
+  const onFile = async (file: File) => {
+    const t = pick.current; if (!t) return;
+    if (t.kind === 'edu') { const id = await sendDoc(file, 'University Certificate'); if (id) setF((x) => ({ ...x, education: x.education.map((r, j) => (j === t.i ? { ...r, cert_doc_id: id } : r)) })); }
+    else if (t.kind === 'other') { const id = await sendDoc(file, 'Other Certificate'); if (id) setOthers((o) => o.map((r, j) => (j === t.i ? { ...r, doc_id: id } : r))); }
+    else await sendDoc(file, docType);
+  };
+  const askFile = (kind: 'edu' | 'other' | 'doc', i = 0) => { pick.current = { kind, i }; fileIn.current?.click(); };
   const [photo, setPhoto] = useState<File | null>(null);
   const [cropNew, setCropNew] = useState<File | null>(null);
   const preview = useMemo(() => (photo ? URL.createObjectURL(photo) : init.photo_id ? `/api/files/${init.photo_id}` : null), [photo, init.photo_id]);
@@ -278,7 +295,7 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
   const save = async () => {
     setBusy(true);
     try {
-      const body: any = { employee_code: f.employee_code || null, name: f.name, job_title: f.job_title, job_category: f.job_category, discipline: f.discipline || null, year_value: f.year_value === '' ? null : Number(f.year_value), team_location: f.team_location || null, email: f.email.trim() || null, mobile: f.mobile.trim() || null, ext: f.ext.trim() || null, notes: f.notes || null, reports_to: f.reports_to || null, education: f.education, ...(hrLoaded ? { birth_date: f.birth_date || null, gender: f.gender || null, job_start_date: f.job_start_date || null } : {}) };
+      const body: any = { employee_code: f.employee_code || null, name: f.name, job_title: f.job_title, job_category: f.job_category, discipline: f.discipline || null, year_value: f.year_value === '' ? null : Number(f.year_value), team_location: f.team_location || null, email: f.email.trim() || null, mobile: f.mobile.trim() || null, ext: f.ext.trim() || null, notes: f.notes || null, reports_to: f.reports_to || null, education: f.education, ...(hrLoaded ? { birth_date: f.birth_date || null, gender: f.gender || null, job_start_date: f.job_start_date || null, other_certificates: others } : {}) };
       let id = init.id as string | undefined;
       if (init._new) id = (await api<{ id: string }>('/api/employees', { body })).id; else await api(`/api/employees/${init.id}`, { method: 'PATCH', body });
       let photoErr = '';
@@ -310,8 +327,25 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
           <Field label="Photo (optional)" hint="PNG, JPEG or WebP. It is resized automatically."><input type="file" accept="image/png,image/jpeg,image/webp" className="text-sm" onChange={(e) => { const f = e.target.files?.[0] ?? null; e.target.value = ''; if (f) setCropNew(f); }} /></Field>
         </div>
         <div className="sm:col-span-2"><p className="label mb-1">Education</p>
-          <div className="grid grid-cols-[1fr_1.4fr_1.4fr_5rem] gap-2 text-xs font-medium text-slate-500"><span>Degree</span><span>Major</span><span>University</span><span>Year</span></div>
-          {f.education.map((r, i) => <div key={i} className="mt-1 grid grid-cols-[1fr_1.4fr_1.4fr_5rem] gap-2">{(['degree', 'major', 'university', 'year'] as const).map((k) => <input key={k} className="input" aria-label={`${k} ${i + 1}`} value={r[k]} onChange={(e) => setF({ ...f, education: f.education.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)) })} />)}</div>)}</div>
+          <div className="grid grid-cols-[1fr_1.4fr_1.4fr_5rem_7rem] gap-2 text-xs font-medium text-slate-500"><span>Degree</span><span>Major</span><span>University</span><span>Year</span><span>Certificate</span></div>
+          {f.education.map((r, i) => { const d = docOf(r.cert_doc_id); return <div key={i} className="mt-1 grid grid-cols-[1fr_1.4fr_1.4fr_5rem_7rem] items-center gap-2">{(['degree', 'major', 'university', 'year'] as const).map((k) => <input key={k} className="input" aria-label={`${k} ${i + 1}`} value={r[k]} onChange={(e) => setF({ ...f, education: f.education.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)) })} />)}
+            {d ? <span className="flex items-center gap-1"><a className="btn-secondary btn-sm" href={`/api/files/${d.attachment_id}`} target="_blank" rel="noopener noreferrer" title={d.filename}><FileDown size={14} />View</a><button type="button" className="btn-ghost btn-sm text-red-600" aria-label={`Remove certificate ${i + 1}`} onClick={async () => { await dropDoc(d.id); setF((x) => ({ ...x, education: x.education.map((y, j) => (j === i ? { ...y, cert_doc_id: null } : y)) })); }}><Trash2 size={14} /></button></span>
+              : <button type="button" className="btn-secondary btn-sm" disabled={upBusy || !init.id} title={init.id ? 'Upload the degree certificate' : 'Save the employee first, then edit to upload'} onClick={() => askFile('edu', i)}><ImagePlus size={14} />Upload</button>}</div>; })}</div>
+        <div className="sm:col-span-2 rounded-lg border border-slate-200 p-3"><p className="label mb-1">Other certificates</p>
+          {others.length > 0 && <div className="grid grid-cols-[1.6fr_1.4fr_7rem_2rem] gap-2 text-xs font-medium text-slate-500"><span>Certificate name</span><span>Provider</span><span>Certificate</span><span /></div>}
+          {others.map((r, i) => { const d = docOf(r.doc_id); return <div key={i} className="mt-1 grid grid-cols-[1.6fr_1.4fr_7rem_2rem] items-center gap-2">
+            <input className="input" aria-label={`Certificate name ${i + 1}`} value={r.name} onChange={(e) => setOthers(others.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
+            <input className="input" aria-label={`Provider ${i + 1}`} value={r.provider} onChange={(e) => setOthers(others.map((x, j) => (j === i ? { ...x, provider: e.target.value } : x)))} />
+            {d ? <a className="btn-secondary btn-sm" href={`/api/files/${d.attachment_id}`} target="_blank" rel="noopener noreferrer" title={d.filename}><FileDown size={14} />View</a>
+              : <button type="button" className="btn-secondary btn-sm" disabled={upBusy || !init.id} title={init.id ? 'Upload the certificate' : 'Save the employee first, then edit to upload'} onClick={() => askFile('other', i)}><ImagePlus size={14} />Upload</button>}
+            <button type="button" className="btn-ghost btn-sm text-red-600" aria-label={`Remove certificate ${i + 1}`} onClick={async () => { if (d) await dropDoc(d.id); setOthers(others.filter((_, j) => j !== i)); }}><Trash2 size={14} /></button></div>; })}
+          <button type="button" className="btn-secondary btn-sm mt-2" onClick={() => setOthers([...others, { name: '', provider: '', doc_id: null }])}><Plus size={14} />Add certificate</button>
+          <div className="mt-4 border-t border-slate-200 pt-3"><p className="label mb-1">Employee documents <span className="font-normal text-slate-400">(National ID, passport … private to the Administrator)</span></p>
+            {docs.filter((d) => ['National ID', 'Passport', 'Other'].includes(d.doc_type)).map((d) => <div key={d.id} className="flex items-center gap-2 py-1"><Badge tone="blue">{d.doc_type}</Badge><a className="min-w-0 flex-1 truncate text-brand-600 underline" href={`/api/files/${d.attachment_id}`} target="_blank" rel="noopener noreferrer">{d.filename}</a><span className="text-xs text-slate-400">{Math.max(1, Math.round(d.size_bytes / 1024))} KB</span>
+              <button type="button" className="btn-ghost btn-sm text-red-600" aria-label={`Remove ${d.filename}`} onClick={() => dropDoc(d.id)}><Trash2 size={14} /></button></div>)}
+            <div className="mt-1 flex flex-wrap items-center gap-2"><select className="input w-44" value={docType} onChange={(e) => setDocType(e.target.value)} aria-label="Document type">{['National ID', 'Passport', 'Other'].map((t) => <option key={t}>{t}</option>)}</select>
+              <button type="button" className="btn-secondary btn-sm" disabled={upBusy || !init.id} title={init.id ? '' : 'Save the employee first, then edit to upload'} onClick={() => askFile('doc')}><ImagePlus size={14} />{upBusy ? 'Uploading…' : 'Upload document'}</button><span className="text-xs text-slate-400">PDF, Word or image, up to 4 MB</span></div></div>
+          <input ref={fileIn} type="file" hidden accept=".pdf,.doc,.docx,image/png,image/jpeg,image/webp" onChange={(e) => { const f2 = e.target.files?.[0]; e.target.value = ''; if (f2) onFile(f2); }} /></div>
         <div className="sm:col-span-2"><Field label="Notes"><textarea className="input" rows={2} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
       </div>
     </Modal>
@@ -320,32 +354,10 @@ function EmployeeForm({ init, onClose, onSaved }: { init: Partial<Employee> & { 
   );
 }
 
-const DOC_TYPES = ['National ID', 'Passport', 'University Certificate', 'Other Certificate', 'Other'];
-/** Private details of one employee (Administrator and the employee himself): birthday, gender, job start date and uploaded documents. */
+/** Private details of one employee (Administrator and the employee himself): birthday, gender and job start date. Documents are managed in the Edit window. */
 function EmployeeHr({ id }: { id: string }) {
-  const toast = useToast(); const input = useRef<HTMLInputElement>(null);
-  const [hr, setHr] = useState<{ birth_date: string | null; gender: string | null; job_start_date: string | null; documents: { id: string; doc_type: string; attachment_id: string; filename: string; size_bytes: number }[] } | null>(null);
-  const [type, setType] = useState(DOC_TYPES[0]); const [busy, setBusy] = useState(false);
-  const load = useCallback(() => api<any>(`/api/employees/${id}/hr`).then(setHr).catch(() => setHr(null)), [id]);
-  useEffect(() => { setHr(null); load(); }, [load]);
+  const [hr, setHr] = useState<{ birth_date: string | null; gender: string | null; job_start_date: string | null } | null>(null);
+  useEffect(() => { setHr(null); api<any>(`/api/employees/${id}/hr`).then(setHr).catch(() => setHr(null)); }, [id]);
   if (!hr) return null;
-  const upload = async (f: File) => {
-    if (f.size > 4 * 1024 * 1024) return toast('A document must be 4 MB or smaller', 'err');
-    setBusy(true);
-    try { await api(`/api/employees/${id}/documents`, { raw: f, headers: { 'Content-Type': 'application/octet-stream', 'x-filename': encodeURIComponent(f.name), 'x-doc-type': encodeURIComponent(type) } }); toast('Document uploaded'); await load(); }
-    catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); }
-  };
-  return (
-    <div className="space-y-3 rounded-lg border border-slate-200 p-3 text-sm">
-      <div className="grid grid-cols-3 gap-3">{[['Birthday', hr.birth_date ? fmtDate(hr.birth_date) : '—'], ['Gender', hr.gender ?? '—'], ['Job start date', hr.job_start_date ? fmtDate(hr.job_start_date) : '—']].map(([k, v]) => <div key={k}><p className="label">{k}</p><p>{v}</p></div>)}</div>
-      <div><p className="label">Employee documents <span className="font-normal text-slate-400">(private: visible to the Administrator and this employee only)</span></p>
-        {hr.documents.length ? <ul className="mt-1 divide-y divide-slate-100">{hr.documents.map((d) => <li key={d.id} className="flex items-center gap-2 py-1.5"><Badge tone="blue">{d.doc_type}</Badge>
-          <a className="min-w-0 flex-1 truncate text-brand-600 underline" href={`/api/files/${d.attachment_id}`} target="_blank" rel="noopener noreferrer">{d.filename}</a><span className="shrink-0 text-xs text-slate-400">{Math.max(1, Math.round(d.size_bytes / 1024))} KB</span>
-          <button className="btn-ghost btn-sm text-red-600" aria-label={`Remove ${d.filename}`} onClick={async () => { if (!confirm(`Remove ${d.doc_type} (${d.filename})?`)) return; try { await api(`/api/employees/${id}/documents?doc=${d.id}`, { method: 'DELETE' }); await load(); } catch (e: any) { toast(e.message, 'err'); } }}><Trash2 size={14} /></button></li>)}</ul> : <p className="mt-1 text-slate-500">No documents uploaded.</p>}
-        <div className="mt-2 flex flex-wrap items-center gap-2"><select className="input w-52" value={type} onChange={(e) => setType(e.target.value)} aria-label="Document type">{DOC_TYPES.map((t) => <option key={t}>{t}</option>)}</select>
-          <button className="btn-secondary btn-sm" disabled={busy} onClick={() => input.current?.click()}><ImagePlus size={14} />{busy ? 'Uploading…' : 'Upload document'}</button>
-          <input ref={input} type="file" hidden accept=".pdf,.doc,.docx,image/png,image/jpeg,image/webp" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) upload(f); }} />
-          <span className="text-xs text-slate-400">PDF, Word or image, up to 4 MB</span></div></div>
-    </div>
-  );
+  return <div className="grid grid-cols-3 gap-3 rounded-lg border border-slate-200 p-3 text-sm">{[['Birthday', hr.birth_date ? fmtDate(hr.birth_date) : '—'], ['Gender', hr.gender ?? '—'], ['Job start date', hr.job_start_date ? fmtDate(hr.job_start_date) : '—']].map(([k, v]) => <div key={k}><p className="label">{k}</p><p>{v}</p></div>)}</div>;
 }

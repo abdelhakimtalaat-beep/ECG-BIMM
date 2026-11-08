@@ -15,7 +15,7 @@ const empFields = {
   mobile: z.string().trim().max(40).nullish().transform((v) => v || null),
   ext: z.string().trim().max(40).nullish().transform((v) => v || null),
   email: z.string().trim().toLowerCase().email().max(200).nullish().or(z.literal('')).transform((v) => v || null),
-  education: z.array(z.object({ degree: z.string().trim().max(60), major: z.string().trim().max(80), university: z.string().trim().max(80), year: z.string().trim().max(10) })).max(4).nullish().transform((v) => (v ?? []).filter((r) => r.degree || r.major || r.university || r.year)),
+  education: z.array(z.object({ degree: z.string().trim().max(60), major: z.string().trim().max(80), university: z.string().trim().max(80), year: z.string().trim().max(10), cert_doc_id: z.string().uuid().nullish() })).max(4).nullish().transform((v) => (v ?? []).filter((r) => r.degree || r.major || r.university || r.year).map((r) => ({ ...r, cert_doc_id: null }))),
 };
 export async function POST(req: Request) {
   return handle(async () => {
