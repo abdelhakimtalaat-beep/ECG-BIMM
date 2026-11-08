@@ -188,6 +188,25 @@ create table if not exists attachments (
   created_at timestamptz not null default now()
 );
 
+-- ----------------------------------------------------------- employee HR data and documents
+alter table employees add column if not exists birth_date date;
+alter table employees add column if not exists gender text;
+alter table employees add column if not exists job_start_date date;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'employees_gender_check') then
+    alter table employees add constraint employees_gender_check check (gender is null or gender in ('Male','Female'));
+  end if;
+end $$;
+create table if not exists employee_documents (
+  id            uuid primary key default gen_random_uuid(),
+  employee_id   uuid not null references employees(id) on delete cascade,
+  doc_type      text not null check (doc_type in ('National ID','Passport','University Certificate','Other Certificate','Other')),
+  attachment_id uuid not null references attachments(id) on delete cascade,
+  created_by    text,
+  created_at    timestamptz not null default now()
+);
+create index if not exists employee_documents_emp_idx on employee_documents(employee_id);
+
 create table if not exists app_settings (
   key        text primary key,
   value      jsonb not null,
@@ -434,7 +453,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','calendar_feeds','calendar_events','wishes','wish_votes','contacts','evaluations','evaluation_scores','evaluation_stages'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','calendar_feeds','calendar_events','wishes','wish_votes','contacts','evaluations','evaluation_scores','evaluation_stages','employee_documents'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;

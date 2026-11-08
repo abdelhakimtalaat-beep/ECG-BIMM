@@ -77,3 +77,11 @@ test('specialists and R&D engineers edit the topic of their own Planned reel', a
   assert.equal(canEditOwnReel('viewer', 'Planned', true), false); assert.equal(canEditOwnReel('bim_coordinator', 'Planned', true), false);
   assert.deepEqual([...OWN_REEL_FIELDS], ['topic', 'software']);
 });
+
+test('employee documents are recognised by their real signature', async () => {
+  const { sniffDoc, DOC_TYPES } = await import('../lib/files.ts');
+  assert.equal(sniffDoc(Buffer.from('%PDF-1.7 xxxx'), 'id.pdf')?.mime, 'application/pdf');
+  assert.equal(sniffDoc(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 'scan.jpg')?.mime, 'image/jpeg');
+  assert.equal(sniffDoc(Buffer.from('MZ not a document'), 'virus.pdf'), null); assert.equal(sniffDoc(Buffer.from('%PDF-1.7 xxxx'), 'renamed.exe'), null);
+  assert.equal(DOC_TYPES.length, 5);
+});

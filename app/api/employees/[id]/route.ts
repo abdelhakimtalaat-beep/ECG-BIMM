@@ -18,6 +18,7 @@ const patch = z.object({
   ext: z.string().trim().max(40).nullable().or(z.literal('').transform(() => null)),
   email: z.string().trim().toLowerCase().email().max(200).nullable().or(z.literal('').transform(() => null)),
   active: z.boolean(),
+  birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), job_start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(), gender: z.enum(['Male', 'Female']).nullable(),
   education: z.array(z.object({ degree: z.string().trim().max(60), major: z.string().trim().max(80), university: z.string().trim().max(80), year: z.string().trim().max(10) })).max(4),
   reports_to: z.string().uuid().nullable(),
 }).partial();
@@ -75,6 +76,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
         }
       }
       await c.query('update users set active=false, employee_id=null where employee_id=$1', [id]);
+      await c.query('delete from attachments where id in (select attachment_id from employee_documents where employee_id=$1)', [id]);
       await c.query(`delete from attachments where id = any($1::uuid[]) or filename in ($2,$3)`, [[cur.photo_id, cur.cv_id].filter(Boolean), `employee:${id}`, `employee:${id}`]);
       await c.query('delete from employees where id=$1', [id]);
       await audit(c, me.email, 'delete', 'employee', id, `Deleted ${cur.name} from the org chart (${moved.length} direct report(s) moved up)`, cur, null);

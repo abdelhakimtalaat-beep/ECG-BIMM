@@ -23,7 +23,7 @@ export async function detail(me: Me, ev: EvRow, a: Actors) {
   const who = whoOf(me); const vis = visibleStages(who, a, ev.status);
   if (!vis) throw new ApiError(403, 'You do not have access to this evaluation');
   const [emp, sc, st] = await Promise.all([
-    one<any>('select id,name,job_title,photo_id,team_location,education from employees where id=$1', [ev.employee_id]),
+    one<any>('select id,name,job_title,photo_id,team_location,education,job_start_date::text job_start_date from employees where id=$1', [ev.employee_id]),
     q<any>('select stage,item_key,score,comment from evaluation_scores where evaluation_id=$1', [ev.id]),
     q<any>('select stage,overall_comment,submitted_at,submitted_by from evaluation_stages where evaluation_id=$1', [ev.id]),
   ]);
@@ -33,6 +33,6 @@ export async function detail(me: Me, ev: EvRow, a: Actors) {
     stages[s] = { scores, overall_comment: meta?.overall_comment ?? '', submitted_at: meta?.submitted_at ?? null, submitted_by: meta?.submitted_by ?? null, totals: totals(Object.fromEntries(Object.entries(scores).map(([k, v]) => [k, v.score]))) };
   }
   const editing = STAGES.filter((s) => vis.includes(s.key) && canEditStage(who, a, ev.status, s.key)).map((s) => s.key);
-  const labels = await loadLabels();
-  return { labels, id: ev.id, period: ev.period, status: ev.status, info: ev.info ?? {}, employee: emp, has_manager: !!a.managerId, stages, can: { edit: editing as Stage[], submit: canSubmitStage(who, a, ev.status), hr: canEditHr(who, a, ev.status), reopen: me.role === 'admin', delete: me.role === 'admin' } };
+  const labels = await loadLabels(); // employment date: the job start date of the org chart unless a date was typed in the form
+  return { labels, id: ev.id, period: ev.period, status: ev.status, info: { ...(ev.info ?? {}), employment_date: ev.info?.employment_date || emp?.job_start_date || '' }, employee: emp, has_manager: !!a.managerId, stages, can: { edit: editing as Stage[], submit: canSubmitStage(who, a, ev.status), hr: canEditHr(who, a, ev.status), reopen: me.role === 'admin', delete: me.role === 'admin' } };
 }

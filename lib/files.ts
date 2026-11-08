@@ -14,3 +14,11 @@ export function sniffCv(b: Buffer, filename: string): { mime: string; ext: strin
   if (b.length > 4 && b[0] === 0x50 && b[1] === 0x4b && b[2] === 0x03 && b[3] === 0x04 && ext === 'docx') return { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', ext: 'docx' };
   return null;
 }
+
+export const DOC_MAX_BYTES = 4 * 1024 * 1024;
+export const DOC_TYPES = ['National ID', 'Passport', 'University Certificate', 'Other Certificate', 'Other'] as const;
+/** Employee documents: PDF, Word, or a photo/scan (PNG, JPEG, WebP), recognised by their real file signature. */
+export function sniffDoc(b: Buffer, filename: string): { mime: string } | null {
+  const img = sniffImage(b); if (img) return { mime: img };
+  const d = sniffCv(b, filename); return d ? { mime: d.mime } : null;
+}
