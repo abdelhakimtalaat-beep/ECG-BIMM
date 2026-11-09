@@ -63,7 +63,7 @@ function Dashboard({ projectId, onBack }: { projectId: string; onBack: () => voi
   const p = data.projects.find((x) => x.id === projectId)!;
   const asg = data.assignments.filter((a) => a.project_id === projectId);
   const editable = canEditProject(me, asg.filter((a) => a.role === 'manager').map((a) => a.employee_id), asg.filter((a) => a.role === 'coordinator').map((a) => a.employee_id)) !== 'none';
-  const [d, setD] = useState<{ contents: Content[]; buildings: Building[]; nodes: Row[]; linked: string[] } | null>(null);
+  const [d, setD] = useState<{ contents: Content[]; buildings: Building[]; nodes: Row[]; linked: string[]; hidden_lanes: string[] } | null>(null);
   const [cur, setCur] = useState<string | null>(null); const [sel, setSel] = useState<string | null>(null); const [phase, setPhase] = useState<string | null>(null); const [rowsOpen, setRowsOpen] = useState(false); const [zoom, setZoom] = useState(1.25); const [mapEl, setMapEl] = useState<HTMLDivElement | null>(null); const zoomRef = useRef(1.25); zoomRef.current = zoom;
   const [add, setAdd] = useState(''); const [del, setDel] = useState<Building | null>(null);
   const load = useCallback(async () => { try { const r = await api<{ contents: Content[]; buildings: Building[]; nodes: Row[]; linked: string[]; hidden_lanes: string[] }>(`/api/process?project_id=${projectId}`); setD(r); setCur((c) => (c && r.buildings.some((b) => b.id === c) ? c : r.buildings[0]?.id ?? null)); } catch (e: any) { toast(e.message, 'err'); } }, [projectId, toast]);
