@@ -333,6 +333,12 @@ create table if not exists process_buildings (
   created_at timestamptz not null default now()
 );
 create index if not exists process_buildings_project_idx on process_buildings(project_id);
+create table if not exists process_hidden_lanes (
+  project_id uuid not null references projects(id) on delete cascade,
+  lane_id    text not null,
+  primary key (project_id, lane_id)
+);
+
 create table if not exists process_nodes (
   building_id uuid not null references process_buildings(id) on delete cascade,
   node_key    text not null,
@@ -456,7 +462,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','calendar_feeds','calendar_events','wishes','wish_votes','contacts','evaluations','evaluation_scores','evaluation_stages','employee_documents'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','process_hidden_lanes','calendar_feeds','calendar_events','wishes','wish_votes','contacts','evaluations','evaluation_scores','evaluation_stages','employee_documents'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;

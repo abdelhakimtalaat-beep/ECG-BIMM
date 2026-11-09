@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { polyHitsBox } from '../lib/processRoute.ts';
-import { NODE_BOXES, nodeLayout, PREREQS, reworkSet, isRejected, alarmsOf, unmetPrereqs, DIAGRAM_H, DIAGRAM_W, EDGES, LANES, NODES, NODE_KEYS, PROCESS_COLORS, PROCESS_STATUSES, nodeById, nodeSize, PHASES, phaseOf, phaseProgress, progressOf, routeEdge, wrapLabel } from '../lib/processMap.ts';
+import { NODE_BOXES, nodeLayout, viewOf, PREREQS, reworkSet, isRejected, alarmsOf, unmetPrereqs, DIAGRAM_H, DIAGRAM_W, EDGES, LANES, NODES, NODE_KEYS, PROCESS_COLORS, PROCESS_STATUSES, nodeById, nodeSize, PHASES, phaseOf, phaseProgress, progressOf, routeEdge, wrapLabel } from '../lib/processMap.ts';
 
 test('process map: ids unique, every node sits in its lane, every connector joins existing nodes', () => {
   assert.equal(NODE_KEYS.size, NODES.length);
@@ -60,7 +60,7 @@ test('process map: alarm when an activity starts before the previous ones are co
   assert.deepEqual(PREREQS.get('bm_pinfo')!.sort(), ['ar_keyplan', 'bm_midp', 'pm_midp_gate', 'ur_site'].sort());
   assert.ok(!PREREQS.get('bm_coord')!.includes('bm_appr1'), 'the No (rework) connector is not a prerequisite');
   assert.deepEqual(alarmsOf({}), {});
-  const s: any = { bm_bep: { status: 'Completed' }, pm_client: { status: 'Completed' }, bm_kickoff: { status: 'Completed' }, bm_midp: { status: 'In Progress' } };
+  const s: any = { bm_bep: { status: 'Completed' }, bm_cde: { status: 'Completed' }, pm_client: { status: 'Completed' }, bm_kickoff: { status: 'Completed' }, bm_midp: { status: 'In Progress' } };
   const a = alarmsOf(s); assert.ok('bm_midp' in a); assert.deepEqual(a.bm_midp.sort(), ['ar_tidp', 'in_tidp', 'me_tidp', 'st_tidp']);
   assert.ok(!unmetPrereqs({ ...s, bm_midp: { status: 'Completed' } } as any, 'bm_pinfo').includes('bm_midp'));
   for (const id of ['pm_mob', 'ar_consult', 'ar_tidp', 'st_tidp', 'me_tidp', 'in_tidp', 'bm_midp']) s[id] = { status: 'Completed' }; s.bm_midp = { status: 'Completed' };
@@ -93,4 +93,24 @@ test('process map: every label fits its box and no two boxes touch', () => {
 });
 test('process map: a connector never runs through its own boxes', () => {
   for (const e of EDGES) { const p = routeEdge(e); for (const id of [e.from, e.to]) { const b = NODE_BOXES.find((x) => x.id === id)!; assert.ok(!polyHitsBox(p, b, -1), `${e.id} runs through ${id}`); } }
+});
+
+test('CDE Setup sits between Create BEP and the BIM Kick-Off Meeting', () => {
+  assert.deepEqual(PREREQS.get('bm_kickoff')!.sort(), ['bm_cde', 'pm_client']);
+  assert.deepEqual(PREREQS.get('bm_cde'), ['bm_bep']);
+});
+test('removing rows: lanes move up, their activities and connectors disappear, progress ignores them', () => {
+  const full = viewOf([]); assert.equal(full.nodes.length, NODES.length); assert.equal(full.height, 795);
+  const v = viewOf(['urban', 'infra']);
+  assert.ok(!v.lanes.some((l) => l.id === 'urban' || l.id === 'infra'));
+  assert.equal(v.height, 795 - 89 - 89);
+  assert.equal(v.lanes.find((l) => l.id === 'struct')!.y0, 438);
+  assert.ok(v.nodes.every((n) => n.lane !== 'urban' && n.lane !== 'infra'));
+  assert.ok(v.edges.every((e) => v.nodes.some((n) => n.id === e.from) && v.nodes.some((n) => n.id === e.to)));
+  assert.ok(v.hiddenNodes.has('ur_site') && !v.hiddenNodes.has('bm_bep'));
+  for (const n of v.nodes) { const l = v.lanes.find((x) => x.id === n.lane)!; assert.ok(n.y > l.y0 && n.y < l.y1, n.id); }
+  for (const e of v.edges) { const p = v.route(e); for (const n of v.nodes) if (n.id !== e.from && n.id !== e.to) assert.ok(!polyHitsBox(p, { id: n.id, x0: n.x - nodeLayout(n).w / 2, x1: n.x + nodeLayout(n).w / 2, y0: n.y - nodeLayout(n).h / 2, y1: n.y + nodeLayout(n).h / 2 }, 4), `${e.id} vs ${n.id}`); }
+  assert.equal(progressOf({}, v.hiddenNodes).total, v.nodes.length);
+  assert.ok(!('bm_pinfo' in alarmsOf({ bm_pinfo: { status: 'In Progress' } } as any, v.hiddenNodes)) || !alarmsOf({ bm_pinfo: { status: 'In Progress' } } as any, v.hiddenNodes).bm_pinfo.includes('ur_site'));
+  assert.equal(viewOf(LANES.map((l) => l.id)).nodes.length, NODES.length, 'never hides every row');
 });

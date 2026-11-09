@@ -1,5 +1,5 @@
 'use client';
-import { DIAGRAM_H, DIAGRAM_W, EDGES, LANES, LANE_LABEL_W, NODES, PHASES, PHASE_H, PROCESS_COLORS, phaseProgress, alarmsOf, isRejected, nodeById, nodeSize, nodeLayout, labelPos, pathOf, routeEdge, statusOf, wrapLabel, type PNode, type StateMap } from '@/lib/processMap';
+import { DIAGRAM_W, LANE_LABEL_W, PHASES, PHASE_H, PROCESS_COLORS, phaseProgress, alarmsOf, isRejected, nodeById, nodeSize, nodeLayout, labelPos, pathOf, statusOf, viewOf, wrapLabel, type PNode, type StateMap } from '@/lib/processMap';
 
 const LINE = '#c0392b';
 function Shape({ n, color }: { n: PNode; color: string }) {
@@ -12,15 +12,16 @@ function Shape({ n, color }: { n: PNode; color: string }) {
 }
 
 /** The workflow, drawn from data: every node and connector is its own SVG element. Colour = status. */
-export function ProcessDiagram({ states, selected, onSelect, zoom, onPhaseClick }: { states: StateMap; selected: string | null; onSelect: (id: string) => void; zoom: number; onPhaseClick?: (phaseId: string) => void }) {
-  const alarms = alarmsOf(states);
+export function ProcessDiagram({ states, selected, onSelect, zoom, onPhaseClick, hiddenLanes }: { states: StateMap; selected: string | null; onSelect: (id: string) => void; zoom: number; onPhaseClick?: (phaseId: string) => void; hiddenLanes?: string[] }) {
+  const v = viewOf(hiddenLanes); const DIAGRAM_H = v.height;
+  const alarms = alarmsOf(states, v.hiddenNodes);
   return (
     <svg width={DIAGRAM_W * zoom} height={(DIAGRAM_H + PHASE_H) * zoom} viewBox={`0 0 ${DIAGRAM_W} ${DIAGRAM_H + PHASE_H}`} role="group" aria-label="Design Stage BIM Workflow" className="block select-none">
       <defs>
         <marker id="pm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L10 5 L0 9 z" fill={LINE} /></marker>
       </defs>
       <g aria-label="Phases">
-        {phaseProgress(states).map((p) => (
+        {phaseProgress(states, v.hiddenNodes).map((p) => (
           <g key={p.id} data-phase={p.id} {...(onPhaseClick ? { role: 'button', tabIndex: 0, style: { cursor: 'pointer' }, onClick: () => onPhaseClick(p.id), onKeyDown: (ev: { key: string; preventDefault: () => void }) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPhaseClick(p.id); } } } : {})}>
             <title>{`Click to set the status of all ${p.label} activities`}</title>
             <rect x={p.x0} y={0} width={p.x1 - p.x0} height={PHASE_H} fill={p.tint} fillOpacity={0.9} stroke="rgb(var(--surface))" strokeWidth={1.5} />
@@ -29,7 +30,7 @@ export function ProcessDiagram({ states, selected, onSelect, zoom, onPhaseClick 
         ))}
       </g>
       <g transform={`translate(0 ${PHASE_H})`}>
-      {LANES.map((l, i) => (
+      {v.lanes.map((l, i) => (
         <g key={l.id} data-lane={l.id}>
           <rect x={0} y={l.y0} width={DIAGRAM_W} height={l.y1 - l.y0} className={i % 2 ? 'fill-slate-100' : 'fill-surface'} fillOpacity={i % 2 ? 0.5 : 1} stroke="currentColor" strokeOpacity={0.25} />
           <line x1={LANE_LABEL_W} x2={LANE_LABEL_W} y1={l.y0} y2={l.y1} stroke="currentColor" strokeOpacity={0.25} />
@@ -38,8 +39,8 @@ export function ProcessDiagram({ states, selected, onSelect, zoom, onPhaseClick 
       ))}
       {PHASES.slice(1).map((p) => <line key={p.id} x1={p.x0} x2={p.x0} y1={0} y2={DIAGRAM_H} stroke={p.tint} strokeWidth={2} strokeDasharray="8 5" strokeOpacity={0.7} />)}
       <g aria-label="Connectors">
-        {EDGES.map((e) => {
-          const pts = routeEdge(e); const a = pts[0], b = pts[pts.length - 1]; const mid = pts[Math.min(1, pts.length - 1)];
+        {v.edges.map((e) => {
+          const pts = v.route(e); const a = pts[0], b = pts[pts.length - 1]; const mid = pts[Math.min(1, pts.length - 1)];
           return (
             <g key={e.id} data-edge={e.id}>
               <path d={pathOf(pts)} fill="none" stroke={LINE} strokeWidth={1.3} strokeDasharray={e.dashed ? '5 3' : undefined} markerEnd="url(#pm-arrow)" strokeLinejoin="round" />
@@ -48,7 +49,7 @@ export function ProcessDiagram({ states, selected, onSelect, zoom, onPhaseClick 
         })}
       </g>
       <g aria-label="Activities">
-        {NODES.map((n) => {
+        {v.nodes.map((n) => {
           const st = statusOf(states, n.id); const rej = isRejected(states, n.id); const color = rej ? '#dc2626' : PROCESS_COLORS[st]; const { w, h } = nodeSize(n);
           const fs = n.kind === 'decision' ? 8 : 8.5; const lines = nodeLayout(n).lines; const lh = 10.1; const y0 = -((lines.length - 1) * lh) / 2 + 2.6;
           const sel = selected === n.id;

@@ -50,6 +50,7 @@ export const NODES: PNode[] = [
   N('bm_midp', 'bim', 500, 152, 'Create MIDP', 'task', { note: 'Master Information Delivery Plan, consolidated from the Task Teams\' TIDPs after the BIM Kick-Off Meeting' }),
   N('pm_midp_gate', 'pm', 500, 42, 'Client MIDP Approval', 'decision', { w: 112, h: 54, note: 'Gate: the Client approves the MIDP once all Task Teams have completed their TIDPs' }),
   N('bm_bep', 'bim', 110, 152, 'Create BEP', 'task', { note: 'Naming Convention, Model Segregation, SOW, RACI, Linking/Grouping Scenario' }),
+  N('bm_cde', 'bim', 190, 152, 'CDE Setup', 'task', { note: 'Common Data Environment setup, before the BIM Kick-Off Meeting' }),
   N('bm_kickoff', 'bim', 270, 152, 'BIM Kick-Off Meeting'),
   N('bm_pinfo', 'bim', 608, 152, 'Pinfo Preparation'),
   N('bm_folder', 'bim', 693, 152, 'Provide The Folder Structure Tree'),
@@ -128,13 +129,13 @@ let _e = 0;
 const E = (from: string, to: string, o: Partial<PEdge> = {}): PEdge => ({ id: `e${++_e}_${from}_${to}`, from, to, ...o, ...(o.bx != null ? { bx: sx(o.bx) } : {}) });
 export const EDGES: PEdge[] = [
   // main spine (solid)
-  E('bm_bep', 'bm_kickoff'), E('bm_kickoff', 'bm_midp'), E('bm_midp', 'bm_pinfo'), E('bm_pinfo', 'bm_folder'), E('bm_folder', 'bm_validate'), E('bm_validate', 'bm_zoning'), E('bm_zoning', 'bm_rcp'), E('bm_rcp', 'bm_valid1'),
+  E('bm_bep', 'bm_cde'), E('bm_cde', 'bm_kickoff'), E('bm_kickoff', 'bm_midp'), E('bm_midp', 'bm_pinfo'), E('bm_pinfo', 'bm_folder'), E('bm_folder', 'bm_validate'), E('bm_validate', 'bm_zoning'), E('bm_zoning', 'bm_rcp'), E('bm_rcp', 'bm_valid1'),
   E('bm_valid1', 'bm_valid2', { label: 'Yes', bx: 1043 }), E('bm_valid2', 'bm_coord', { label: 'Yes' }),
   E('bm_coord', 'bm_squad'), E('bm_squad', 'bm_visual'), E('bm_visual', 'bm_appr1', { bx: 1602 }), E('bm_appr1', 'bm_coord', { label: 'No', bx: 1600 }),
   E('bm_appr2', 'bm_subfolder', { label: 'Yes' }), E('bm_qcc', 'bm_appr2', { bx: 2020 }), E('bm_subfolder', 'bm_lessons'),
   E('pm_guidelines', 'pm_release'), E('pm_release', 'pm_close'),
   // kick-off and BEP (dashed = information / deliverable)
-  E('pm_mob', 'bm_bep', { dashed: true }), E('bm_bep', 'pm_client', { dashed: true, bx: 190 }), E('pm_client', 'bm_kickoff', { label: 'Approved', dashed: true }),
+  E('pm_mob', 'bm_bep', { dashed: true }), E('bm_bep', 'pm_client', { dashed: true, bx: 150 }), E('pm_client', 'bm_kickoff', { label: 'Approved', dashed: true }),
   // after the kick-off: Task Teams provide TIDPs, the BIM Manager consolidates the MIDP, the Client approves it (gate)
   E('bm_kickoff', 'ar_tidp', { dashed: true, bx: 328 }), E('bm_kickoff', 'st_tidp', { dashed: true, bx: 328 }), E('bm_kickoff', 'me_tidp', { dashed: true, bx: 328 }), E('bm_kickoff', 'in_tidp', { dashed: true, bx: 328 }),
   E('ar_tidp', 'bm_midp', { dashed: true, bx: 440 }), E('st_tidp', 'bm_midp', { dashed: true, bx: 440 }), E('me_tidp', 'bm_midp', { dashed: true, bx: 440 }), E('in_tidp', 'bm_midp', { dashed: true, bx: 440 }),
@@ -195,8 +196,8 @@ export function nodeLayout(n: PNode): { w: number; h: number; lines: string[] } 
 export const nodeSize = (n: PNode) => { const { w, h } = nodeLayout(n); return { w, h }; };
 
 /** Orthogonal connector between two nodes: straight when aligned, otherwise horizontal - vertical - horizontal around a bend column. */
-function legacyRoute(e: PEdge): Pt[] {
-  const a = nodeById.get(e.from)!, b = nodeById.get(e.to)!; const sa = nodeSize(a), sb = nodeSize(b);
+function legacyRoute(e: PEdge, byId: Map<string, PNode> = nodeById): Pt[] {
+  const a = byId.get(e.from)!, b = byId.get(e.to)!; const sa = nodeSize(a), sb = nodeSize(b);
   const dx = b.x - a.x, dy = b.y - a.y;
   // merge into the target's bottom / top: up (down) the source's column, along a rail just outside the target, then into it
   if (e.enter && e.bx != null) { const up = e.enter === 'bottom'; const rail = up ? b.y + sb.h / 2 + 12 : b.y - sb.h / 2 - 12; const hd = e.bx >= a.x ? 1 : -1; return [[a.x + hd * sa.w / 2, a.y], [e.bx, a.y], [e.bx, rail], [b.x, rail], [b.x, b.y + (up ? 1 : -1) * sb.h / 2]]; }
@@ -220,21 +221,45 @@ export function labelPos(pts: Pt[]): { x: number; y: number } {
   const d = p1[1] >= p0[1] ? 1 : -1; return { x: p0[0] + 4, y: p0[1] + d * 14 };
 }
 const boxOf = (n: PNode): Box => { const s = nodeSize(n); return { id: n.id, x0: n.x - s.w / 2, y0: n.y - s.h / 2, x1: n.x + s.w / 2, y1: n.y + s.h / 2 }; };
-export const NODE_BOXES: Box[] = NODES.map(boxOf);
-let _router: Router | null = null; const _cache = new Map<string, Pt[]>();
-/** Connector geometry. The hand-tuned route (bend column `bx`) is used when it stays clear of every other node; otherwise the router finds a clear one. */
-export function routeEdge(e: PEdge): Pt[] {
-  const hit = _cache.get(e.id); if (hit) return hit;
-  const legacy = legacyRoute(e);
+/** What the router needs for one set of visible nodes. */
+interface RouteCtx { byId: Map<string, PNode>; boxes: Box[]; height: number; router: Router | null; cache: Map<string, Pt[]> }
+const mkCtx = (nodes: PNode[], height: number): RouteCtx => ({ byId: new Map(nodes.map((n) => [n.id, n])), boxes: nodes.map(boxOf), height, router: null, cache: new Map() });
+/** Connector geometry. The hand-tuned route (bend column `bx`) is used when it keeps a clear margin to every other node; otherwise the router finds a clear one. */
+function routeIn(c: RouteCtx, e: PEdge): Pt[] {
+  const hit = c.cache.get(e.id); if (hit) return hit;
+  const legacy = legacyRoute(e, c.byId);
   let out = legacy;
-  const A = nodeById.get(e.from)!, B = nodeById.get(e.to)!;
-  // the hand-tuned route is kept only while it keeps a clear margin to every other box and does not run through its own two boxes
+  const A = c.byId.get(e.from)!, B = c.byId.get(e.to)!;
   const ownHit = (b: Box, pts: Pt[]) => polyHitsBox(pts.slice(1, -1).length ? pts : [pts[0], pts[pts.length - 1]], b, -1);
-  if (NODE_BOXES.some((b) => b.id !== e.from && b.id !== e.to && polyHitsBox(legacy, b, 7)) || ownHit(boxOf(A), legacy) || ownHit(boxOf(B), legacy)) {
-    _router ??= new Router(NODE_BOXES, DIAGRAM_W, DIAGRAM_H);
-    out = _router.route(boxOf(nodeById.get(e.from)!), boxOf(nodeById.get(e.to)!)) ?? legacy;
+  if (c.boxes.some((b) => b.id !== e.from && b.id !== e.to && polyHitsBox(legacy, b, 7)) || ownHit(boxOf(A), legacy) || ownHit(boxOf(B), legacy)) {
+    c.router ??= new Router(c.boxes, DIAGRAM_W, c.height);
+    out = c.router.route(boxOf(A), boxOf(B)) ?? legacy;
   }
-  _cache.set(e.id, out); return out;
+  c.cache.set(e.id, out); return out;
+}
+const FULL = mkCtx(NODES, DIAGRAM_H);
+export const NODE_BOXES: Box[] = FULL.boxes;
+export const routeEdge = (e: PEdge): Pt[] => routeIn(FULL, e);
+
+/** The map as drawn when some rows (lanes) are removed: the rows below move up, the activities and connectors of removed rows are left out. */
+export interface MapView { hidden: string[]; lanes: Lane[]; nodes: PNode[]; edges: PEdge[]; height: number; hiddenNodes: ReadonlySet<string>; route: (e: PEdge) => Pt[] }
+const NO_SKIP: ReadonlySet<string> = new Set();
+const _views = new Map<string, MapView>();
+export function viewOf(hiddenLanes: readonly string[] = []): MapView {
+  let hidden = LANES.map((l) => l.id).filter((id) => hiddenLanes.includes(id));
+  if (hidden.length >= LANES.length) hidden = [];
+  const key = hidden.join(','); const hit = _views.get(key); if (hit) return hit;
+  let v: MapView;
+  if (!hidden.length) v = { hidden, lanes: LANES, nodes: NODES, edges: EDGES, height: DIAGRAM_H, hiddenNodes: NO_SKIP, route: routeEdge };
+  else {
+    const shift = new Map<string, number>(); const lanes: Lane[] = []; let y = 0;
+    for (const l of LANES) { if (hidden.includes(l.id)) continue; shift.set(l.id, y - l.y0); lanes.push({ ...l, y0: y, y1: y + (l.y1 - l.y0) }); y += l.y1 - l.y0; }
+    const nodes = NODES.filter((n) => shift.has(n.lane)).map((n) => ({ ...n, y: n.y + shift.get(n.lane)! }));
+    const ids = new Set(nodes.map((n) => n.id));
+    const ctx = mkCtx(nodes, y);
+    v = { hidden, lanes, nodes, edges: EDGES.filter((e) => ids.has(e.from) && ids.has(e.to)), height: y, hiddenNodes: new Set(NODES.filter((n) => !ids.has(n.id)).map((n) => n.id)), route: (e) => routeIn(ctx, e) };
+  }
+  _views.set(key, v); return v;
 }
 export const pathOf = (pts: Pt[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]} ${p[1]}`).join(' ');
 
@@ -252,7 +277,7 @@ export const statusOf = (s: StateMap, id: string): ProcessStatus => s[id]?.statu
 export const PREREQS: Map<string, string[]> = (() => { const m = new Map<string, string[]>(); for (const e of EDGES) { if (e.label === 'No') continue; (m.get(e.to) ?? m.set(e.to, []).get(e.to)!).push(e.from); } return m; })();
 export const STARTED: ProcessStatus[] = ['In Progress', 'Completed'];
 /** Previous activities that are not Completed yet. */
-export const unmetPrereqs = (s: StateMap, id: string): string[] => (PREREQS.get(id) ?? []).filter((p) => statusOf(s, p) !== 'Completed');
+export const unmetPrereqs = (s: StateMap, id: string, skip: ReadonlySet<string> = NO_SKIP): string[] => (PREREQS.get(id) ?? []).filter((p) => !skip.has(p) && statusOf(s, p) !== 'Completed');
 /** A gate answered "No" sends the work back: the "No" target(s) and every activity between them and the gate, plus the activities feeding the gate when no loop exists. */
 export function reworkSet(gateId: string): string[] {
   const fwd = new Map<string, string[]>(), back = new Map<string, string[]>();
@@ -269,16 +294,17 @@ export function reworkSet(gateId: string): string[] {
 /** A gate that was completed with the answer "No". */
 export const isRejected = (s: StateMap, id: string) => nodeById.get(id)?.kind === 'decision' && statusOf(s, id) === 'Completed' && s[id]?.outcome === 'no';
 /** Alarms: activities that are In Progress / Completed while a previous activity is not Completed. */
-export function alarmsOf(s: StateMap): Record<string, string[]> {
+export function alarmsOf(s: StateMap, skip: ReadonlySet<string> = NO_SKIP): Record<string, string[]> {
   const out: Record<string, string[]> = {};
-  for (const n of NODES) if (STARTED.includes(statusOf(s, n.id)) && !isRejected(s, n.id)) { const u = unmetPrereqs(s, n.id); if (u.length) out[n.id] = u; }
+  for (const n of NODES) if (!skip.has(n.id) && STARTED.includes(statusOf(s, n.id)) && !isRejected(s, n.id)) { const u = unmetPrereqs(s, n.id, skip); if (u.length) out[n.id] = u; }
   return out;
 }
-export function phaseProgress(s: StateMap) {
-  return PHASES.map((p) => { const ns = NODES.filter((n) => phaseOf(n).id === p.id); const done = ns.filter((n) => statusOf(s, n.id) === 'Completed' && !isRejected(s, n.id)).length; return { ...p, total: ns.length, done, pct: ns.length ? Math.round((done / ns.length) * 100) : 0 }; });
+export function phaseProgress(s: StateMap, skip: ReadonlySet<string> = NO_SKIP) {
+  return PHASES.map((p) => { const ns = NODES.filter((n) => !skip.has(n.id) && phaseOf(n).id === p.id); const done = ns.filter((n) => statusOf(s, n.id) === 'Completed' && !isRejected(s, n.id)).length; return { ...p, total: ns.length, done, pct: ns.length ? Math.round((done / ns.length) * 100) : 0 }; });
 }
-export function progressOf(s: StateMap) {
+export function progressOf(s: StateMap, skip: ReadonlySet<string> = NO_SKIP) {
   const by: Record<ProcessStatus, number> = { 'Not Started': 0, 'In Progress': 0, 'On Hold': 0, Completed: 0 };
-  for (const n of NODES) by[statusOf(s, n.id)]++;
-  return { total: NODES.length, by, pct: Math.round((by.Completed / NODES.length) * 100) };
+  const total = NODES.filter((n) => !skip.has(n.id)).length;
+  for (const n of NODES) if (!skip.has(n.id)) by[statusOf(s, n.id)]++;
+  return { total, by, pct: total ? Math.round((by.Completed / total) * 100) : 0 };
 }
