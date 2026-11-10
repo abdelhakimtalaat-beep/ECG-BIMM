@@ -39,7 +39,7 @@ const N = (id: string, lane: string, x: number, y: number, label: string, kind: 
 
 export const NODES: PNode[] = [
   // Project Management
-  N('pm_mob', 'pm', 110, 42, 'Mobilization and Kick-Off', 'input', { w: 96, h: 38, note: 'Project Information, Data Collection, Contact List, Contract, EIR, Pre-Appointment BEP, Proposal, SOW, RACI matrix, Schedules, Milestones, and Stakeholders data' }),
+  N('pm_mob', 'pm', 110, 42, 'Project BIM Requirements / EIR / SOW / Contract / TLs', 'input', { w: 96, h: 38, note: 'Project Information, Data Collection, Contact List, Contract, EIR, Pre-Appointment BEP, Proposal, SOW, RACI matrix, Schedules, Milestones, and Stakeholders data' }),
   N('pm_client', 'pm', 270, 42, 'Client BEP Approval', 'decision', { w: 112, h: 54, note: 'Gate: the Client approves the BEP, including the project Title Block and the Building Coding System' }),
   N('pm_squad_dates', 'pm', 1547, 42, 'Squad Check Dates'),
   N('pm_sub_dates', 'pm', 1750, 42, 'Submittal Dates'),
@@ -49,9 +49,10 @@ export const NODES: PNode[] = [
   // BIM Management
   N('bm_midp', 'bim', 500, 152, 'Create MIDP', 'task', { note: 'Master Information Delivery Plan, consolidated from the Task Teams\' TIDPs after the BIM Kick-Off Meeting' }),
   N('pm_midp_gate', 'pm', 500, 42, 'Client MIDP Approval', 'decision', { w: 112, h: 54, note: 'Gate: the Client approves the MIDP once all Task Teams have completed their TIDPs' }),
-  N('bm_bep', 'bim', 110, 152, 'Create BEP', 'task', { note: 'Naming Convention, Model Segregation, SOW, RACI, Linking/Grouping Scenario' }),
-  N('bm_cde', 'bim', 190, 152, 'CDE Setup', 'task', { note: 'Common Data Environment setup, before the BIM Kick-Off Meeting' }),
+  N('bm_bep', 'bim', 190, 152, 'Create BEP', 'task', { note: 'Naming Convention, Model Segregation, SOW, RACI, Linking/Grouping Scenario' }),
+  N('bm_cde', 'bim', 110, 152, 'CDE Setup', 'task', { note: 'Common Data Environment setup, right after the project requirements' }),
   N('bm_kickoff', 'bim', 270, 152, 'BIM Kick-Off Meeting'),
+  N('bm_tidpt', 'bim', 345, 152, 'TIDP Template', 'task', { note: 'Template issued to the Task Teams to prepare their TIDPs' }),
   N('bm_pinfo', 'bim', 608, 152, 'Pinfo Preparation'),
   N('bm_folder', 'bim', 693, 152, 'Provide The Folder Structure Tree'),
   N('bm_validate', 'bim', 786, 152, 'Validate The Architecture Base Model'),
@@ -70,8 +71,8 @@ export const NODES: PNode[] = [
   // TRC & Document Control
   N('trc_qc', 'trc', 1952, 300, 'TRC & DC Quality Control Review', 'task', { w: 104 }),
   // Architect / Interior Designer
-  N('ar_consult', 'arch', 110, 368, 'Provide Consultation', 'input', { note: 'For Model Segregation, Linking, and Grouping Scenarios' }),
-  N('ar_tidp', 'arch', 380, 418, 'Provide TIDP', 'input', { w: 66, h: 28 }),
+  N('ar_consult', 'arch', 190, 368, 'Provide Consultation', 'input', { note: 'For Model Segregation, Linking, and Grouping Scenarios' }),
+  N('ar_tidp', 'arch', 400, 418, 'Provide TIDP', 'input', { w: 66, h: 28 }),
   N('ar_keyplan', 'arch', 608, 419, 'Provide KeyPlan/s', 'input', { note: 'As a single line building boundary, Match Lines, and Building/Parts number' }),
   N('ar_datum', 'arch', 645, 368, 'Create Datum Model', 'task', { w: 60 }),
   N('ar_dummy', 'arch', 716, 368, 'Create Structure Dummy Model', 'task', { w: 60, h: 40 }),
@@ -90,7 +91,7 @@ export const NODES: PNode[] = [
   N('ur_site', 'urban', 608, 485, 'Provide The Site Key Plan and North Arrow', 'input', { w: 96, h: 46, note: 'As a single line, Match Lines, Building Distribution, Survey Point and the North Arrow' }),
   N('ur_master', 'urban', 1240, 482, 'Provide Confirmed Site Master Plan', 'input', { w: 96, h: 40, note: 'Include buildings Distribution and Numbering "as per the numbering system mentioned at the project BEP"' }),
   // Structural Engineer
-  N('st_tidp', 'struct', 380, 572, 'Provide TIDP', 'input', { w: 66, h: 28 }),
+  N('st_tidp', 'struct', 400, 572, 'Provide TIDP', 'input', { w: 66, h: 28 }),
   N('st_statical', 'struct', 782, 572, 'Provide Statical System Requirements', 'input', { w: 96, h: 40 }),
   N('st_super', 'struct', 998, 572, 'Provide Superstructure 3D Model'),
   N('st_complete', 'struct', 1240, 572, 'Complete Super and substructure 3D Model', 'task', { w: 92, h: 40 }),
@@ -101,7 +102,7 @@ export const NODES: PNode[] = [
   N('st_review', 'struct', 1835, 572, 'Internal Review Approved?', 'decision', { w: 82, h: 52 }),
   N('st_upload', 'struct', 2062, 572, 'Upload Submission Files', 'task', { w: 66 }),
   // MEP Engineer
-  N('me_tidp', 'mep', 380, 662, 'Provide TIDP', 'input', { w: 66, h: 28 }),
+  N('me_tidp', 'mep', 400, 662, 'Provide TIDP', 'input', { w: 66, h: 28 }),
   N('me_req', 'mep', 782, 662, 'Provide MEP Requirements', 'input', { w: 96 }),
   N('me_ceil', 'mep', 998, 662, 'Provide MEP 3D Models (Ceiling Fixtures Only)', 'task', { w: 100, h: 50 }),
   N('me_complete', 'mep', 1116, 662, 'Complete MEP 3D Models (Add Above Ceiling Connections, and wall Fixtures)', 'task', { w: 72, h: 62 }),
@@ -112,7 +113,7 @@ export const NODES: PNode[] = [
   N('me_review', 'mep', 1835, 662, 'Internal Review Approved?', 'decision', { w: 82, h: 52 }),
   N('me_upload', 'mep', 2062, 662, 'Upload Submission Files', 'task', { w: 66 }),
   // Infrastructure Engineer
-  N('in_tidp', 'infra', 380, 755, 'Provide TIDP', 'input', { w: 66, h: 28 }),
+  N('in_tidp', 'infra', 400, 755, 'Provide TIDP', 'input', { w: 66, h: 28 }),
   N('in_utility', 'infra', 786, 755, 'Provide Utility Corridor Requirements', 'input', { w: 96, h: 40 }),
   N('in_civil', 'infra', 1240, 755, 'Create Civil3D Model', 'task', { w: 70 }),
   N('in_nwc', 'infra', 1472, 755, 'Provide NWC files', 'task', { w: 62 }),
@@ -129,16 +130,16 @@ let _e = 0;
 const E = (from: string, to: string, o: Partial<PEdge> = {}): PEdge => ({ id: `e${++_e}_${from}_${to}`, from, to, ...o, ...(o.bx != null ? { bx: sx(o.bx) } : {}) });
 export const EDGES: PEdge[] = [
   // main spine (solid)
-  E('bm_bep', 'bm_cde'), E('bm_cde', 'bm_kickoff'), E('bm_kickoff', 'bm_midp'), E('bm_midp', 'bm_pinfo'), E('bm_pinfo', 'bm_folder'), E('bm_folder', 'bm_validate'), E('bm_validate', 'bm_zoning'), E('bm_zoning', 'bm_rcp'), E('bm_rcp', 'bm_valid1'),
+  E('bm_cde', 'bm_bep'), E('bm_bep', 'bm_kickoff'), E('bm_kickoff', 'bm_tidpt'), E('bm_tidpt', 'bm_midp'), E('bm_midp', 'bm_pinfo'), E('bm_pinfo', 'bm_folder'), E('bm_folder', 'bm_validate'), E('bm_validate', 'bm_zoning'), E('bm_zoning', 'bm_rcp'), E('bm_rcp', 'bm_valid1'),
   E('bm_valid1', 'bm_valid2', { label: 'Yes', bx: 1043 }), E('bm_valid2', 'bm_coord', { label: 'Yes' }),
   E('bm_coord', 'bm_squad'), E('bm_squad', 'bm_visual'), E('bm_visual', 'bm_appr1', { bx: 1602 }), E('bm_appr1', 'bm_coord', { label: 'No', bx: 1600 }),
   E('bm_appr2', 'bm_subfolder', { label: 'Yes' }), E('bm_qcc', 'bm_appr2', { bx: 2020 }), E('bm_subfolder', 'bm_lessons'),
   E('pm_guidelines', 'pm_release'), E('pm_release', 'pm_close'),
   // kick-off and BEP (dashed = information / deliverable)
-  E('pm_mob', 'bm_bep', { dashed: true }), E('bm_bep', 'pm_client', { dashed: true, bx: 150 }), E('pm_client', 'bm_kickoff', { label: 'Approved', dashed: true }),
+  E('pm_mob', 'bm_cde', { dashed: true }), E('bm_bep', 'pm_client', { dashed: true, bx: 230 }), E('pm_client', 'bm_kickoff', { label: 'Approved', dashed: true }),
   // after the kick-off: Task Teams provide TIDPs, the BIM Manager consolidates the MIDP, the Client approves it (gate)
-  E('bm_kickoff', 'ar_tidp', { dashed: true, bx: 328 }), E('bm_kickoff', 'st_tidp', { dashed: true, bx: 328 }), E('bm_kickoff', 'me_tidp', { dashed: true, bx: 328 }), E('bm_kickoff', 'in_tidp', { dashed: true, bx: 328 }),
-  E('ar_tidp', 'bm_midp', { dashed: true, bx: 440 }), E('st_tidp', 'bm_midp', { dashed: true, bx: 440 }), E('me_tidp', 'bm_midp', { dashed: true, bx: 440 }), E('in_tidp', 'bm_midp', { dashed: true, bx: 440 }),
+  E('bm_tidpt', 'ar_tidp', { dashed: true, bx: 345 }), E('bm_tidpt', 'st_tidp', { dashed: true, bx: 345 }), E('bm_tidpt', 'me_tidp', { dashed: true, bx: 345 }), E('bm_tidpt', 'in_tidp', { dashed: true, bx: 345 }),
+  E('ar_tidp', 'bm_midp', { dashed: true, bx: 452 }), E('st_tidp', 'bm_midp', { dashed: true, bx: 452 }), E('me_tidp', 'bm_midp', { dashed: true, bx: 452 }), E('in_tidp', 'bm_midp', { dashed: true, bx: 452 }),
   E('bm_midp', 'pm_midp_gate', { dashed: true }), E('pm_midp_gate', 'bm_pinfo', { label: 'Approved', dashed: true, bx: 560 }),
   E('ar_consult', 'bm_bep', { dashed: true }),
   E('ar_keyplan', 'bm_pinfo', { dashed: true }), E('ur_site', 'bm_pinfo', { dashed: true, enter: 'bottom', bx: 565 }),
@@ -146,7 +147,7 @@ export const EDGES: PEdge[] = [
   E('ar_model', 'bm_validate', { dashed: true }),
   E('ar_ceiling', 'bm_zoning', { dashed: true, bx: 877 }), E('st_statical', 'bm_zoning', { dashed: true, bx: 877 }), E('me_req', 'bm_zoning', { dashed: true, bx: 877 }), E('in_utility', 'bm_zoning', { dashed: true, bx: 877 }),
   // RCP validation inputs
-  E('ar_reflected', 'bm_rcp', { dashed: true }), E('st_super', 'bm_rcp', { dashed: true, enter: 'bottom' }), E('me_ceil', 'bm_rcp', { dashed: true, enter: 'bottom', bx: 1040 }),
+  E('ar_reflected', 'bm_rcp', { dashed: true }), E('st_super', 'bm_rcp', { dashed: true, enter: 'bottom' }), E('me_ceil', 'ar_reflected', { dashed: true, bx: 951 }),
   E('bm_valid1', 'me_ceil', { label: 'No', dashed: true, bx: 1043 }),
   E('bm_valid1', 'ar_wallfin', { label: 'Yes', dashed: true, bx: 1116 }), E('ar_wallfin', 'me_complete', { dashed: true }),
   // second validation: coordinates and master plan

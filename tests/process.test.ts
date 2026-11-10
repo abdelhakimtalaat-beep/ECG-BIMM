@@ -60,7 +60,7 @@ test('process map: alarm when an activity starts before the previous ones are co
   assert.deepEqual(PREREQS.get('bm_pinfo')!.sort(), ['ar_keyplan', 'bm_midp', 'pm_midp_gate', 'ur_site'].sort());
   assert.ok(!PREREQS.get('bm_coord')!.includes('bm_appr1'), 'the No (rework) connector is not a prerequisite');
   assert.deepEqual(alarmsOf({}), {});
-  const s: any = { bm_bep: { status: 'Completed' }, bm_cde: { status: 'Completed' }, pm_client: { status: 'Completed' }, bm_kickoff: { status: 'Completed' }, bm_midp: { status: 'In Progress' } };
+  const s: any = { bm_bep: { status: 'Completed' }, bm_cde: { status: 'Completed' }, bm_tidpt: { status: 'Completed' }, pm_client: { status: 'Completed' }, bm_kickoff: { status: 'Completed' }, bm_midp: { status: 'In Progress' } };
   const a = alarmsOf(s); assert.ok('bm_midp' in a); assert.deepEqual(a.bm_midp.sort(), ['ar_tidp', 'in_tidp', 'me_tidp', 'st_tidp']);
   assert.ok(!unmetPrereqs({ ...s, bm_midp: { status: 'Completed' } } as any, 'bm_pinfo').includes('bm_midp'));
   for (const id of ['pm_mob', 'ar_consult', 'ar_tidp', 'st_tidp', 'me_tidp', 'in_tidp', 'bm_midp']) s[id] = { status: 'Completed' }; s.bm_midp = { status: 'Completed' };
@@ -95,9 +95,13 @@ test('process map: a connector never runs through its own boxes', () => {
   for (const e of EDGES) { const p = routeEdge(e); for (const id of [e.from, e.to]) { const b = NODE_BOXES.find((x) => x.id === id)!; assert.ok(!polyHitsBox(p, b, -1), `${e.id} runs through ${id}`); } }
 });
 
-test('CDE Setup sits between Create BEP and the BIM Kick-Off Meeting', () => {
-  assert.deepEqual(PREREQS.get('bm_kickoff')!.sort(), ['bm_cde', 'pm_client']);
-  assert.deepEqual(PREREQS.get('bm_cde'), ['bm_bep']);
+test('flow: Requirements -> CDE Setup -> Create BEP -> Kick-Off -> TIDP Template -> MIDP', () => {
+  assert.deepEqual(PREREQS.get('bm_cde'), ['pm_mob']);
+  assert.deepEqual(PREREQS.get('bm_bep')!.sort(), ['ar_consult', 'bm_cde']);
+  assert.deepEqual(PREREQS.get('bm_kickoff')!.sort(), ['bm_bep', 'pm_client']);
+  assert.deepEqual(PREREQS.get('bm_tidpt'), ['bm_kickoff']);
+  assert.deepEqual(PREREQS.get('ar_tidp'), ['bm_tidpt']);
+  assert.ok(PREREQS.get('ar_reflected')!.includes('me_ceil') && !PREREQS.get('bm_rcp')!.includes('me_ceil'));
 });
 test('removing rows: lanes move up, their activities and connectors disappear, progress ignores them', () => {
   const full = viewOf([]); assert.equal(full.nodes.length, NODES.length); assert.equal(full.height, 795);
