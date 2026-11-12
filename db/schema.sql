@@ -333,7 +333,16 @@ create table if not exists process_buildings (
   created_at timestamptz not null default now()
 );
 create index if not exists process_buildings_project_idx on process_buildings(project_id);
+create table if not exists course_sections (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  position   int not null default 0,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists course_sections_name_uq on course_sections (lower(name));
+
 create table if not exists courses (
+  section_id  uuid references course_sections(id) on delete set null,
   id          uuid primary key default gen_random_uuid(),
   title       text not null,
   instructor  text,
@@ -482,7 +491,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','process_hidden_lanes','courses','course_sessions','calendar_feeds','calendar_events','wishes','wish_votes','contacts','evaluations','evaluation_scores','evaluation_stages','employee_documents'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','process_hidden_lanes','course_sections','courses','course_sessions','calendar_feeds','calendar_events','wishes','wish_votes','contacts','evaluations','evaluation_scores','evaluation_stages','employee_documents'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;

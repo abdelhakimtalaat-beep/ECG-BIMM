@@ -1,24 +1,32 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Copy, ExternalLink, GraduationCap, Pencil, Play, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Copy, Settings2, ExternalLink, GraduationCap, Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { Confirm, Empty, Field, Modal, PageHeader, Spinner, useToast } from '@/components/ui';
 import { api } from '@/lib/client';
 import { videoSrc } from '@/lib/video';
 
 interface Session { id?: string; title: string; video_url: string | null }
-interface Course { id: string; title: string; instructor: string | null; description: string | null; video_url: string | null; server_path: string | null; sessions: Session[] }
+interface Section { id: string; name: string }
+interface Course { id: string; section_id: string | null; title: string; instructor: string | null; description: string | null; video_url: string | null; server_path: string | null; sessions: Session[] }
 
 export default function CoursesPage() {
   const { me } = useApp(); const toast = useToast(); const admin = me.role === 'admin';
+  const [sections, setSections] = useState<Section[]>([]); const [sec, setSec] = useState<string | null>(null); const [secEdit, setSecEdit] = useState(false);
   const [courses, setCourses] = useState<Course[] | null>(null); const [sel, setSel] = useState<string | null>(null); const [idx, setIdx] = useState(0);
   const [edit, setEdit] = useState<Course | 'new' | null>(null); const [del, setDel] = useState<Course | null>(null);
   const load = useCallback(async (keep?: string) => {
-    try { const r = await api<{ courses: Course[] }>('/api/courses'); setCourses(r.courses); setSel((cur) => keep ?? (r.courses.some((c) => c.id === cur) ? cur : r.courses[0]?.id ?? null)); }
+    try { const r = await api<{ sections: Section[]; courses: Course[] }>('/api/courses'); setSections(r.sections); setCourses(r.courses);
+      const kept = keep ? r.courses.find((c) => c.id === keep) : undefined;
+      if (kept) { setSec(kept.section_id ?? 'none'); setSel(kept.id); }
+      else setSec((cur) => (cur && (cur === 'none' || r.sections.some((x) => x.id === cur)) ? cur : r.sections[0]?.id ?? 'none')); }
     catch (e: any) { toast(e.message, 'err'); setCourses([]); }
   }, [toast]);
   useEffect(() => { load(); }, [load]);
-  const course = useMemo(() => courses?.find((c) => c.id === sel) ?? null, [courses, sel]);
+  const inSec = useMemo(() => (courses ?? []).filter((c) => (sec === 'none' ? !c.section_id : c.section_id === sec)), [courses, sec]);
+  const unassigned = useMemo(() => (courses ?? []).filter((c) => !c.section_id).length, [courses]);
+  useEffect(() => { setSel((cur) => (inSec.some((c) => c.id === cur) ? cur : inSec[0]?.id ?? null)); }, [inSec]);
+  const course = useMemo(() => inSec.find((c) => c.id === sel) ?? null, [inSec, sel]);
   useEffect(() => { setIdx(0); }, [sel]);
   const session = course?.sessions[idx] ?? null;
   const link = session?.video_url || course?.video_url || null; const src = videoSrc(link);
@@ -26,10 +34,15 @@ export default function CoursesPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Internal Courses" subtitle="Training › Internal Courses" actions={admin ? <button className="btn-primary btn-sm" onClick={() => setEdit('new')}><Plus size={14} />New course</button> : undefined} />
-      {courses === null ? <Spinner /> : !courses.length ? <Empty title="No courses yet" hint={admin ? 'Press “New course” to add the first one.' : 'The Administrator has not added any course yet.'} /> : <>
+      <PageHeader title="Internal Courses" subtitle="Training › Internal Courses" actions={admin ? <><button className="btn-secondary btn-sm" onClick={() => setSecEdit(true)}><Settings2 size={14} />Sections</button><button className="btn-primary btn-sm" onClick={() => setEdit('new')}><Plus size={14} />New course</button></> : undefined} />
+      {courses === null ? <Spinner /> : <>
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2" role="tablist" aria-label="Sections">
+          {sections.map((x) => <button key={x.id} role="tab" aria-selected={x.id === sec} onClick={() => setSec(x.id)} className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${x.id === sec ? 'bg-brand-700 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50'}`}>{x.name}<span className="ml-1.5 text-xs opacity-70">{courses.filter((c) => c.section_id === x.id).length}</span></button>)}
+          {unassigned > 0 && admin && <button role="tab" aria-selected={sec === 'none'} onClick={() => setSec('none')} className={`rounded-lg px-4 py-2 text-sm font-semibold ${sec === 'none' ? 'bg-slate-700 text-white' : 'bg-white text-slate-500 ring-1 ring-slate-300'}`}>No section<span className="ml-1.5 text-xs opacity-70">{unassigned}</span></button>}
+        </div>
+        {!inSec.length && <Empty title="No courses in this section yet" hint={admin ? 'Press “New course” to add one.' : 'The Administrator has not added a course here yet.'} />}
         <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Courses">
-          {courses.map((c) => <button key={c.id} role="tab" aria-selected={c.id === sel} onClick={() => setSel(c.id)} className={`rounded-lg border px-3 py-1.5 text-sm ${c.id === sel ? 'border-brand-600 bg-brand-50 font-semibold text-brand-900' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>{c.title}</button>)}
+          {inSec.map((c) => <button key={c.id} role="tab" aria-selected={c.id === sel} onClick={() => setSel(c.id)} className={`rounded-lg border px-3 py-1.5 text-sm ${c.id === sel ? 'border-brand-600 bg-brand-50 font-semibold text-brand-900' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>{c.title}</button>)}
         </div>
         {course && <div className="card overflow-hidden rounded-2xl border-2 border-slate-300 p-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -59,16 +72,18 @@ export default function CoursesPage() {
           </div>
         </div>}
       </>}
-      {edit && <CourseModal course={edit === 'new' ? null : edit} onClose={() => setEdit(null)} onSaved={async (id) => { setEdit(null); await load(id); }} />}
+      {secEdit && <SectionsModal sections={sections} counts={Object.fromEntries(sections.map((x) => [x.id, (courses ?? []).filter((c) => c.section_id === x.id).length]))} onClose={() => setSecEdit(false)} onChanged={() => load()} />}
+      {edit && <CourseModal sections={sections} defaultSection={sec && sec !== 'none' ? sec : null} course={edit === 'new' ? null : edit} onClose={() => setEdit(null)} onSaved={async (id) => { setEdit(null); await load(id); }} />}
       <Confirm open={!!del} danger title="Delete course" message={<>Delete <b>{del?.title}</b> and its {del?.sessions.length ?? 0} sessions? The videos themselves are not touched.</>} confirmLabel="Delete" onClose={() => setDel(null)} onConfirm={async () => { try { await api(`/api/courses/${del!.id}`, { method: 'DELETE' }); toast('Course deleted'); setDel(null); setSel(null); await load(); } catch (e: any) { toast(e.message, 'err'); } }} />
     </div>
   );
 }
 
-function CourseModal({ course, onClose, onSaved }: { course: Course | null; onClose: () => void; onSaved: (id?: string) => void }) {
+function CourseModal({ sections, defaultSection, course, onClose, onSaved }: { sections: Section[]; defaultSection: string | null; course: Course | null; onClose: () => void; onSaved: (id?: string) => void }) {
   const toast = useToast(); const [busy, setBusy] = useState(false);
   const [f, setF] = useState({ title: course?.title ?? '', instructor: course?.instructor ?? '', description: course?.description ?? '', video_url: course?.video_url ?? '', server_path: course?.server_path ?? '' });
   const [ss, setSs] = useState<Session[]>(course?.sessions.map((s) => ({ title: s.title, video_url: s.video_url ?? '' })) ?? [{ title: 'Session 01', video_url: '' }]);
+  const [section, setSection] = useState<string>(course ? course.section_id ?? '' : defaultSection ?? '');
   const set = (k: keyof typeof f, v: string) => setF((x) => ({ ...x, [k]: v }));
   const move = (i: number, d: number) => setSs((a) => { const b = [...a]; const j = i + d; if (j < 0 || j >= b.length) return a; [b[i], b[j]] = [b[j], b[i]]; return b; });
   const add = () => setSs((a) => [...a, { title: `Session ${String(a.length + 1).padStart(2, '0')}`, video_url: '' }]);
@@ -76,13 +91,14 @@ function CourseModal({ course, onClose, onSaved }: { course: Course | null; onCl
     if (f.title.trim().length < 2) { toast('Enter the course title', 'err'); return; }
     setBusy(true);
     try {
-      const body = { ...f, sessions: ss.filter((s) => s.title.trim()).map((s) => ({ title: s.title, video_url: s.video_url || null })) };
+      const body = { ...f, section_id: section || null, sessions: ss.filter((s) => s.title.trim()).map((s) => ({ title: s.title, video_url: s.video_url || null })) };
       const r = course ? await api<{ id?: string }>(`/api/courses/${course.id}`, { method: 'PUT', body }) : await api<{ id: string }>('/api/courses', { method: 'POST', body });
       toast('Course saved'); onSaved(course?.id ?? (r as any).id);
     } catch (e: any) { toast(e.message, 'err'); setBusy(false); }
   };
   return <Modal open wide onClose={onClose} title={course ? 'Edit course' : 'New course'} footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={busy} onClick={save}>Save</button></>}>
     <div className="space-y-3">
+      <Field label="Section"><select className="input" value={section} onChange={(e) => setSection(e.target.value)}><option value="">— No section —</option>{sections.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></Field>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Course title"><input className="input" value={f.title} onChange={(e) => set('title', e.target.value)} maxLength={200} autoFocus /></Field>
         <Field label="Instructor"><input className="input" value={f.instructor} onChange={(e) => set('instructor', e.target.value)} maxLength={200} /></Field>
@@ -100,6 +116,27 @@ function CourseModal({ course, onClose, onSaved }: { course: Course | null; onCl
         </ul>
         <button type="button" className="btn-secondary btn-sm mt-2" onClick={add}><Plus size={14} />Add session</button>
       </div>
+    </div>
+  </Modal>;
+}
+
+function SectionsModal({ sections, counts, onClose, onChanged }: { sections: Section[]; counts: Record<string, number>; onClose: () => void; onChanged: () => void }) {
+  const toast = useToast(); const [name, setName] = useState(''); const [names, setNames] = useState<Record<string, string>>(Object.fromEntries(sections.map((x) => [x.id, x.name])));
+  const run = async (fn: () => Promise<unknown>, ok: string) => { try { await fn(); toast(ok); onChanged(); } catch (e: any) { toast(e.message, 'err'); } };
+  return <Modal open wide onClose={onClose} title="Course sections" footer={<button className="btn-primary" onClick={onClose}>Done</button>}>
+    <div className="space-y-3">
+      <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+        {sections.map((x) => <li key={x.id} className="flex items-center gap-2 px-3 py-2">
+          <input className="input flex-1" aria-label="Section name" value={names[x.id] ?? ''} onChange={(e) => setNames((n) => ({ ...n, [x.id]: e.target.value }))} maxLength={80} />
+          <span className="w-20 text-right text-xs text-slate-500">{counts[x.id] ?? 0} courses</span>
+          <button className="btn-secondary btn-sm" disabled={(names[x.id] ?? '').trim() === x.name || (names[x.id] ?? '').trim().length < 2} onClick={() => run(() => api(`/api/courses/sections/${x.id}`, { method: 'PUT', body: { name: names[x.id] } }), 'Section renamed')}>Rename</button>
+          <button className="btn-ghost btn-sm text-red-600" disabled={(counts[x.id] ?? 0) > 0} title={(counts[x.id] ?? 0) > 0 ? 'Move or delete its courses first' : 'Delete section'} aria-label="Delete section" onClick={() => run(() => api(`/api/courses/sections/${x.id}`, { method: 'DELETE' }), 'Section deleted')}><Trash2 size={14} /></button>
+        </li>)}
+      </ul>
+      <form className="flex items-end gap-2" onSubmit={(e) => { e.preventDefault(); if (name.trim().length < 2) return; run(async () => { await api('/api/courses/sections', { method: 'POST', body: { name } }); setName(''); }, 'Section added'); }}>
+        <div className="flex-1"><Field label="New section"><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Dynamo" maxLength={80} /></Field></div>
+        <button className="btn-primary" type="submit"><Plus size={14} />Add</button>
+      </form>
     </div>
   </Modal>;
 }

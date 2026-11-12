@@ -12,7 +12,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
     const b = courseBody.parse(await json(req));
     const c = await one<{ title: string }>('select title from courses where id=$1', [id]);
     if (!c) throw new ApiError(404, 'Course not found');
-    await q('update courses set title=$1,instructor=$2,description=$3,video_url=$4,server_path=$5,updated_at=now() where id=$6', [b.title, b.instructor, b.description, b.video_url, b.server_path, id]);
+    await q('update courses set title=$1,instructor=$2,description=$3,video_url=$4,server_path=$5,section_id=$7,updated_at=now() where id=$6', [b.title, b.instructor, b.description, b.video_url, b.server_path, id, b.section_id]);
     await q('delete from course_sessions where course_id=$1', [id]);
     for (const [i, s] of b.sessions.entries()) await q('insert into course_sessions(course_id,position,title,video_url) values($1,$2,$3,$4)', [id, i, s.title, s.video_url]);
     await audit(null, me.email, 'update', 'course', id, `Edited course "${b.title}" (${b.sessions.length} sessions)`);
