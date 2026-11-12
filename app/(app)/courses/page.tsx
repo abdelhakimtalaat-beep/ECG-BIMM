@@ -36,10 +36,11 @@ export default function CoursesPage() {
             <div>
               <div className="relative aspect-video overflow-hidden rounded-3xl border-2 border-slate-400 bg-slate-900" aria-label="Video screen">
                 {!src ? <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-300"><Play size={40} /><p className="text-sm">{link ? 'This link cannot be shown here' : 'No video link has been added yet'}</p></div>
+                  : src.kind === 'external' ? <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-slate-200"><Play size={44} /><p className="max-w-md text-sm text-slate-300">This video is on <b>{new URL(src.open).hostname}</b>, which does not allow it to be shown inside another page.</p><a className="btn-primary" href={src.open} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} />Play in a new tab</a></div>
                   : src.kind === 'file' ? <video key={src.src} className="h-full w-full" src={src.src} controls autoPlay={false} playsInline />
                   : <iframe key={src.src} className="h-full w-full" src={src.src} title={session?.title || course.title} allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowFullScreen referrerPolicy="no-referrer" />}
               </div>
-              {src && <p className="mt-2 text-xs text-slate-500">Video does not play? <a className="inline-flex items-center gap-1 font-medium text-brand-700 underline" href={src.open} target="_blank" rel="noopener noreferrer"><ExternalLink size={12} />Open it in a new tab</a></p>}
+              {src && src.kind !== 'external' && <p className="mt-2 text-xs text-slate-500">Video does not play? <a className="inline-flex items-center gap-1 font-medium text-brand-700 underline" href={src.open} target="_blank" rel="noopener noreferrer"><ExternalLink size={12} />Open it in a new tab</a></p>}
             </div>
             <aside className="min-w-0">
               <h2 className="border-b-2 border-slate-700 pb-1 text-xl font-semibold text-brand-900">{course.title}</h2>

@@ -1,5 +1,7 @@
 // How a course video link is shown on the video screen. Pure; unit tested.
-export type VideoSrc = { kind: 'file' | 'embed'; src: string; open: string };
+export type VideoSrc = { kind: 'file' | 'embed' | 'external'; src: string; open: string };
+/** Sites that refuse to be shown inside another page (Autodesk Construction Cloud, Teams, Zoom): their link opens in its own tab. */
+const NO_FRAME = /(^|\.)(autodesk\.com|teams\.microsoft\.com|zoom\.us)$/;
 const FILE = /\.(mp4|webm|ogv|ogg|m4v|mov)$/i;
 /** Direct video files play in a <video>; YouTube / Vimeo / Google Drive links are turned into their embed address; any other web link is tried in a frame. */
 export function videoSrc(raw: string | null | undefined): VideoSrc | null {
@@ -17,5 +19,6 @@ export function videoSrc(raw: string | null | undefined): VideoSrc | null {
   if (host === 'vimeo.com') { const m = u.pathname.match(/^\/(?:video\/)?(\d+)/); if (m) return { kind: 'embed', src: `https://player.vimeo.com/video/${m[1]}`, open: url }; }
   if (host === 'player.vimeo.com') return { kind: 'embed', src: url, open: url };
   if (host === 'drive.google.com') { const m = u.pathname.match(/^\/file\/d\/([\w-]+)/); if (m) return { kind: 'embed', src: `https://drive.google.com/file/d/${m[1]}/preview`, open: url }; }
+  if (NO_FRAME.test(host)) return { kind: 'external', src: url, open: url };
   return { kind: 'embed', src: url, open: url };
 }
