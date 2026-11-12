@@ -1,7 +1,7 @@
 // Platform tabs an Administrator can enable per read-only user. Pure; unit tested.
 export const TAB_LIST = [
   { href: '/', label: 'Executive Dashboard' }, { href: '/org', label: 'Org Chart' }, { href: '/projects', label: 'Projects' }, { href: '/teams', label: 'Teams and Workload' },
-  { href: '/tasks', label: 'Tasks' }, { href: '/reels', label: 'BIM Reels' }, { href: '/contacts', label: 'Contacts' }, { href: '/meetings', label: 'Meetings' },
+  { href: '/tasks', label: 'Tasks' }, { href: '/reels', label: 'BIM Reels' }, { href: '/courses', label: 'Internal Courses' }, { href: '/contacts', label: 'Contacts' }, { href: '/meetings', label: 'Meetings' },
   { href: '/process-map', label: 'BIM Process Map' }, { href: '/proposals', label: 'Proposals' }, { href: '/email-templates', label: 'Emails Template' }, { href: '/evaluation', label: 'Evaluation' }, { href: '/wishes', label: 'Wish List' },
 ] as const;
 export const TAB_HREFS: string[] = TAB_LIST.map((t) => t.href);

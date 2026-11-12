@@ -333,6 +333,26 @@ create table if not exists process_buildings (
   created_at timestamptz not null default now()
 );
 create index if not exists process_buildings_project_idx on process_buildings(project_id);
+create table if not exists courses (
+  id          uuid primary key default gen_random_uuid(),
+  title       text not null,
+  instructor  text,
+  description text,
+  video_url   text,
+  server_path text,
+  created_by  text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create table if not exists course_sessions (
+  id         uuid primary key default gen_random_uuid(),
+  course_id  uuid not null references courses(id) on delete cascade,
+  position   int not null default 0,
+  title      text not null,
+  video_url  text
+);
+create index if not exists course_sessions_course_idx on course_sessions(course_id, position);
+
 create table if not exists process_hidden_lanes (
   project_id uuid not null references projects(id) on delete cascade,
   lane_id    text not null,
@@ -462,7 +482,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','process_hidden_lanes','calendar_feeds','calendar_events','wishes','wish_votes','contacts','evaluations','evaluation_scores','evaluation_stages','employee_documents'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','process_hidden_lanes','courses','course_sessions','calendar_feeds','calendar_events','wishes','wish_votes','contacts','evaluations','evaluation_scores','evaluation_stages','employee_documents'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;

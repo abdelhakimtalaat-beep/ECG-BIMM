@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { canSeeTab, firstAllowedTab, tabOfPath } from '@/lib/tabs';
 import clsx from 'clsx';
-import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown } from 'lucide-react';
+import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown, GraduationCap, PlayCircle } from 'lucide-react';
 import { api, roleLabel } from '@/lib/client';
 import { useApp } from './store';
 import { Field, Modal, useToast } from './ui';
@@ -12,13 +12,18 @@ import { useInstall } from './pwa';
 import { useTheme } from './theme';
 import { BirthdayAlarm } from './BirthdayAlarm';
 
-const NAV = [
+type NavLeaf = { href: string; label: string; short: string; icon: any };
+type NavGroup = { id: string; label: string; short: string; icon: any; children: NavLeaf[] };
+const NAV: (NavLeaf | NavGroup)[] = [
   { href: '/', label: 'Executive Dashboard', short: 'Dashboard', icon: LayoutDashboard },
   { href: '/org', label: 'Department Organization Chart', short: 'Org Chart', icon: Network },
   { href: '/projects', label: 'Projects Portfolio', short: 'Projects', icon: FolderKanban },
   { href: '/teams', label: 'Teams and Workload', short: 'Teams and Workload', icon: Users },
   { href: '/tasks', label: 'BIM Manager Tasks', short: 'Tasks', icon: ListChecks },
-  { href: '/reels', label: 'Weekly BIM Reels Plan', short: 'BIM Reels', icon: CalendarDays },
+  { id: 'training', short: 'Training', label: 'Training', icon: GraduationCap, children: [
+    { href: '/reels', label: 'Weekly BIM Reels Plan', short: 'BIM Reels', icon: CalendarDays },
+    { href: '/courses', label: 'Internal Courses', short: 'Internal Courses', icon: PlayCircle },
+  ] },
   { href: '/contacts', label: 'Other Departments Contacts', short: 'Contacts', icon: Contact },
   { href: '/meetings', label: 'Meetings', short: 'Meetings', icon: CalendarClock },
   { href: '/process-map', label: 'BIM Process Map', short: 'Process Map', icon: Workflow },
@@ -34,7 +39,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const th = useTheme(); const inst = useInstall(); const [help, setHelp] = useState(false);
   const [q, setQ] = useState(''); const [cur, setCur] = useState(''); const [nxt, setNxt] = useState('');
   const myPhoto = me.employee_id ? appData?.employees.find((e) => e.id === me.employee_id)?.photo_id : null;
-  const items = (me.role === 'admin' ? [...NAV, { href: '/admin', label: 'Administration', short: 'Administration', icon: Settings }] : NAV).filter((n) => canSeeTab(me, n.href));
+  const entries: (NavLeaf | NavGroup)[] = [];
+  for (const n of me.role === 'admin' ? [...NAV, { href: '/admin', label: 'Administration', short: 'Administration', icon: Settings } as NavLeaf] : NAV) {
+    if ('children' in n) { const kids = n.children.filter((k) => canSeeTab(me, k.href)); if (kids.length) entries.push({ ...n, children: kids }); }
+    else if (canSeeTab(me, n.href)) entries.push(n);
+  }
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ training: true });
   const tab = tabOfPath(path); const blocked = tab !== null && !canSeeTab(me, tab); const first = firstAllowedTab(me);
   useEffect(() => { if (blocked && first) router.replace(first); }, [blocked, first, router]);
   const active = (h: string) => (h === '/' ? path === '/' : path.startsWith(h));
@@ -42,11 +52,24 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   const nav = (
     <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Main">
-      {items.map((n) => (
-        <Link key={n.href} href={n.href} onClick={() => setMobile(false)} title={n.label}
-          className={clsx('flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition', active(n.href) ? 'bg-white/15 text-white' : 'text-[#DCEAFA] hover:bg-white/10 hover:text-white')}>
-          <n.icon size={18} className="shrink-0" />{(!collapsed || mobile) && <span className="truncate">{n.short}</span>}
-        </Link>))}
+      {entries.map((n) => {
+        const leaf = (k: NavLeaf, sub = false) => (
+          <Link key={k.href} href={k.href} onClick={() => setMobile(false)} title={k.label}
+            className={clsx('flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition', sub && (!collapsed || mobile) ? 'ml-4 px-3' : 'px-3', active(k.href) ? 'bg-white/15 text-white' : 'text-[#DCEAFA] hover:bg-white/10 hover:text-white')}>
+            <k.icon size={sub ? 16 : 18} className="shrink-0" />{(!collapsed || mobile) && <span className="truncate">{k.short}</span>}
+          </Link>);
+        if (!('children' in n)) return leaf(n);
+        if (collapsed && !mobile) return <div key={n.id} className="flex flex-col gap-1">{n.children.map((k) => leaf(k))}</div>;
+        const open = openGroups[n.id] ?? false; const inside = n.children.some((k) => active(k.href));
+        return (
+          <div key={n.id} className="flex flex-col gap-1">
+            <button type="button" aria-expanded={open} onClick={() => setOpenGroups((g) => ({ ...g, [n.id]: !open }))} title={n.label}
+              className={clsx('flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition', inside && !open ? 'bg-white/15 text-white' : 'text-[#DCEAFA] hover:bg-white/10 hover:text-white')}>
+              <n.icon size={18} className="shrink-0" /><span className="flex-1 truncate text-left">{n.short}</span><ChevronDown size={14} className={clsx('shrink-0 transition', open && 'rotate-180')} />
+            </button>
+            {open && n.children.map((k) => leaf(k, true))}
+          </div>);
+      })}
     </nav>
   );
   return (
