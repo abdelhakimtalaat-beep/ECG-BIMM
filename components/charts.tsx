@@ -1,5 +1,5 @@
 'use client';
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { STATUS_COLORS, STATUSES } from '@/lib/types';
 
 export const BLUES = ['#0B2545', '#0F55A8', '#1F6FC9', '#4F8FDB', '#8DB9EA', '#B9D5F4'];
@@ -80,5 +80,25 @@ export function Trend({ data }: { data: ({ name: string } & Record<string, any>)
         {STATUSES.map((s) => <Line key={s} type="monotone" dataKey={s} stroke={STATUS_COLORS[s]} strokeWidth={2} dot={{ r: 3 }} />)}
       </LineChart>
     </ResponsiveContainer>
+  );
+}
+
+/** One column per person, with the value on top; scrolls sideways when there are many. `tip` adds a second line to the tooltip. */
+export function ColBar({ data, color = '#1F6FC9', unit = '', max, colors }: { data: { name: string; value: number; tip?: string }[]; color?: string; unit?: string; max?: number; colors?: string[] }) {
+  const w = Math.max(data.length * 64, 320);
+  return (
+    <div className="h-full overflow-x-auto"><div style={{ width: `max(100%, ${w}px)`, height: '100%' }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ left: 0, right: 12, top: 22, bottom: 4 }}>
+          <CartesianGrid vertical={false} stroke="#E2E8F0" /><XAxis dataKey="name" tick={{ ...axis, fontSize: 11 }} interval={0} height={52} tickFormatter={(v: string) => (v.length > 14 ? v.slice(0, 13) + '…' : v)} />
+          <YAxis tick={axis} domain={[0, max ?? 'auto']} allowDecimals />
+          <Tooltip cursor={{ fill: '#EEF5FD' }} formatter={(v: any) => [`${v}${unit}`, '']} labelFormatter={(l: any, p: any) => `${l}${p?.[0]?.payload?.tip ? ' · ' + p[0].payload.tip : ''}`} />
+          <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} maxBarSize={44}>
+            {colors && data.map((_, i) => <Cell key={i} fill={colors[i] ?? color} />)}
+            <LabelList dataKey="value" position="top" style={{ fontSize: 11, fill: '#334155' }} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div></div>
   );
 }

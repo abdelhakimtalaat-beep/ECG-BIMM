@@ -4,9 +4,10 @@ import { ArrowLeft, CheckCircle2, ClipboardCheck, Pencil, Plus, RotateCcw, Send,
 import { useApp } from '@/components/store';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, Spinner, useToast } from '@/components/ui';
 import { api, fmtDate } from '@/lib/client';
+import { ChartBox, ColBar } from '@/components/charts';
 import { BANDS, LEVELS, SECTIONS, STAGES, bandOf, cleanScore, itemText, secKey, secTitle, type Labels, levelOf, sectionScore, stageLabel, totals, type EvStatus, type Stage } from '@/lib/evaluation';
 
-interface Row { id: string; employee_id: string; period: string; status: EvStatus; updated_at: string; totals: Partial<Record<Stage, { total: number; level: string; rated: number }>> }
+interface Row { late_hours?: number | null; id: string; employee_id: string; period: string; status: EvStatus; updated_at: string; totals: Partial<Record<Stage, { total: number; level: string; rated: number }>> }
 interface StageData { scores: Record<string, { score: number | null; comment: string | null }>; overall_comment: string; submitted_at: string | null; submitted_by: string | null }
 interface Info { location?: string; employment_date?: string; department?: string; section?: string; vacation_days?: number | null; sick_days?: number | null; late_hours?: number | null; education?: { degree: string; major: string; university: string; year: string }[] }
 interface Detail { labels: Labels; id: string; period: string; status: EvStatus; info: Info; employee: { id: string; name: string; job_title: string; photo_id: string | null; team_location: string | null; education?: { degree: string; major: string; university: string; year: string }[] | null }; has_manager: boolean; stages: Partial<Record<Stage, StageData>>; can: { edit: Stage[]; submit: Stage | null; hr: boolean; reopen: boolean; delete: boolean } }
@@ -43,6 +44,7 @@ export default function EvaluationPage() {
             <td className="td"><Badge tone={TONE[r.status]}>{r.status === 'completed' ? 'Completed' : `Waiting: ${stageLabel(r.status)}`}</Badge></td>
             <td className="td">{cell(r, 'self')}</td><td className="td">{cell(r, 'manager')}</td><td className="td">{cell(r, 'department')}</td>
             <td className="td whitespace-nowrap text-xs text-slate-500">{fmtDate(r.updated_at)}</td><td className="td"><button className="btn-secondary btn-sm" onClick={() => setOpenId(r.id)}>Open</button></td></tr>)}</tbody></table></div>}
+      {!!rows && !!shown.length && <EvalCharts rows={shown} names={new Map(data.employees.map((e) => [e.id, e.name]))} />}
       {adding && <AddForm employees={data.employees.filter((e) => e.active)} onClose={() => setAdding(false)} onDone={() => { setAdding(false); load(); }} />}
       <p className="text-xs text-slate-500">{me.employee_id ? '' : 'Your login is not linked to an employee record, so you only see forms if you are the Administrator.'}</p>
     </div>
@@ -187,5 +189,30 @@ function Summary({ d, live, labels }: { d: Detail; live: (s: Stage) => Record<st
       {!final && d.stages.self && vis.length < 3 && <p className="text-xs text-slate-500"><RotateCcw size={12} className="mr-1 inline" />The next parts become visible to you as the evaluation moves forward.</p>}
       <div className="grid gap-3 md:grid-cols-3">{vis.map((s) => <div key={s.key} className="card p-3"><p className="mb-1 text-sm font-semibold text-brand-800">{s.label}</p><p className="whitespace-pre-wrap text-sm text-slate-700">{d.stages[s.key]!.overall_comment || <span className="text-slate-400">No overall comment.</span>}</p></div>)}</div>
     </div>
+  );
+}
+
+/** The latest stage that has been scored is the score of the form: department manager, else direct manager, else self. */
+const finalOf = (r: Row): { total: number; level: string; stage: Stage } | null => { for (const st of ['department', 'manager', 'self'] as Stage[]) { const t = r.totals[st]; if (t && t.rated) return { total: t.total, level: t.level, stage: st }; } return null; };
+const LEVEL_COLORS: Record<string, string> = { A: '#2FA24F', 'B+': '#1F6FC9', B: '#4F8FDB', 'C+': '#F59E0B', C: '#DC2626' };
+
+function EvalCharts({ rows, names }: { rows: Row[]; names: Map<string, string> }) {
+  const periods = new Set(rows.map((r) => r.period)); const label = (r: Row) => `${names.get(r.employee_id) ?? '—'}${periods.size > 1 ? ` (${r.period})` : ''}`;
+  const score = rows.map((r) => ({ r, f: finalOf(r) })).filter((x) => x.f).sort((a, b) => b.f!.total - a.f!.total);
+  const late = rows.filter((r) => r.late_hours != null).sort((a, b) => (b.late_hours ?? 0) - (a.late_hours ?? 0));
+  const missing = rows.length - score.length;
+  return (
+    <section className="space-y-3" aria-label="Evaluation charts">
+      <h2 className="text-lg font-semibold text-brand-900">Charts</h2>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <ChartBox title="Evaluation score" subtitle={`Out of 100, latest scored stage of each form${missing ? ` · ${missing} form(s) not scored yet` : ''}`} height={320}>
+          {score.length ? <ColBar max={100} data={score.map(({ r, f }) => ({ name: label(r), value: Math.round(f!.total * 100) / 100, tip: `Level ${f!.level} · ${stageLabel(f!.stage)}` }))} colors={score.map(({ f }) => LEVEL_COLORS[f!.level] ?? '#1F6FC9')} /> : <p className="py-10 text-center text-sm text-slate-500">No scores yet.</p>}
+        </ChartBox>
+        <ChartBox title="Late hours" subtitle="As entered by the Administrator on each form" height={320}>
+          {late.length ? <ColBar color="#D97706" unit=" h" data={late.map((r) => ({ name: label(r), value: r.late_hours ?? 0 }))} /> : <p className="py-10 text-center text-sm text-slate-500">No late hours entered yet.</p>}
+        </ChartBox>
+      </div>
+      <p className="text-xs text-slate-500">Score colours: <span className="font-medium" style={{ color: LEVEL_COLORS.A }}>A</span> · <span className="font-medium" style={{ color: LEVEL_COLORS['B+'] }}>B+</span> · <span className="font-medium" style={{ color: LEVEL_COLORS.B }}>B</span> · <span className="font-medium" style={{ color: LEVEL_COLORS['C+'] }}>C+</span> · <span className="font-medium" style={{ color: LEVEL_COLORS.C }}>C</span>. The charts follow the Period / Status / Engineer filters above.</p>
+    </section>
   );
 }

@@ -11,7 +11,7 @@ export async function GET() {
   return handle(async () => {
     const me = await requireTab('/evaluation'); const who = whoOf(me);
     const [evs, mgr, depts] = await Promise.all([
-      q<any>('select e.id,e.employee_id,e.period,e.status,e.updated_at from evaluations e order by e.period desc, e.created_at'),
+      q<any>("select e.id,e.employee_id,e.period,e.status,e.updated_at,nullif(e.info->>'late_hours','')::numeric as late_hours from evaluations e order by e.period desc, e.created_at"),
       q<any>('select employee_id,manager_id from reporting_relationships where valid_to is null'), deptManagerIds(),
     ]);
     const managerOf = new Map(mgr.map((r: any) => [r.employee_id, r.manager_id as string]));
@@ -20,7 +20,7 @@ export async function GET() {
     const sc = ids.length ? await q<any>('select evaluation_id,stage,item_key,score from evaluation_scores where evaluation_id = any($1::uuid[]) and score is not null', [ids]) : [];
     const by = new Map<string, Record<string, Record<string, number>>>();
     for (const r of sc) { const m = by.get(r.evaluation_id) ?? by.set(r.evaluation_id, {}).get(r.evaluation_id)!; (m[r.stage] ??= {})[r.item_key] = Number(r.score); }
-    const rows = mine.map(({ e, vis }: any) => ({ id: e.id, employee_id: e.employee_id, period: e.period, status: e.status, updated_at: e.updated_at,
+    const rows = mine.map(({ e, vis }: any) => ({ id: e.id, employee_id: e.employee_id, period: e.period, status: e.status, updated_at: e.updated_at, late_hours: e.late_hours == null ? null : Number(e.late_hours),
       totals: Object.fromEntries(vis.map((s: Stage) => { const t = totals(by.get(e.id)?.[s] ?? {}); return [s, { total: t.total, level: t.level, rated: t.rated }]; })) }));
     return ok({ evaluations: rows, can_create: isAdmin(me) || me.role === 'bim_manager' || (!!me.employee_id && depts.includes(me.employee_id)) });
   });
