@@ -491,7 +491,7 @@ do $$
 declare t text;
 begin
   for t in select unnest(array['employees','employee_aliases','reporting_relationships','users','status_mappings','projects',
-    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','process_hidden_lanes','course_sections','courses','course_sessions','calendar_feeds','calendar_events','wishes','wish_votes','contacts','evaluations','evaluation_scores','evaluation_stages','employee_documents'])
+    'project_status_history','project_notes','project_assignments','reel_sessions','attachments','app_settings','audit_logs','import_runs','data_issues','task_areas','tasks','teams','team_members','email_templates','proposals','project_contents','process_buildings','process_nodes','email_templates','proposals','project_contents','process_buildings','process_nodes','process_project_nodes','process_hidden_lanes','course_sections','vacation_requests','courses','course_sessions','calendar_feeds','calendar_events','wishes','wish_votes','contacts','evaluations','evaluation_scores','evaluation_stages','employee_documents'])
   loop
     execute format('alter table %I enable row level security', t);
   end loop;
@@ -500,3 +500,21 @@ end $$;
 -- Roles added later (see migration 019)
 alter type app_role add value if not exists 'rd_engineer';
 alter type app_role add value if not exists 'bim_specialist';
+
+-- 036 BIMMers > Vacations
+create table if not exists vacation_requests (
+  id              uuid primary key default gen_random_uuid(),
+  employee_id     uuid not null references employees(id) on delete cascade,
+  start_date      date not null,
+  end_date        date not null,
+  days            int  not null,
+  replacement_id  uuid references employees(id) on delete set null,
+  notes           text,
+  location        text,
+  auto_reply      boolean not null default false,
+  created_by      text,
+  created_at      timestamptz not null default now(),
+  check (end_date >= start_date)
+);
+create index if not exists vacation_requests_emp_idx on vacation_requests(employee_id, start_date desc);
+alter table vacation_requests enable row level security;

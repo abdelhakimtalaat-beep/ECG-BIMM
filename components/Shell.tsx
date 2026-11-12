@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { canSeeTab, firstAllowedTab, tabOfPath } from '@/lib/tabs';
 import clsx from 'clsx';
-import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown, GraduationCap, PlayCircle } from 'lucide-react';
+import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown, GraduationCap, PlayCircle, Plane } from 'lucide-react';
 import { api, roleLabel } from '@/lib/client';
 import { useApp } from './store';
 import { Field, Modal, useToast } from './ui';
@@ -19,7 +19,10 @@ const NAV: (NavLeaf | NavGroup)[] = [
   { href: '/org', label: 'Department Organization Chart', short: 'Org Chart', icon: Network },
   { href: '/projects', label: 'Projects Portfolio', short: 'Projects', icon: FolderKanban },
   { href: '/teams', label: 'Teams and Workload', short: 'Teams and Workload', icon: Users },
-  { href: '/tasks', label: 'BIM Manager Tasks', short: 'Tasks', icon: ListChecks },
+  { id: 'bimmers', short: 'BIMMers', label: 'BIMMers', icon: Users, children: [
+    { href: '/tasks', label: 'BIM Manager Tasks', short: 'Tasks', icon: ListChecks },
+    { href: '/vacations', label: 'Vacations', short: 'Vacations', icon: Plane },
+  ] },
   { id: 'training', short: 'Training', label: 'Training', icon: GraduationCap, children: [
     { href: '/reels', label: 'Weekly BIM Reels Plan', short: 'BIM Reels', icon: CalendarDays },
     { href: '/courses', label: 'Internal Courses', short: 'Internal Courses', icon: PlayCircle },
@@ -44,7 +47,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     if ('children' in n) { const kids = n.children.filter((k) => canSeeTab(me, k.href)); if (kids.length) entries.push({ ...n, children: kids }); }
     else if (canSeeTab(me, n.href)) entries.push(n);
   }
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ training: true });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ training: true, bimmers: true });
   const tab = tabOfPath(path); const blocked = tab !== null && !canSeeTab(me, tab); const first = firstAllowedTab(me);
   useEffect(() => { if (blocked && first) router.replace(first); }, [blocked, first, router]);
   const active = (h: string) => (h === '/' ? path === '/' : path.startsWith(h));
