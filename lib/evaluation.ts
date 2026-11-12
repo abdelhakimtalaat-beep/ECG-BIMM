@@ -48,7 +48,9 @@ export function totals(scores: Scores) {
 }
 
 // ---------------------------------------------------------------- who may do what
-export interface Actors { employeeId: string; managerId: string | null; deptIds: string[] }
+export interface Actors { employeeId: string; managerId: string | null; deptIds: string[]; /** the Administrator removed the direct-manager step of this form */ skipManager?: boolean }
+/** The form passes through the direct manager only when the employee has one and the step was not removed. */
+export const hasManagerStep = (a: Actors) => !!a.managerId && !a.skipManager;
 export interface Who { role: string; employee_id: string | null }
 export const isAdmin = (me: Who) => me.role === 'admin';
 const isSelf = (me: Who, a: Actors) => !!me.employee_id && me.employee_id === a.employeeId;

@@ -1,6 +1,6 @@
 import { ApiError } from './auth';
 import { one, q } from './db';
-import { cleanLabels, STAGES, canEditHr, canEditStage, canSubmitStage, totals, visibleStages, type Actors, type EvStatus, type Stage, type Who } from './evaluation';
+import { cleanLabels, hasManagerStep, STAGES, canEditHr, canEditStage, canSubmitStage, totals, visibleStages, type Actors, type EvStatus, type Stage, type Who } from './evaluation';
 import type { Me } from './types';
 
 export interface EvRow { id: string; employee_id: string; period: string; status: EvStatus; info: any; created_at: string; updated_at: string }
@@ -9,6 +9,8 @@ export async function actorsFor(employeeId: string, depts?: string[]): Promise<A
   const m = await one<{ manager_id: string }>('select manager_id from reporting_relationships where employee_id=$1 and valid_to is null limit 1', [employeeId]);
   return { employeeId, managerId: m?.manager_id ?? null, deptIds: depts ?? (await deptManagerIds()) };
 }
+/** Actors of one form: the employee's chain plus the form's own 'direct manager step removed' flag. */
+export async function actorsOf(ev: { employee_id: string; info: any }, depts?: string[]): Promise<Actors> { return { ...(await actorsFor(ev.employee_id, depts)), skipManager: !!ev.info?.skip_manager }; }
 export async function loadLabels() { const r = await one<{ value: any }>(`select value from app_settings where key='evaluation_labels'`); return cleanLabels(r?.value); }
 export const whoOf = (me: Me): Who => ({ role: me.role, employee_id: me.employee_id });
 export async function loadEv(id: string): Promise<EvRow> {
@@ -20,7 +22,7 @@ const mapScores = (rows: any[]) => { const o: Record<string, { score: number | n
 
 /** Everything the person may see of one form — stages he is not allowed to see are left out entirely. */
 export async function detail(me: Me, ev: EvRow, a: Actors) {
-  const who = whoOf(me); const vis = visibleStages(who, a, ev.status);
+  const who = whoOf(me); const vis0 = visibleStages(who, a, ev.status); const vis = vis0 && (a.skipManager ? vis0.filter((s) => s !== 'manager') : vis0);
   if (!vis) throw new ApiError(403, 'You do not have access to this evaluation');
   const [emp, sc, st] = await Promise.all([
     one<any>('select id,name,job_title,photo_id,team_location,education,job_start_date::text job_start_date from employees where id=$1', [ev.employee_id]),
@@ -34,5 +36,5 @@ export async function detail(me: Me, ev: EvRow, a: Actors) {
   }
   const editing = STAGES.filter((s) => vis.includes(s.key) && canEditStage(who, a, ev.status, s.key)).map((s) => s.key);
   const labels = await loadLabels(); // employment date: the job start date of the org chart unless a date was typed in the form
-  return { labels, id: ev.id, period: ev.period, status: ev.status, info: { ...(ev.info ?? {}), employment_date: ev.info?.employment_date || emp?.job_start_date || '' }, employee: emp, has_manager: !!a.managerId, stages, can: { edit: editing as Stage[], submit: canSubmitStage(who, a, ev.status), hr: canEditHr(who, a, ev.status), reopen: me.role === 'admin', delete: me.role === 'admin' } };
+  return { labels, id: ev.id, period: ev.period, status: ev.status, info: { ...(ev.info ?? {}), employment_date: ev.info?.employment_date || emp?.job_start_date || '' }, employee: emp, has_manager: hasManagerStep(a), skip_manager: !!a.skipManager, manager_name_set: !!a.managerId, stages, can: { edit: editing as Stage[], submit: canSubmitStage(who, a, ev.status), hr: canEditHr(who, a, ev.status), reopen: me.role === 'admin', delete: me.role === 'admin' } };
 }

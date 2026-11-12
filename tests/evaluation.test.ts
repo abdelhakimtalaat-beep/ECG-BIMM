@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanLabels, itemText, secTitle, canSubmitStage, SECTIONS, bandOf, canEditHr, canEditStage, cleanScore, levelOf, nextStatus, sectionScore, totals, visibleStages, ITEM_KEYS, canCreate } from '../lib/evaluation.ts';
+import { cleanLabels, itemText, secTitle, canSubmitStage, SECTIONS, bandOf, canEditHr, canEditStage, cleanScore, levelOf, nextStatus, hasManagerStep, sectionScore, totals, visibleStages, ITEM_KEYS, canCreate } from '../lib/evaluation.ts';
 const A = { employeeId: 'e', managerId: 'm', deptIds: ['d'] };
 test('form definition matches the template', () => {
   assert.deepEqual(SECTIONS.map((s) => s.items.length), [3, 7, 2, 2, 11, 8, 4]);
@@ -38,4 +38,12 @@ test('editable wording', () => {
   const l = cleanLabels({ items: { '1.1': '  New text ', '1.2': 'Organizing of one\'s own work', 'zzz': 'x', '1.3': '   ' }, sections: { '1': 'Planning', E2: 'BD' } });
   assert.deepEqual(l.items, { '1.1': 'New text' }); assert.deepEqual(l.sections, { '1': 'Planning', E2: 'BD' });
   assert.equal(itemText(SECTIONS[0].items[0], l), 'New text'); assert.equal(itemText(SECTIONS[0].items[1], l), SECTIONS[0].items[1].text); assert.equal(secTitle(SECTIONS[6], l), 'BD'); assert.equal(secTitle(SECTIONS[1], null), 'Interpersonal Skills');
+});
+
+test('direct manager step can be removed per form', () => {
+  const a = { employeeId: 'e', managerId: 'm', deptIds: ['d'] };
+  assert.equal(hasManagerStep(a), true);
+  assert.equal(hasManagerStep({ ...a, skipManager: true }), false);
+  assert.equal(hasManagerStep({ ...a, managerId: null }), false);
+  assert.equal(nextStatus('self', hasManagerStep({ ...a, skipManager: true })), 'department');
 });

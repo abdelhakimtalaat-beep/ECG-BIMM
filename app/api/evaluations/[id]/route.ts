@@ -2,14 +2,14 @@ import { z } from 'zod';
 import { handle, json, ok } from '@/lib/api';
 import { ApiError, requireTab } from '@/lib/auth';
 import { audit, q, tx } from '@/lib/db';
-import { ITEM_KEYS, SECTIONS, STAGES, canEditHr, canEditStage, cleanScore, nextStatus, stageLabel } from '@/lib/evaluation';
-import { actorsFor, detail, loadEv, whoOf } from '@/lib/evaluationServer';
+import { ITEM_KEYS, SECTIONS, STAGES, canEditHr, canEditStage, cleanScore, hasManagerStep, nextStatus, stageLabel } from '@/lib/evaluation';
+import { actorsOf, detail, loadEv, whoOf } from '@/lib/evaluationServer';
 
 export const dynamic = 'force-dynamic';
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handle(async () => {
     const me = await requireTab('/evaluation'); const { id } = await ctx.params; z.string().uuid().parse(id);
-    const ev = await loadEv(id); return ok(await detail(me, ev, await actorsFor(ev.employee_id)));
+    const ev = await loadEv(id); return ok(await detail(me, ev, await actorsOf(ev)));
   });
 }
 
@@ -29,7 +29,7 @@ const body = z.object({
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handle(async () => {
     const me = await requireTab('/evaluation'); const { id } = await ctx.params; z.string().uuid().parse(id);
-    const b = body.parse(await json(req)); const ev = await loadEv(id); const a = await actorsFor(ev.employee_id); const who = whoOf(me);
+    const b = body.parse(await json(req)); const ev = await loadEv(id); const a = await actorsOf(ev); const who = whoOf(me);
     const mayStage = canEditStage(who, a, ev.status, b.stage), mayHr = canEditHr(who, a, ev.status);
     if (!mayStage && !(b.info && mayHr && !b.scores && b.overall_comment === undefined && !b.submit)) throw new ApiError(403, ev.status === b.stage ? 'It is not your turn to fill this part' : `This part is not open (the form is at: ${stageLabel(ev.status)})`);
     const keys = new Set(ITEM_KEYS);
@@ -56,7 +56,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
         const missing = SECTIONS.filter((s) => !s.extra).flatMap((s) => s.items).filter((i) => !rated.has(i.key)).length;
         if (missing) throw new ApiError(400, `${missing} item(s) in the main sections have no score yet. Score every item before submitting.`);
         await c.query('insert into evaluation_stages(evaluation_id,stage,submitted_at,submitted_by) values($1,$2,now(),$3) on conflict (evaluation_id,stage) do update set submitted_at=now(), submitted_by=excluded.submitted_by', [id, b.stage, me.email]);
-        const to = nextStatus(ev.status, !!a.managerId);
+        const to = nextStatus(ev.status, hasManagerStep(a));
         await c.query('update evaluations set status=$2, updated_at=now() where id=$1', [id, to]);
         await audit(c, me.email, 'submit', 'evaluation', id, `${STAGES.find((s) => s.key === b.stage)!.label} submitted for evaluation ${ev.period}; now: ${stageLabel(to)}`);
       }

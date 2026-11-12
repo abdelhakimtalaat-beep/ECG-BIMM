@@ -11,11 +11,11 @@ export async function GET() {
   return handle(async () => {
     const me = await requireTab('/evaluation'); const who = whoOf(me);
     const [evs, mgr, depts] = await Promise.all([
-      q<any>("select e.id,e.employee_id,e.period,e.status,e.updated_at,nullif(e.info->>'late_hours','')::numeric as late_hours from evaluations e order by e.period desc, e.created_at"),
+      q<any>("select e.id,e.employee_id,e.period,e.status,e.updated_at,e.info->>'skip_manager' as skip_manager,nullif(e.info->>'late_hours','')::numeric as late_hours from evaluations e order by e.period desc, e.created_at"),
       q<any>('select employee_id,manager_id from reporting_relationships where valid_to is null'), deptManagerIds(),
     ]);
     const managerOf = new Map(mgr.map((r: any) => [r.employee_id, r.manager_id as string]));
-    const mine = evs.map((e: any) => ({ e, a: { employeeId: e.employee_id, managerId: managerOf.get(e.employee_id) ?? null, deptIds: depts } })).map((x: any) => ({ ...x, vis: visibleStages(who, x.a, x.e.status) as Stage[] | null })).filter((x: any) => x.vis);
+    const mine = evs.map((e: any) => ({ e, a: { employeeId: e.employee_id, managerId: managerOf.get(e.employee_id) ?? null, deptIds: depts, skipManager: e.skip_manager === 'true' } })).map((x: any) => ({ ...x, vis: (visibleStages(who, x.a, x.e.status) as Stage[] | null)?.filter((s) => !(x.a.skipManager && s === 'manager')) ?? null })).filter((x: any) => x.vis);
     const ids = mine.map((x: any) => x.e.id);
     const sc = ids.length ? await q<any>('select evaluation_id,stage,item_key,score from evaluation_scores where evaluation_id = any($1::uuid[]) and score is not null', [ids]) : [];
     const by = new Map<string, Record<string, Record<string, number>>>();

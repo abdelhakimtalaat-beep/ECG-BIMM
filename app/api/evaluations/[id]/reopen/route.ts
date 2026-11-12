@@ -10,7 +10,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   return handle(async () => {
     const me = await requireTab('/evaluation'); if (me.role !== 'admin') throw new ApiError(403, 'Only the Administrator can reopen an evaluation');
     const { id } = await ctx.params; z.string().uuid().parse(id);
-    const { to } = z.object({ to: z.enum(['self', 'manager', 'department']) }).parse(await json(req)); const ev = await loadEv(id);
+    const { to } = z.object({ to: z.enum(['self', 'manager', 'department']) }).parse(await json(req)); const ev = await loadEv(id); if (to === 'manager' && ev.info?.skip_manager) throw new ApiError(400, 'The direct manager step was removed for this employee');
     const order = STAGES.map((s) => s.key); const later = order.slice(order.indexOf(to));
     await tx(async (c) => {
       await c.query('update evaluation_stages set submitted_at=null, submitted_by=null where evaluation_id=$1 and stage = any($2::text[])', [id, later]);
