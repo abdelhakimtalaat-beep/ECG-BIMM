@@ -56,9 +56,10 @@ export const isAdmin = (me: Who) => me.role === 'admin';
 const isSelf = (me: Who, a: Actors) => !!me.employee_id && me.employee_id === a.employeeId;
 const isManager = (me: Who, a: Actors) => !!me.employee_id && !!a.managerId && me.employee_id === a.managerId;
 const isDept = (me: Who, a: Actors) => !!me.employee_id && a.deptIds.includes(me.employee_id) && me.employee_id !== a.employeeId;
-export const stageActor = (me: Who, a: Actors, stage: Stage) => isAdmin(me) || (stage === 'self' ? isSelf(me, a) : stage === 'manager' ? isManager(me, a) : isDept(me, a));
-/** The stage the form is waiting on is the only one its owner can edit; the Administrator can edit any part at any time (even after it was submitted or the form was completed). */
-export const canEditStage = (me: Who, a: Actors, status: EvStatus, stage: Stage) => isAdmin(me) || (status === stage && stageActor(me, a, stage));
+/** The employee's own part and the direct manager's part belong to those two people only; the Administrator and the department managers fill the department part. */
+export const stageActor = (me: Who, a: Actors, stage: Stage) => stage === 'self' ? isSelf(me, a) : stage === 'manager' ? isManager(me, a) : (isAdmin(me) || isDept(me, a));
+/** The stage the form is waiting on is the only one its owner can edit; the Administrator can edit the department part at any time, but never the employee's self evaluation or the direct manager's evaluation. */
+export const canEditStage = (me: Who, a: Actors, status: EvStatus, stage: Stage) => (status === stage && stageActor(me, a, stage)) || (stage === 'department' && isAdmin(me));
 /** Submitting moves the form on, so it is only possible for the stage the form is waiting on. */
 export const canSubmitStage = (me: Who, a: Actors, status: EvStatus): Stage | null => (status !== 'completed' && stageActor(me, a, status) ? status : null);
 /** Vacation / sick / late figures are HR data: the Administrator only. */
