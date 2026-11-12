@@ -35,3 +35,9 @@ export function canDecideVacation(me: VacActor, v: VacLite): boolean {
   if (v.status === 'pending_department') return me.isDeptManager || me.role === 'admin';
   return false;
 }
+
+/** Approved vacations that are running on `today` or start later, soonest first. Dates are yyyy-mm-dd. */
+export function upcomingVacations<T extends { status: string; start_date: string; end_date: string }>(rows: T[], today: string): { now: T[]; next: T[] } {
+  const ok = rows.filter((r) => r.status === 'approved' && r.end_date >= today).sort((a, b) => a.start_date.localeCompare(b.start_date) || a.end_date.localeCompare(b.end_date));
+  return { now: ok.filter((r) => r.start_date <= today), next: ok.filter((r) => r.start_date > today) };
+}

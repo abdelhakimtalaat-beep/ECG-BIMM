@@ -17,7 +17,8 @@ export async function GET() {
     const all = admin || isDept;
     const rows = await q<any>(`select ${COLS} from vacation_requests v ${all ? '' : 'where v.employee_id=$1 or v.replacement_id=$1 or v.manager_id=$1'} order by v.start_date desc, v.created_at desc`, all ? [] : [me.employee_id]);
     const actor = { employee_id: me.employee_id, role: me.role, isDeptManager: isDept };
-    return ok({ requests: rows.map((r: any) => ({ ...r, can_decide: canDecideVacation(actor, r) })), can_request: !!me.employee_id, all });
+    const today = (await one<{ d: string }>("select (now() at time zone 'Africa/Cairo')::date::text d"))!.d;
+    return ok({ requests: rows.map((r: any) => ({ ...r, can_decide: canDecideVacation(actor, r) })), can_request: !!me.employee_id, all, today });
   });
 }
 /** Any employee requests a vacation for himself; the number of days is calculated here. The replacement is informed and the approvers are asked by e-mail. */

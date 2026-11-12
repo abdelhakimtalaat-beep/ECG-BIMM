@@ -23,3 +23,10 @@ test('vacation approval chain', () => {
   assert.ok(canDecideVacation(dep, w) && canDecideVacation(adm, w) && !canDecideVacation(man, w) && !canDecideVacation({ ...dep, employee_id: 'e' }, w));
   assert.ok(!canDecideVacation(dep, { ...w, status: 'approved' }));
 });
+
+import { upcomingVacations } from '../lib/vacations.ts';
+test('vacations today and upcoming (approved only)', () => {
+  const r = (status: string, s: string, e: string) => ({ status, start_date: s, end_date: e });
+  const u = upcomingVacations([r('approved', '2026-11-10', '2026-11-12'), r('approved', '2026-11-20', '2026-11-22'), r('approved', '2026-11-13', '2026-11-14'), r('pending_manager', '2026-11-12', '2026-11-13'), r('approved', '2026-11-01', '2026-11-05'), r('rejected', '2026-11-15', '2026-11-16')], '2026-11-12');
+  assert.equal(u.now.length, 1); assert.deepEqual(u.next.map((x) => x.start_date), ['2026-11-13', '2026-11-20']);
+});

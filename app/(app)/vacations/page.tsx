@@ -4,23 +4,29 @@ import { Check, Plane, Plus, Trash2, X } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, Spinner, useToast } from '@/components/ui';
 import { api, fmtDate } from '@/lib/client';
-import { AUTO_REPLY_TEXT, VAC_STATUS_LABEL, needsAutoReply, vacationDays, type VacStatus } from '@/lib/vacations';
+import { AUTO_REPLY_TEXT, VAC_STATUS_LABEL, needsAutoReply, vacationDays, upcomingVacations, type VacStatus } from '@/lib/vacations';
 
 interface Req { id: string; employee_id: string; start_date: string; end_date: string; days: number; replacement_id: string | null; notes: string | null; location: string | null; auto_reply: boolean; status: VacStatus; manager_id: string | null; manager_decision: string | null; manager_decided_at: string | null; manager_comment: string | null; dept_decision: string | null; dept_decided_by: string | null; dept_decided_at: string | null; dept_comment: string | null; can_decide: boolean }
 const TONE: Record<VacStatus, 'gray' | 'blue' | 'amber' | 'green' | 'red'> = { pending_manager: 'amber', pending_department: 'blue', approved: 'green', rejected: 'red' };
 
 export default function VacationsPage() {
   const { me, data } = useApp(); const toast = useToast();
-  const [rows, setRows] = useState<Req[] | null>(null); const [canReq, setCanReq] = useState(false); const [all, setAll] = useState(false);
+  const [rows, setRows] = useState<Req[] | null>(null); const [canReq, setCanReq] = useState(false); const [all, setAll] = useState(false); const [today, setToday] = useState('');
   const [adding, setAdding] = useState(false); const [deciding, setDeciding] = useState<{ r: Req; approve: boolean } | null>(null); const [del, setDel] = useState<Req | null>(null);
-  const load = useCallback(async () => { try { const r = await api<{ requests: Req[]; can_request: boolean; all: boolean }>('/api/vacations'); setRows(r.requests); setCanReq(r.can_request); setAll(r.all); } catch (e: any) { toast(e.message, 'err'); setRows((x) => x ?? []); } }, [toast]);
+  const load = useCallback(async () => { try { const r = await api<{ requests: Req[]; can_request: boolean; all: boolean; today?: string }>('/api/vacations'); setRows(r.requests); setCanReq(r.can_request); setAll(r.all); setToday(r.today ?? ''); } catch (e: any) { toast(e.message, 'err'); setRows((x) => x ?? []); } }, [toast]);
   useEffect(() => { load(); }, [load]);
   const emp = useMemo(() => new Map(data.employees.map((e) => [e.id, e])), [data.employees]);
   const name = (id: string | null) => (id ? emp.get(id)?.name ?? '—' : '—');
   if (!rows) return <Spinner />;
+  const up = me.role === 'admin' ? upcomingVacations(rows, today) : null;
+  const line = (r: Req) => <li key={r.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-1.5 text-sm"><span className="font-medium text-brand-900">{name(r.employee_id)}</span><span className="text-slate-600">{fmtDate(r.start_date)} – {fmtDate(r.end_date)} ({r.days} {r.days === 1 ? 'day' : 'days'})</span><span className="text-slate-500">Replacement: {name(r.replacement_id)}</span>{r.location && <span className="text-slate-500">Location: {r.location}</span>}</li>;
   return (
     <div className="space-y-4">
       <PageHeader title="Vacations" subtitle={all ? 'Vacation requests of all employees' : 'Your vacation requests'} actions={canReq && <button className="btn-primary" onClick={() => setAdding(true)}><Plus size={16} />Request vacation</button>} />
+      {up && <div className="grid gap-4 lg:grid-cols-2" aria-label="Employees on vacation (administrator only)">
+        <section className="card p-4"><h2 className="mb-1 text-sm font-semibold text-brand-900">On vacation today ({up.now.length})</h2>{up.now.length ? <ul className="divide-y divide-slate-100">{up.now.map(line)}</ul> : <p className="text-sm text-slate-500">Nobody is on vacation today.</p>}</section>
+        <section className="card p-4"><h2 className="mb-1 text-sm font-semibold text-brand-900">Upcoming vacations ({up.next.length})</h2>{up.next.length ? <ul className="divide-y divide-slate-100">{up.next.map(line)}</ul> : <p className="text-sm text-slate-500">No approved vacations coming up.</p>}</section>
+      </div>}
       {rows.length === 0 ? <Empty title="No vacation requests yet" hint={canReq ? 'Use “Request vacation” to add one.' : undefined} /> : (
         <div className="card overflow-x-auto"><table className="w-full text-sm">
           <thead><tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">{all && <th className="p-2">Employee</th>}<th className="p-2">From</th><th className="p-2">To</th><th className="p-2">Days</th><th className="p-2">Replacement</th><th className="p-2">Notes for the replacement</th><th className="p-2">Location</th><th className="p-2">Auto reply</th><th className="p-2">Status</th><th className="p-2" /></tr></thead>
