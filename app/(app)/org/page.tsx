@@ -57,7 +57,7 @@ export default function OrgPage() {
   const [sel, setSel] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [term, setTerm] = useState('');
-  const [mode, setMode] = useState<OrgMode>('side');
+  const [mode, setMode] = useState<OrgMode>('horizontal');
   const [colorBy, setColorBy] = useState<'location' | 'role'>('location');
   const [view, setView] = useState({ x: 20, y: 20, k: 0.9 });
   const photoInput = useRef<HTMLInputElement>(null);

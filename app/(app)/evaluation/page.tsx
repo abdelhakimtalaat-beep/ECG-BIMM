@@ -204,7 +204,7 @@ function EvalCharts({ rows, names }: { rows: Row[]; names: Map<string, string> }
   return (
     <section className="space-y-3" aria-label="Evaluation charts">
       <h2 className="text-lg font-semibold text-brand-900">Charts</h2>
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4">
         <ChartBox title="Evaluation score" subtitle={`Out of 100, latest scored stage of each form${missing ? ` · ${missing} form(s) not scored yet` : ''}`} height={320}>
           {score.length ? <ColBar max={100} data={score.map(({ r, f }) => ({ name: label(r), value: Math.round(f!.total * 100) / 100, tip: `Level ${f!.level} · ${stageLabel(f!.stage)}` }))} colors={score.map(({ f }) => LEVEL_COLORS[f!.level] ?? '#1F6FC9')} /> : <p className="py-10 text-center text-sm text-slate-500">No scores yet.</p>}
         </ChartBox>
