@@ -18,8 +18,8 @@ export function AccAdmin() {
       {!s.configured && <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Not set up yet: add <b>APS_CLIENT_ID</b>, <b>APS_CLIENT_SECRET</b> and <b>CRON_SECRET</b> in the Vercel project settings (Environment Variables), then redeploy. The callback address to register in the Autodesk app is <code>{typeof location !== 'undefined' ? `${location.origin}/api/acc/callback` : ''}</code></div>}
       <div className="card space-y-2 p-4 text-sm">
         <div className="flex flex-wrap items-center gap-2"><b>Status:</b> {s.connected ? <Badge tone="green">Connected</Badge> : <Badge tone="gray">Not connected</Badge>}{c?.last_status === 'reconnect' && <Badge tone="red">Sign in again</Badge>}{c?.hub_name && <span className="text-slate-600">Hub: {c.hub_name}</span>}</div>
-        {c?.connected_at && <p className="text-slate-600">Connected by {c.connected_by} on {fmtDateTime(c.connected_at)}</p>}
-        {c?.last_sync_at && <p className="text-slate-600">Last check: {fmtDateTime(c.last_sync_at)} — {c.last_status}</p>}
+        {c?.connected_at && <p className="text-slate-600">Connected by {c.connected_by} on {fmtDateTime(new Date(c.connected_at))}</p>}
+        {c?.last_sync_at && <p className="text-slate-600">Last check: {fmtDateTime(new Date(c.last_sync_at))} — {c.last_status}</p>}
         {c?.last_error && <p className="text-red-600">{c.last_error}</p>}
         <div className="flex flex-wrap gap-2 pt-1">
           <a className={`btn-primary ${!s.configured ? 'pointer-events-none opacity-50' : ''}`} href="/api/acc/connect">{s.connected ? 'Reconnect ACC' : 'Connect ACC'}</a>
