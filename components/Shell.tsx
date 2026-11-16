@@ -17,22 +17,24 @@ type NavGroup = { id: string; label: string; short: string; icon: any; children:
 const NAV: (NavLeaf | NavGroup)[] = [
   { href: '/', label: 'Executive Dashboard', short: 'Dashboard', icon: LayoutDashboard },
   { href: '/org', label: 'Department Organization Chart', short: 'Org Chart', icon: Network },
-  { href: '/projects', label: 'Projects Portfolio', short: 'Projects', icon: FolderKanban },
-  { href: '/teams', label: 'Teams and Workload', short: 'Teams and Workload', icon: Users },
+  { id: 'projects', short: 'Projects', label: 'Projects', icon: FolderKanban, children: [
+    { href: '/projects', label: 'Projects Portfolio', short: 'Portfolio', icon: FolderKanban },
+    { href: '/process-map', label: 'BIM Process Map', short: 'Process Map', icon: Workflow },
+    { href: '/teams', label: 'Projects Workload', short: 'Projects Workload', icon: Users },
+    { href: '/proposals', label: 'Proposals', short: 'Proposals', icon: FileText },
+  ] },
   { id: 'bimmers', short: 'BIMMers', label: 'BIMMers', icon: Users, children: [
     { href: '/tasks', label: 'BIM Manager Tasks', short: 'Tasks', icon: ListChecks },
     { href: '/vacations', label: 'Vacations', short: 'Vacations', icon: Plane },
+    { href: '/meetings', label: 'Meetings', short: 'Meetings', icon: CalendarClock },
+    { href: '/evaluation', label: 'Evaluation', short: 'Evaluation', icon: ClipboardCheck },
   ] },
   { id: 'training', short: 'Training', label: 'Training', icon: GraduationCap, children: [
     { href: '/reels', label: 'Weekly BIM Reels Plan', short: 'BIM Reels', icon: CalendarDays },
     { href: '/courses', label: 'Internal Courses', short: 'Internal Courses', icon: PlayCircle },
   ] },
   { href: '/contacts', label: 'Other Departments Contacts', short: 'Contacts', icon: Contact },
-  { href: '/meetings', label: 'Meetings', short: 'Meetings', icon: CalendarClock },
-  { href: '/process-map', label: 'BIM Process Map', short: 'Process Map', icon: Workflow },
-  { href: '/proposals', label: 'Proposals', short: 'Proposals', icon: FileText },
   { href: '/email-templates', label: 'Emails Template', short: 'Emails Template', icon: Mail },
-  { href: '/evaluation', label: 'Evaluation', short: 'Evaluation', icon: ClipboardCheck },
   { href: '/wishes', label: 'Wish List', short: 'Wish List', icon: Lightbulb },
 ];
 
@@ -47,7 +49,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     if ('children' in n) { const kids = n.children.filter((k) => canSeeTab(me, k.href)); if (kids.length) entries.push({ ...n, children: kids }); }
     else if (canSeeTab(me, n.href)) entries.push(n);
   }
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ training: true, bimmers: true });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ projects: true, training: true, bimmers: true });
   const tab = tabOfPath(path); const blocked = tab !== null && !canSeeTab(me, tab); const first = firstAllowedTab(me);
   useEffect(() => { if (blocked && first) router.replace(first); }, [blocked, first, router]);
   const active = (h: string) => (h === '/' ? path === '/' : path.startsWith(h));

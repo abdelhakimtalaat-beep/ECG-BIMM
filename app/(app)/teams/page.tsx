@@ -70,7 +70,7 @@ export default function TeamsPage() {
 
   return (
     <>
-      <PageHeader title="Teams and Workload" subtitle="Capacity of every BIM Manager and BIM Coordinator, the workload analysis, and assignment checks. Click a project for details; every assignment change is audited."
+      <PageHeader title="Projects Workload" subtitle="Capacity of every BIM Manager and BIM Coordinator, the workload analysis, and assignment checks. Click a project for details; every assignment change is audited."
         actions={<><button className="btn-secondary" onClick={exportXlsx}><FileSpreadsheet size={16} />Excel</button><button className="btn-secondary" onClick={exportPdf}><FileDown size={16} />PDF</button></>} />
       <FilterBar show={['q', 'manager', 'coordinator', 'status', 'deltek', 'client', 'pm', 'tm', 'cde', 'type']} />
       <div className="mb-4 flex gap-1 border-b border-slate-200" role="tablist">
