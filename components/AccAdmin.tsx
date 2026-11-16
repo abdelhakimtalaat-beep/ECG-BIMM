@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Badge, Confirm, Spinner, useToast } from './ui';
 import { api, fmtDateTime } from '@/lib/client';
+import { summarize } from '@/lib/accSummary';
+import { readExtractZip } from '@/lib/accZipBrowser';
 
 interface St { configured: boolean; connected: boolean; connection: { hub_name: string | null; connected_by: string | null; connected_at: string | null; last_sync_at: string | null; last_status: string | null; last_error: string | null } | null; projects: { acc_project_id: string; name: string; synced_at: string; portal_project_id: string | null }[] }
 
@@ -11,6 +13,17 @@ export function AccAdmin() {
   const load = useCallback(async () => { try { setS(await api<St>('/api/acc/status')); } catch (e: any) { toast(e.message, 'err'); } }, [toast]);
   useEffect(() => { load(); const m = new URLSearchParams(location.search).get('acc'); if (m) { toast(m === 'connected' ? 'ACC connected' : m, m === 'connected' ? 'ok' : 'err'); history.replaceState(null, '', '/admin'); } }, [load, toast]);
   const run = async (request_now: boolean) => { setBusy(true); try { const r = await api<{ message: string }>('/api/acc/sync', { body: { request_now } }); toast(r.message); await load(); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
+  const upload = async (f: File | undefined) => {
+    if (!f) return; setBusy(true);
+    try {
+      const files = await readExtractZip(await f.arrayBuffer());
+      if (!files['issues_issues.csv'] && !files['admin_projects.csv']) throw new Error('This zip does not look like an ACC Data Connector extract (no issues or projects file found)');
+      const stats = summarize(files, new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' }));
+      if (!stats.length) throw new Error('No projects were found in this extract');
+      const r = await api<{ projects: number; newly_linked: number }>('/api/acc/upload', { body: { stats } });
+      toast(`Imported ${r.projects} project(s); ${r.newly_linked} newly linked`); await load();
+    } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); }
+  };
   if (!s) return <Spinner />; const c = s.connection;
   return (
     <div className="max-w-3xl space-y-4">
@@ -27,6 +40,9 @@ export function AccAdmin() {
         </div>
         {busy && <Spinner />}
       </div>
+      <div className="card space-y-2 p-4 text-sm"><h3 className="text-sm font-semibold text-brand-900">Upload an ACC extract (no connection needed)</h3>
+        <p className="text-slate-600">In ACC create a Data Connector extract, download its zip and choose it here. The file is read in your browser; only totals per project are sent to the portal (no names or e-mail addresses).</p>
+        <input type="file" accept=".zip,application/zip" disabled={busy} className="block text-sm" onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ''; }} /></div>
       <div className="card p-4"><h3 className="mb-2 text-sm font-semibold text-brand-900">ACC projects found ({s.projects.length})</h3>
         {s.projects.length === 0 ? <p className="text-sm text-slate-500">None yet. They appear after the first import.</p> : <ul className="divide-y divide-slate-100 text-sm">{s.projects.map((p) => <li key={p.acc_project_id} className="flex items-center justify-between py-1.5"><span>{p.name || p.acc_project_id}</span>{p.portal_project_id ? <Badge tone="green">Linked</Badge> : <Badge tone="amber">Not linked — open the project in the Portfolio to link it</Badge>}</li>)}</ul>}
       </div>

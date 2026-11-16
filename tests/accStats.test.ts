@@ -46,3 +46,10 @@ test('summary per ACC project', () => {
 test('summary from a zip', () => {
   const s = summarizeZip(zipOf(Object.fromEntries(Object.entries(files).map(([k, v]) => ['extract/' + k, v])), true), '2026-11-16'); assert.equal(s.length, 2);
 });
+
+import { readExtractZip } from '../lib/accZipBrowser.ts';
+test('browser zip reader gives the same summary as the server reader', async () => {
+  const z = zipOf(Object.fromEntries(Object.entries(files).map(([k, v]) => ['extract/' + k, v])), true);
+  const ab = z.buffer.slice(z.byteOffset, z.byteOffset + z.byteLength) as ArrayBuffer;
+  const got = await readExtractZip(ab); assert.deepEqual(summarize(got, '2026-11-16'), summarize(files, '2026-11-16'));
+});
