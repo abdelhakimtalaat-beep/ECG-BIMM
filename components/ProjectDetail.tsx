@@ -12,6 +12,7 @@ import { STATUSES, type Project, type Status } from '@/lib/types';
 import { useApp } from './store';
 import { AssignModal } from './AssignModal';
 import { ProjectContents } from './ProjectContents';
+import { AccPanel } from './AccPanel';
 import { Badge, Confirm, Drawer, Field, StatusBadge, useToast } from './ui';
 
 /** Photo ratio of the cards in the All Projects area (width : height). Choosing it in the photo editor makes the card show the whole saved photo. */
@@ -142,6 +143,7 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
         </div>
         {scope !== 'none' && <p className={`text-xs ${saveState === 'error' ? 'text-red-600' : 'text-slate-500'}`} role="status" aria-live="polite">{saveState === 'saving' || (edit && saveState !== 'error') ? 'Saving…' : saveState === 'error' ? <>Could not save. <button className="underline" onClick={() => void save()}>Try again</button></> : saveState === 'saved' ? '✓ All changes saved' : 'Changes are saved automatically.'}</p>}
         {scope === 'none' && <p className="text-xs text-slate-500">You have view-only access to this project.</p>}
+        <AccPanel projectId={p.id} />
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           {([['manager', 'BIM Manager', mgrs], ['coordinator', 'BIM Coordinator', coords]] as const).map(([role, label, cur]) => (
