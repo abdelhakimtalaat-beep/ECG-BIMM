@@ -23,6 +23,7 @@ export interface AccStats {
   issues: { total: number; open: number; closed: number; by_status: Record<string, number>; by_type: { name: string; count: number }[]; by_root_cause: { name: string; count: number }[]; avg_close_days: number | null; overdue: number; with_due_date: number; monthly: { month: string; opened: number; closed: number }[] };
   reviews: { total: number; by_status: Record<string, number>; open_tasks: number; unclaimed_tasks: number };
   clashes: { tests: number; by_status: Record<string, number> };
+  assignees: { key: string; name: string; kind: 'role' | 'user' | 'company' | 'none'; total: number; by_status: Record<string, number> }[];
   photos: number; meetings: number;
 }
 const day = (s: string) => (s || '').slice(0, 10);
@@ -39,12 +40,17 @@ export function summarize(files: Record<string, string>, today: string): AccStat
   const projects = t('admin_projects.csv'); const types = new Map(t('issues_issue_types.csv').map((r) => [r.issue_type_id, r.issue_type])); const subtypes = new Map(t('issues_issue_subtypes.csv').map((r) => [r.issue_subtype_id ?? r.subtype_id ?? r.id, r.title ?? r.issue_subtype ?? r.name]));
   const causes = new Map(t('issues_root_causes.csv').map((r) => [r.root_cause_id, r.title]));
   const issues = t('issues_issues.csv').filter((r) => !r.deleted_at); const reviews = t('reviews_reviews.csv'); const rtasks = t('reviews_review_tasks.csv'); const clashes = t('clashes_clash_test.csv');
+  const roleName = new Map([...t('admin_roles.csv').map((r) => [r.id, r.name]), ...t('admin_project_roles.csv').flatMap((r) => [[r.role_oxygen_id, r.name], [r.role_id, r.name]])].filter(([k]) => k) as [string, string][]);
+  const userName = new Map(t('admin_users.csv').flatMap((r) => [[r.autodesk_id, r.name], [r.id, r.name]]).filter(([k]) => k) as [string, string][]);
   const photos = t('photos_photos.csv'); const meetings = t('meetingminutes_meetings.csv'); const months = lastMonths(today, 12);
   const ids = new Set<string>(projects.map((p) => p.id)); for (const r of [...issues, ...reviews, ...clashes]) if (r.bim360_project_id) ids.add(r.bim360_project_id);
   return [...ids].map((pid) => {
     const mine = issues.filter((r) => r.bim360_project_id === pid); const st = new Map<string, number>(), ty = new Map<string, number>(), rc = new Map<string, number>(); const mo = new Map(months.map((m) => [m, { month: m, opened: 0, closed: 0 }]));
-    let closeDays = 0, closeN = 0, overdue = 0, withDue = 0;
+    let closeDays = 0, closeN = 0, overdue = 0, withDue = 0; const asg = new Map<string, AccStats['assignees'][number]>();
     for (const r of mine) {
+      { const kind = r.assignee_id ? (r.assignee_type === 'role' ? 'role' : r.assignee_type === 'company' ? 'company' : 'user') : 'none'; const key = `${kind}:${r.assignee_id}`;
+        const a = asg.get(key) ?? asg.set(key, { key, kind, name: kind === 'none' ? 'Unassigned' : (kind === 'role' ? roleName.get(r.assignee_id) : kind === 'user' ? userName.get(r.assignee_id) : undefined) ?? (kind === 'role' ? 'Role' : kind === 'company' ? 'Company' : 'Unknown user'), total: 0, by_status: {} }).get(key)!;
+        a.total++; a.by_status[r.status || 'unknown'] = (a.by_status[r.status || 'unknown'] ?? 0) + 1; }
       bump(st, r.status || 'unknown'); bump(ty, types.get(r.type_id) ?? 'No type');
       if (r.root_cause_id) bump(rc, causes.get(r.root_cause_id) ?? 'Other');
       const o = day(r.created_at || r.opened_at), c = day(r.closed_at);
@@ -59,7 +65,8 @@ export function summarize(files: Record<string, string>, today: string): AccStat
     const open = [...st].filter(([k]) => OPEN.has(k)).reduce((a, [, v]) => a + v, 0), closed = [...st].filter(([k]) => CLOSED.has(k)).reduce((a, [, v]) => a + v, 0);
     return { project_id: pid, name: projects.find((p) => p.id === pid)?.name ?? '', issues: { total: mine.length, open, closed, by_status: obj(st), by_type: top(ty), by_root_cause: top(rc), avg_close_days: closeN ? Math.round((closeDays / closeN) * 10) / 10 : null, overdue, with_due_date: withDue, monthly: [...mo.values()] },
       reviews: { total: rv.length, by_status: obj(rs), open_tasks: tk.filter((r) => r.state === 'claimed' || r.state === 'unclaimed').length, unclaimed_tasks: tk.filter((r) => r.state === 'unclaimed').length }, clashes: { tests: cl.length, by_status: obj(cs) },
+      assignees: [...asg.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name)).slice(0, 60),
       photos: photos.filter((r) => r.bim360_project_id === pid).length, meetings: meetings.filter((r) => r.bim360_project_id === pid).length };
   });
 }
-export const WANTED = ['admin_projects.csv', 'issues_issues.csv', 'issues_issue_types.csv', 'issues_root_causes.csv', 'reviews_reviews.csv', 'reviews_review_tasks.csv', 'clashes_clash_test.csv', 'photos_photos.csv', 'meetingminutes_meetings.csv'];
+export const WANTED = ['admin_projects.csv', 'issues_issues.csv', 'issues_issue_types.csv', 'issues_root_causes.csv', 'reviews_reviews.csv', 'reviews_review_tasks.csv', 'clashes_clash_test.csv', 'photos_photos.csv', 'meetingminutes_meetings.csv', 'admin_roles.csv', 'admin_project_roles.csv', 'admin_users.csv'];

@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { canSeeTab, firstAllowedTab, tabOfPath } from '@/lib/tabs';
 import clsx from 'clsx';
-import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown, GraduationCap, PlayCircle, Plane } from 'lucide-react';
+import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown, GraduationCap, PlayCircle, Plane, BarChart3 } from 'lucide-react';
 import { api, roleLabel } from '@/lib/client';
 import { useApp } from './store';
 import { Field, Modal, useToast } from './ui';
@@ -20,6 +20,7 @@ const NAV: (NavLeaf | NavGroup)[] = [
   { id: 'projects', short: 'Projects', label: 'Projects', icon: FolderKanban, children: [
     { href: '/projects', label: 'Projects Portfolio', short: 'Portfolio', icon: FolderKanban },
     { href: '/process-map', label: 'BIM Process Map', short: 'Process Map', icon: Workflow },
+    { href: '/acc-stats', label: 'ACC Statistics', short: 'ACC Statistics', icon: BarChart3 },
     { href: '/teams', label: 'Projects Workload', short: 'Projects Workload', icon: Users },
     { href: '/proposals', label: 'Proposals', short: 'Proposals', icon: FileText },
   ] },

@@ -2,7 +2,7 @@
 export const TAB_LIST = [
   { href: '/', label: 'Executive Dashboard' }, { href: '/org', label: 'Org Chart' }, { href: '/projects', label: 'Portfolio' }, { href: '/teams', label: 'Projects Workload' },
   { href: '/tasks', label: 'Tasks' }, { href: '/vacations', label: 'Vacations' }, { href: '/reels', label: 'BIM Reels' }, { href: '/courses', label: 'Internal Courses' }, { href: '/contacts', label: 'Contacts' }, { href: '/meetings', label: 'Meetings' },
-  { href: '/process-map', label: 'BIM Process Map' }, { href: '/proposals', label: 'Proposals' }, { href: '/email-templates', label: 'Emails Template' }, { href: '/evaluation', label: 'Evaluation' }, { href: '/wishes', label: 'Wish List' },
+  { href: '/process-map', label: 'BIM Process Map' }, { href: '/acc-stats', label: 'ACC Statistics' }, { href: '/proposals', label: 'Proposals' }, { href: '/email-templates', label: 'Emails Template' }, { href: '/evaluation', label: 'Evaluation' }, { href: '/wishes', label: 'Wish List' },
 ] as const;
 export const TAB_HREFS: string[] = TAB_LIST.map((t) => t.href);
 type U = { role: string; allowed_tabs?: string[] | null };

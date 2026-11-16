@@ -27,7 +27,7 @@ export function AccAdmin() {
   if (!s) return <Spinner />; const c = s.connection;
   return (
     <div className="max-w-3xl space-y-4">
-      <p className="text-sm text-slate-600">Reads the project statistics (issues, reviews, clash tests) from Autodesk Construction Cloud through the Data Connector, once a day. Only totals are stored; no names or e-mail addresses of ACC users.</p>
+      <p className="text-sm text-slate-600">Reads the project statistics (issues, reviews, clash tests) from Autodesk Construction Cloud through the Data Connector, once a day. Only totals are stored per project, per role and per assignee (assignee names as shown in ACC); no e-mail addresses.</p>
       {!s.configured && <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">Not set up yet: add <b>APS_CLIENT_ID</b>, <b>APS_CLIENT_SECRET</b> and <b>CRON_SECRET</b> in the Vercel project settings (Environment Variables), then redeploy. The callback address to register in the Autodesk app is <code>{typeof location !== 'undefined' ? `${location.origin}/api/acc/callback` : ''}</code></div>}
       <div className="card space-y-2 p-4 text-sm">
         <div className="flex flex-wrap items-center gap-2"><b>Status:</b> {s.connected ? <Badge tone="green">Connected</Badge> : <Badge tone="gray">Not connected</Badge>}{c?.last_status === 'reconnect' && <Badge tone="red">Sign in again</Badge>}{c?.hub_name && <span className="text-slate-600">Hub: {c.hub_name}</span>}</div>
@@ -41,7 +41,7 @@ export function AccAdmin() {
         {busy && <Spinner />}
       </div>
       <div className="card space-y-2 p-4 text-sm"><h3 className="text-sm font-semibold text-brand-900">Upload an ACC extract (no connection needed)</h3>
-        <p className="text-slate-600">In ACC create a Data Connector extract, download its zip and choose it here. The file is read in your browser; only totals per project are sent to the portal (no names or e-mail addresses).</p>
+        <p className="text-slate-600">In ACC create a Data Connector extract, download its zip and choose it here. The file is read in your browser; only totals per project, role and assignee are sent to the portal (no e-mail addresses).</p>
         <input type="file" accept=".zip,application/zip" disabled={busy} className="block text-sm" onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ''; }} /></div>
       <div className="card p-4"><h3 className="mb-2 text-sm font-semibold text-brand-900">ACC projects found ({s.projects.length})</h3>
         {s.projects.length === 0 ? <p className="text-sm text-slate-500">None yet. They appear after the first import.</p> : <ul className="divide-y divide-slate-100 text-sm">{s.projects.map((p) => <li key={p.acc_project_id} className="flex items-center justify-between py-1.5"><span>{p.name || p.acc_project_id}</span>{p.portal_project_id ? <Badge tone="green">Linked</Badge> : <Badge tone="amber">Not linked — open the project in the Portfolio to link it</Badge>}</li>)}</ul>}

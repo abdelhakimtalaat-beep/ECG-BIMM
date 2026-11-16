@@ -26,8 +26,9 @@ const files = {
   'admin_projects.csv': 'id,name\nP1,3574-Hacienda\nP2,Other\n',
   'issues_issue_types.csv': 'issue_type_id,issue_type\nT1,Coordination\nT2,Quality\n',
   'issues_root_causes.csv': 'root_cause_id,title\nR1,Human error\n',
-  'issues_issues.csv': ['issue_id,bim360_project_id,type_id,status,root_cause_id,due_date,created_at,closed_at,deleted_at',
-    'a,P1,T1,open,R1,2026-11-01,2026-11-02 10:00:00,,', 'b,P1,T1,closed,,,2026-10-01 00:00:00,2026-10-11 00:00:00,', 'c,P1,T2,open,,2027-01-01,2026-11-10 00:00:00,,', 'd,P1,T2,closed,,,2026-10-01 00:00:00,2026-10-02 00:00:00,2026-10-03', 'e,P2,T1,draft,,,2026-11-01 00:00:00,,'].join('\n'),
+  'admin_project_roles.csv': 'role_oxygen_id,name\n77,ECG_E Group\n', 'admin_users.csv': 'id,autodesk_id,name\nu1,AUT1,Sara\n',
+  'issues_issues.csv': ['issue_id,bim360_project_id,type_id,status,root_cause_id,due_date,created_at,closed_at,deleted_at,assignee_id,assignee_type',
+    'a,P1,T1,open,R1,2026-11-01,2026-11-02 10:00:00,,,77,role', 'b,P1,T1,closed,,,2026-10-01 00:00:00,2026-10-11 00:00:00,,77,role', 'c,P1,T2,open,,2027-01-01,2026-11-10 00:00:00,,,AUT1,user', 'd,P1,T2,closed,,,2026-10-01 00:00:00,2026-10-02 00:00:00,2026-10-03,77,role', 'e,P2,T1,draft,,,2026-11-01 00:00:00,,,'].join('\n'),
   'reviews_reviews.csv': 'id,bim360_project_id,status,is_archived\nv1,P1,open,f\nv2,P1,closed,f\nv3,P1,void,t\n',
   'reviews_review_tasks.csv': 'review_id,bim360_project_id,state\nv1,P1,unclaimed\nv1,P1,claimed\nv2,P1,unclaimed\nv1,P1,void\n',
   'clashes_clash_test.csv': 'bim360_project_id,status\nP1,Successful\nP1,Failed\nP1,Successful\n',
@@ -39,6 +40,7 @@ test('summary per ACC project', () => {
   assert.equal(p.issues.overdue, 1); assert.equal(p.issues.with_due_date, 2); assert.deepEqual(p.issues.by_type, [{ name: 'Coordination', count: 2 }, { name: 'Quality', count: 1 }]);
   assert.deepEqual(p.issues.by_root_cause, [{ name: 'Human error', count: 1 }]);
   assert.equal(p.issues.monthly.length, 12); assert.equal(p.issues.monthly[11].month, '2026-11'); assert.equal(p.issues.monthly[11].opened, 2); assert.equal(p.issues.monthly[10].closed, 1);
+  assert.deepEqual(p.assignees.map((a) => [a.name, a.kind, a.total, a.by_status.open ?? 0]), [['ECG_E Group', 'role', 2, 1], ['Sara', 'user', 1, 1]]);
   assert.equal(p.reviews.total, 2); assert.equal(p.reviews.open_tasks, 2); assert.equal(p.reviews.unclaimed_tasks, 1);   // only tasks of running reviews
   assert.deepEqual(p.clashes.by_status, { Failed: 1, Successful: 2 }); assert.equal(s.find((x) => x.project_id === 'P2')!.issues.open, 1);
   assert.deepEqual(lastMonths('2026-02-10', 3), ['2025-12', '2026-01', '2026-02']);
