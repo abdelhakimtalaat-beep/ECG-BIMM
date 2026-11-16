@@ -1,88 +1,62 @@
-# جاؤوك — GA'OUK (نسخة Supabase + GitHub)
+# ECG BIM Department Management Portal
 
-تطبيق ويب عربي (RTL) لإدارة المناسبات والزائرين والتسكين والنقل والإعاشة. **الواجهة** ملفات ثابتة تُنشر على GitHub Pages، و**قاعدة البيانات والدخول والصلاحيات** على Supabase.
+Web platform for the ECG BIM Management Department: organization chart, project portfolio, teams & assignments,
+workload analysis, weekly BIM Reels plan and an executive dashboard — all on one persistent database.
 
-## كيف يعمل (باختصار)
-- كل الجداول **مغلقة تماماً** أمام المتصفح. المتصفح لا يتصل إلا بدالة واحدة `public.api` تتحقق في كل طلب من: الجلسة، الحساب غير موقوف، الدور، **ونطاق الدولة/الأدوار** (مشرف الدولة لا يرى ولا يعدّل إلا دولته).
-- قواعد السعة وتعارض الحجوزات ومنع خفض سعة الغرفة تحت حجوزات قائمة تعمل **داخل قاعدة البيانات** (مشغّلات)، فلا يمكن تجاوزها حتى لو عُدّلت الواجهة.
-- سجل العمليات يُكتب تلقائياً في القاعدة (من أضاف/عدّل/حذف، النوع، الوقت، الدولة).
-- المفتاح الموجود في `config.js` هو مفتاح **anon العام** (آمن بطبيعته)، أما مفتاح `service_role` فلا يُستخدم هنا إطلاقاً ولا تضعه في أي ملف.
+**Stack:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS · Recharts · PostgreSQL (Supabase) · server-side
+role-based access · deployable on Vercel. Source code lives on GitHub.
 
-## الإعداد خطوة بخطوة (≈ 20 دقيقة)
+> **Keep the GitHub repository PRIVATE.** `data/source/` and `db/seed.sql` contain the department's real project and
+> employee data.
 
-### 1) مشروع Supabase
-1. أنشئ حساباً على supabase.com ثم **New project** (اختر منطقة قريبة من مستخدميك، واحفظ كلمة مرور القاعدة).
-2. للاستخدام الفعلي في المواسم يُنصح بخطة **Pro** (نسخ احتياطية يومية وبلا إيقاف تلقائي). الخطة المجانية تُوقف المشروع بعد أسبوع خمول ولا تتضمن نسخاً تلقائية.
+## Verification status — read this first
 
-### 2) إنشاء الجداول والقواعد
-1. من لوحة Supabase افتح **SQL Editor ← New query**.
-2. افتح الملف `supabase/setup.sql` والصق **كل** محتواه ثم **Run**. يجب أن تظهر «Success».
-3. أنشئ حساب المدير الأول (غيّر اسم المستخدم وكلمة المرور) بتنفيذ:
-   ```sql
-   select public.gk_bootstrap_admin('admin', 'ضع-كلمة-مرور-قوية-8+حروف-وأرقام');
-   ```
-4. **Authentication ← Sign In / Providers ← Email**: أوقف خيار **Allow new users to sign up** (حتى لا يسجّل أحد حساباً بنفسه) وأوقف **Confirm email**.
+This code was written in an environment where the npm registry was blocked, so **`npm install` and `next build` have never
+been run on it**. What *was* verified:
 
-### 3) مفاتيح الاتصال
-من **Project Settings ← API** انسخ: **Project URL** و **anon public key**.
+| Check | Result |
+|---|---|
+| Calculation library (`lib/metrics.ts`, `lib/importer.ts`, `lib/orgLayout.ts`) — 23 unit tests | Pass (`npm test`, needs only Node 22) |
+| `db/schema.sql` + `db/seed.sql` on PostgreSQL 16 | Loads cleanly; counts match the workbook (21 employees, 119 projects, 263 assignments, 16 reels) |
+| Key SQL used by the API run directly in `psql` | Pass |
+| Real data pushed through the metrics library | Sensible results (per-manager counts match the workbook) |
+| TypeScript check of all app code against stubbed external packages | No errors in the project's own types |
+| **Not verified:** `next build`, rendering in a browser, API routes with a live database, exports, PDF generation | **Do this first** |
 
-### 4) النشر على GitHub Pages
-1. أنشئ مستودعاً جديداً على GitHub وارفع إليه محتويات هذا المجلد كما هي (زر *Add file ← Upload files* أو `git push`). الفرع الرئيسي اسمه `main`.
-2. **Settings ← Pages ← Build and deployment ← Source = GitHub Actions**.
-3. **Settings ← Secrets and variables ← Actions ← تبويب Variables ← New repository variable** وأضف متغيرين:
-   - `SUPABASE_URL` = رابط المشروع
-   - `SUPABASE_ANON_KEY` = مفتاح anon
-4. افتح تبويب **Actions** وشغّل *Deploy to GitHub Pages* (أو ادفع أي تعديل). بعد دقيقة يظهر رابط التطبيق: `https://اسم-حسابك.github.io/اسم-المستودع/`.
+First run on your machine: `npm install && npm run typecheck && npm run build`. If anything fails, send the error output
+and it will be fixed — expect a few small issues (typings of third-party packages, Tailwind class typos, etc.).
 
-> ملاحظة: GitHub Pages على الخطة المجانية يتطلب مستودعاً **عاماً**. هذا آمن هنا لأن الكود لا يحوي أسراراً ولا بيانات؛ كل البيانات في Supabase خلف تسجيل الدخول. بديل مجاني بمستودع خاص: Cloudflare Pages أو Netlify (اضبط `public/config.js` يدوياً بنفس القيمتين).
+## Quick start (local)
 
-### 5) أول استخدام
-1. ادخل بحساب المدير ← **الدول** و**المناسبات** ← أنشئ المناسبة.
-2. **تسكين الغرف ← إدارة المباني والأدوار**: المباني والأدوار موجودة مسبقاً حسب المواصفات. لكل دور افتح **تحرير الكروكي والغرف** ← **رفع الكروكي** ثم **+ غرفة** وارسم كل غرفة بمكانها وأدخل رقمها وسعتها. (لا توجد أي غرف أو سعات افتراضية.)
-3. **المستخدمون والمشرفون**: أنشئ مشرفي الدول (دولة أساسية + دول مفوّضة اختيارية) ومشرفي المباني ومسؤولي النقل والإعاشة. كلمة المرور تُعطى للمستخدم ويغيّرها من «حسابي».
-
-## النسخ الاحتياطي
-- **النسخ الاحتياطي ← تنزيل نسخة كاملة**: ملف JSON بكل البيانات (بدون كلمات المرور). نزّله قبل كل مناسبة وبعدها.
-- في خطة Pro: نسخ يومية تلقائية من لوحة Supabase ← Database ← Backups.
-
-## ملاحظات أمان وتشغيل
-- أسماء الدخول تُحوَّل داخلياً إلى `اسم_المستخدم@gaouk.app` في Supabase Auth (لا تُرسل أي رسائل بريد).
-- إنشاء المستخدمين وتغيير كلمات مرورهم يتم من داخل التطبيق (للمدير فقط) عبر دالة آمنة في القاعدة. إن ظهر عندك خطأ «Database error querying schema» عند دخول مستخدم أُنشئ هكذا، نفّذ في SQL Editor: `update auth.users set confirmation_token='', recovery_token='', email_change_token_new='', email_change='', email_change_token_current='', phone_change='', phone_change_token='', reauthentication_token='' where confirmation_token is null or recovery_token is null;`
-- التحديث التلقائي: يظهر تنبيه «تم تحديث البيانات من مستخدم آخر — اضغط للتحديث» عند عمل مستخدم آخر.
-- الاستعادة الكاملة تتم من لوحة Supabase (Pro) أو بإعادة تنفيذ `setup.sql` في مشروع جديد ثم إدراج بيانات ملف JSON.
-
-## هيكل المشروع
-```
-public/            الواجهة (HTML/CSS/JS ثابتة) — config.js فيه رابط Supabase والمفتاح العام
-supabase/setup.sql ملف واحد لإنشاء كل شيء (مجمّع من migrations)
-supabase/migrations/  نفس الملف مقسّماً: 0001 جداول، 0002 مشغلات، 0003 زائرون، 0004 إدارة وتسكين ونقل، 0005 نقطة api، 0006 سجل، 0007 بيانات أولية
-.github/workflows/pages.yml  النشر التلقائي
-test/              اختبارات (محاكاة Supabase فوق Postgres محلي): api.test.js (62 فحصاً) و ui.test.js (40 فحصاً في متصفح حقيقي)
+```bash
+npm install
+cp .env.example .env            # set DATABASE_URL and SESSION_SECRET
+psql "$DATABASE_URL" -f db/schema.sql
+psql "$DATABASE_URL" -f db/seed.sql      # once, on an empty database
+npm run dev                      # http://localhost:3000  → /setup creates the first administrator
 ```
 
----
+Deployment on Supabase + Vercel: see [docs/SETUP.md](docs/SETUP.md). Day-to-day use: [docs/USER_GUIDE.md](docs/USER_GUIDE.md).
+Assumptions and open data questions: [docs/ASSUMPTIONS.md](docs/ASSUMPTIONS.md). What the import found in your files:
+[db/reconciliation.md](db/reconciliation.md).
 
-## إدخال مناسبة «زيارة مارس 2025» من الكشف
-1. افتح Supabase ← **SQL Editor** ← New query.
-2. الصق محتوى الملف `supabase/import_march_2025.sql` ثم **Run**.
-3. النتيجة: مناسبة «زيارة مارس 2025» (20–26 مارس) و18 مجموعة وصول و109 زائرين مسمّين (العائلات مربوطة برب الأسرة). الكشف لا يتضمن تواريخ المغادرة، فتُدخل لاحقاً من شاشة الزائرين.
-4. السكربت آمن للتكرار: لا يضيف شيئاً إن كانت المناسبة موجودة.
+## Project layout
 
----
+```
+app/(app)/            pages: dashboard, org, projects, teams, workload, reels, admin
+app/api/              route handlers (all authorisation is enforced here)
+components/           shell, filter bar, charts, project detail, assignment + import dialogs
+lib/metrics.ts        every KPI / workload / alert / simulation calculation (unit tested)
+lib/perm.ts           server-side project scope rules      lib/can.ts  UI mirror of the same rules
+lib/importer.ts       Excel/CSV parsing helpers (unit tested)
+db/schema.sql         tables, constraints, row-level security
+db/seed.sql           data loaded from the supplied org chart, workbook and Reel Plan
+scripts/              build_seed.py / build_seed_sql.py — regenerate the seed from data/source
+data/source/          the original files you supplied
+tests/                node --test unit tests
+```
 
-## تحديث 14-11 (ترقية القاعدة القائمة)
-إن كانت قاعدتك منشأة مسبقاً بالإعداد القديم: شغّل مرة واحدة الملف `supabase/migrations/0008_family_and_requests.sql` في SQL Editor.
-- **تصنيف «تابع لأسرة»** مستقل: يُختار رب الأسرة من نافذة بحث.
-- **طلبات الانضمام:** من يفتح الرابط ويضغط «طلب انضمام» ويسجل اسمه وهاتفه واسم مستخدم وكلمة مرور يظهر طلبه للمدير في «المستخدمون والمشرفون ← طلبات الانضمام». لا يدخل قبل القبول. عند القبول يختار المدير: مشرف عام، أو مشرف دولة (دولة أو أكثر)، أو مشرف مبنى (مبنى أو أكثر).
-- تأكد أن «Allow new users to sign up» معطّل في Supabase Authentication (التسجيل يتم فقط عبر طلب الانضمام).
+## Regenerating the seed
 
-## تحديث: الدخول بلا كلمة سر وربط الحساب بجهاز واحد (0009 ثم 0010)
-- نفّذ في SQL Editor الملف `0009_join_by_phone.sql` ثم `0010_device_login.sql` (إن لم تنفّذهما)، وارفع ملفات `public/` إلى GitHub (مع الحفاظ على `config.js` الحقيقي) ثم Ctrl+Shift+R.
-- الزائر يرسل طلب انضمام (اسم + هاتف) ← المشرف يقبله ويحدد الدور ← يضغط «رمز تفعيل» ويرسل الرمز عبر واتساب ← المستخدم يدخل الاسم (عربي أو إنجليزي) + الهاتف + الرمز مرة واحدة فيرتبط الحساب بهذا الجهاز.
-- «إعادة ربط الجهاز» تصدر رمزاً جديداً وتُبطل الجهاز القديم. الرمز صالح 7 أيام وله 5 محاولات.
-- قفل البصمة/الوجه اختياري من النافذة بعد التفعيل أو من «حسابي» (قفل محلي على الجهاز).
-- حدود: الجهاز = المتصفح؛ مسح بيانات المتصفح أو التصفح الخفي أو تسجيل الخروج يفقد الربط فيلزم رمز جديد. المدير يدخل بكلمة المرور عبر «دخول المشرف العام بكلمة المرور».
-
-## تحديث 0011: التفعيل التلقائي عند القبول
-- نفّذ `0011_auto_bind_on_request.sql` (بعد 0009 و0010). عند «طلب انضمام» يولّد المتصفح مفتاحاً سرياً ويرتبط الحساب بذلك الجهاز فوراً؛ تظهر شاشة انتظار وتُفتح الصفحة تلقائياً بمجرد قبول المشرف، بلا رمز.
-- رمز التفعيل يبقى فقط لإعادة الربط على جهاز جديد (زر «إعادة ربط الجهاز»).
+`npm run seed:build` re-reads `data/source/*` (needs Python 3 with `openpyxl`) and rewrites `db/seed.json`,
+`db/seed.sql` and `db/reconciliation.md`. Only needed if the source files change before the first load.
