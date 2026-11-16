@@ -24,6 +24,7 @@ export interface AccStats {
   reviews: { total: number; by_status: Record<string, number>; open_tasks: number; unclaimed_tasks: number };
   clashes: { tests: number; by_status: Record<string, number> };
   assignees: { key: string; name: string; kind: 'role' | 'user' | 'company' | 'none'; total: number; by_status: Record<string, number> }[];
+  matrix?: { building: string; key: string; by_status: Record<string, number> }[];   // assignee x building x status, so the assignee view can be filtered by location
   locations?: { key: string; name: string; building: string; total: number; by_status: Record<string, number> }[];
   photos: number; meetings: number;
 }
@@ -54,12 +55,14 @@ export function summarize(files: Record<string, string>, today: string): AccStat
   const ids = new Set<string>(projects.map((p) => p.id)); for (const r of [...issues, ...reviews, ...clashes]) if (r.bim360_project_id) ids.add(r.bim360_project_id);
   return [...ids].map((pid) => {
     const mine = issues.filter((r) => r.bim360_project_id === pid); const st = new Map<string, number>(), ty = new Map<string, number>(), rc = new Map<string, number>(); const mo = new Map(months.map((m) => [m, { month: m, opened: 0, closed: 0 }]));
-    let closeDays = 0, closeN = 0, overdue = 0, withDue = 0; const asg = new Map<string, AccStats['assignees'][number]>(); const loc = new Map<string, NonNullable<AccStats['locations']>[number]>();
+    let closeDays = 0, closeN = 0, overdue = 0, withDue = 0; const asg = new Map<string, AccStats['assignees'][number]>(); const loc = new Map<string, NonNullable<AccStats['locations']>[number]>(); const mx = new Map<string, NonNullable<AccStats['matrix']>[number]>();
     for (const r of mine) {
       { const kind = r.assignee_id ? (r.assignee_type === 'role' ? 'role' : r.assignee_type === 'company' ? 'company' : 'user') : 'none'; const key = `${kind}:${r.assignee_id}`;
         const a = asg.get(key) ?? asg.set(key, { key, kind, name: kind === 'none' ? 'Unassigned' : (kind === 'role' ? roleName.get(r.assignee_id) : kind === 'user' ? userName.get(r.assignee_id) : undefined) ?? (kind === 'role' ? 'Role' : kind === 'company' ? 'Company' : 'Unknown user'), total: 0, by_status: {} }).get(key)!;
         a.total++; a.by_status[r.status || 'unknown'] = (a.by_status[r.status || 'unknown'] ?? 0) + 1; }
       { const w = where(r.location_id); const l = loc.get(r.location_id || '-') ?? loc.set(r.location_id || '-', { key: r.location_id || '-', name: w.name, building: w.building, total: 0, by_status: {} }).get(r.location_id || '-')!; l.total++; l.by_status[r.status || 'unknown'] = (l.by_status[r.status || 'unknown'] ?? 0) + 1; }
+      { const w = where(r.location_id); const key = `${r.assignee_id ? (r.assignee_type === 'role' ? 'role' : r.assignee_type === 'company' ? 'company' : 'user') : 'none'}:${r.assignee_id}`; const mk = `${w.building}|${key}`;
+        const c = mx.get(mk) ?? mx.set(mk, { building: w.building, key, by_status: {} }).get(mk)!; c.by_status[r.status || 'unknown'] = (c.by_status[r.status || 'unknown'] ?? 0) + 1; }
       bump(st, r.status || 'unknown'); bump(ty, types.get(r.type_id) ?? 'No type');
       if (r.root_cause_id) bump(rc, causes.get(r.root_cause_id) ?? 'Other');
       const o = day(r.created_at || r.opened_at), c = day(r.closed_at);
@@ -75,6 +78,7 @@ export function summarize(files: Record<string, string>, today: string): AccStat
     return { project_id: pid, name: projects.find((p) => p.id === pid)?.name ?? '', issues: { total: mine.length, open, closed, by_status: obj(st), by_type: top(ty), by_root_cause: top(rc), avg_close_days: closeN ? Math.round((closeDays / closeN) * 10) / 10 : null, overdue, with_due_date: withDue, monthly: [...mo.values()] },
       reviews: { total: rv.length, by_status: obj(rs), open_tasks: tk.filter((r) => r.state === 'claimed' || r.state === 'unclaimed').length, unclaimed_tasks: tk.filter((r) => r.state === 'unclaimed').length }, clashes: { tests: cl.length, by_status: obj(cs) },
       assignees: [...asg.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name)).slice(0, 60),
+      matrix: [...mx.values()].slice(0, 1500),
       locations: [...loc.values()].sort((a, b) => (a.building === 'No location' ? 1 : 0) - (b.building === 'No location' ? 1 : 0) || b.total - a.total || a.name.localeCompare(b.name)).slice(0, 200),
       photos: photos.filter((r) => r.bim360_project_id === pid).length, meetings: meetings.filter((r) => r.bim360_project_id === pid).length };
   });

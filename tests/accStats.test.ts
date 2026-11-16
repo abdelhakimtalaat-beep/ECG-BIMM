@@ -42,6 +42,7 @@ test('summary per ACC project', () => {
   assert.equal(p.issues.monthly.length, 12); assert.equal(p.issues.monthly[11].month, '2026-11'); assert.equal(p.issues.monthly[11].opened, 2); assert.equal(p.issues.monthly[10].closed, 1);
   assert.deepEqual(p.assignees.map((a) => [a.name, a.kind, a.total, a.by_status.open ?? 0]), [['ECG_E Group', 'role', 2, 1], ['Sara', 'user', 1, 1]]);
   assert.deepEqual(p.locations!.map((l) => [l.name, l.building, l.total, l.by_status.open ?? 0]), [['B01 > GROUND FFL', 'B01', 2, 1], ['No location', 'No location', 1, 1]]);
+  assert.deepEqual(p.matrix!.map((c) => [c.building, c.key, Object.values(c.by_status).reduce((a, b) => a + b, 0)]).sort(), [['B01', 'role:77', 2], ['No location', 'user:AUT1', 1]]);
   assert.equal(p.reviews.total, 2); assert.equal(p.reviews.open_tasks, 2); assert.equal(p.reviews.unclaimed_tasks, 1);   // only tasks of running reviews
   assert.deepEqual(p.clashes.by_status, { Failed: 1, Successful: 2 }); assert.equal(s.find((x) => x.project_id === 'P2')!.issues.open, 1);
   assert.deepEqual(lastMonths('2026-02-10', 3), ['2025-12', '2026-01', '2026-02']);
