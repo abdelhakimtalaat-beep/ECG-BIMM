@@ -45,8 +45,9 @@ async function aps(token: string, path: string, init: RequestInit = {}): Promise
 // ---- account, requests, extracts
 export async function findHub(token: string): Promise<{ account_id: string; name: string }> {
   const hubs = ((await aps(token, '/project/v1/hubs')).data ?? []) as any[];
-  const h = hubs.find((x) => String(x.attributes?.extension?.type ?? '').includes('Account')) ?? hubs[0];
-  if (!h) throw new ApiError(400, 'No ACC hub is visible to this Autodesk account');
+  const acc = hubs.filter((x) => String(x.id).startsWith('b.'));                       // ACC / BIM 360 hubs have ids that start with "b."; "a." hubs are Fusion hubs and have no Data Connector
+  const h = acc.find((x) => String(x.attributes?.extension?.type ?? '').includes('Account')) ?? acc[0];
+  if (!h) throw new ApiError(400, `Autodesk shows no ACC hub to this app${hubs.length ? ` (it only sees: ${hubs.map((x) => x.attributes?.name ?? x.id).join(', ')})` : ''}. An ACC Account Admin must add this app's Client ID in Account Admin > Custom Integrations, and your Autodesk account must be a member of the ACC account.`);
   return { account_id: String(h.id).replace(/^b\./, ''), name: h.attributes?.name ?? '' };
 }
 export async function ensureRequest(token: string, accountId: string): Promise<string> {
