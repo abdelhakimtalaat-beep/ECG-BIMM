@@ -1,0 +1,127 @@
+'use client';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { canSeeTab, firstAllowedTab, tabOfPath } from '@/lib/tabs';
+import clsx from 'clsx';
+import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown, GraduationCap, PlayCircle, Plane } from 'lucide-react';
+import { api, roleLabel } from '@/lib/client';
+import { useApp } from './store';
+import { Field, Modal, useToast } from './ui';
+import { useInstall } from './pwa';
+import { useTheme } from './theme';
+import { BirthdayAlarm } from './BirthdayAlarm';
+
+type NavLeaf = { href: string; label: string; short: string; icon: any };
+type NavGroup = { id: string; label: string; short: string; icon: any; children: NavLeaf[] };
+const NAV: (NavLeaf | NavGroup)[] = [
+  { href: '/', label: 'Executive Dashboard', short: 'Dashboard', icon: LayoutDashboard },
+  { href: '/org', label: 'Department Organization Chart', short: 'Org Chart', icon: Network },
+  { id: 'projects', short: 'Projects', label: 'Projects', icon: FolderKanban, children: [
+    { href: '/projects', label: 'Projects Portfolio', short: 'Portfolio', icon: FolderKanban },
+    { href: '/process-map', label: 'BIM Process Map', short: 'Process Map', icon: Workflow },
+    { href: '/teams', label: 'Projects Workload', short: 'Projects Workload', icon: Users },
+    { href: '/proposals', label: 'Proposals', short: 'Proposals', icon: FileText },
+  ] },
+  { id: 'bimmers', short: 'BIMMers', label: 'BIMMers', icon: Users, children: [
+    { href: '/tasks', label: 'BIM Manager Tasks', short: 'Tasks', icon: ListChecks },
+    { href: '/vacations', label: 'Vacations', short: 'Vacations', icon: Plane },
+    { href: '/meetings', label: 'Meetings', short: 'Meetings', icon: CalendarClock },
+    { href: '/evaluation', label: 'Evaluation', short: 'Evaluation', icon: ClipboardCheck },
+  ] },
+  { id: 'training', short: 'Training', label: 'Training', icon: GraduationCap, children: [
+    { href: '/reels', label: 'Weekly BIM Reels Plan', short: 'BIM Reels', icon: CalendarDays },
+    { href: '/courses', label: 'Internal Courses', short: 'Internal Courses', icon: PlayCircle },
+  ] },
+  { href: '/contacts', label: 'Other Departments Contacts', short: 'Contacts', icon: Contact },
+  { href: '/email-templates', label: 'Emails Template', short: 'Emails Template', icon: Mail },
+  { href: '/wishes', label: 'Wish List', short: 'Wish List', icon: Lightbulb },
+];
+
+export function Shell({ children }: { children: React.ReactNode }) {
+  const path = usePathname(); const router = useRouter(); const { me, data: appData, setFilters } = useApp(); const toast = useToast();
+  const [collapsed, setCollapsed] = useState(false); const [mobile, setMobile] = useState(false); const [menu, setMenu] = useState(false); const [pw, setPw] = useState(false);
+  const th = useTheme(); const inst = useInstall(); const [help, setHelp] = useState(false);
+  const [q, setQ] = useState(''); const [cur, setCur] = useState(''); const [nxt, setNxt] = useState('');
+  const myPhoto = me.employee_id ? appData?.employees.find((e) => e.id === me.employee_id)?.photo_id : null;
+  const entries: (NavLeaf | NavGroup)[] = [];
+  for (const n of me.role === 'admin' ? [...NAV, { href: '/admin', label: 'Administration', short: 'Administration', icon: Settings } as NavLeaf] : NAV) {
+    if ('children' in n) { const kids = n.children.filter((k) => canSeeTab(me, k.href)); if (kids.length) entries.push({ ...n, children: kids }); }
+    else if (canSeeTab(me, n.href)) entries.push(n);
+  }
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ projects: true, training: true, bimmers: true });
+  const tab = tabOfPath(path); const blocked = tab !== null && !canSeeTab(me, tab); const first = firstAllowedTab(me);
+  useEffect(() => { if (blocked && first) router.replace(first); }, [blocked, first, router]);
+  const active = (h: string) => (h === '/' ? path === '/' : path.startsWith(h));
+  const logout = async () => { await api('/api/auth/logout', { method: 'POST', body: {} }); router.push('/login'); };
+
+  const nav = (
+    <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Main">
+      {entries.map((n) => {
+        const leaf = (k: NavLeaf, sub = false) => (
+          <Link key={k.href} href={k.href} onClick={() => setMobile(false)} title={k.label}
+            className={clsx('flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition', sub && (!collapsed || mobile) ? 'ml-4 px-3' : 'px-3', active(k.href) ? 'bg-white/15 text-white' : 'text-[#DCEAFA] hover:bg-white/10 hover:text-white')}>
+            <k.icon size={sub ? 16 : 18} className="shrink-0" />{(!collapsed || mobile) && <span className="truncate">{k.short}</span>}
+          </Link>);
+        if (!('children' in n)) return leaf(n);
+        if (collapsed && !mobile) return <div key={n.id} className="flex flex-col gap-1">{n.children.map((k) => leaf(k))}</div>;
+        const open = openGroups[n.id] ?? false; const inside = n.children.some((k) => active(k.href));
+        return (
+          <div key={n.id} className="flex flex-col gap-1">
+            <button type="button" aria-expanded={open} onClick={() => setOpenGroups((g) => ({ ...g, [n.id]: !open }))} title={n.label}
+              className={clsx('flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition', inside && !open ? 'bg-white/15 text-white' : 'text-[#DCEAFA] hover:bg-white/10 hover:text-white')}>
+              <n.icon size={18} className="shrink-0" /><span className="flex-1 truncate text-left">{n.short}</span><ChevronDown size={14} className={clsx('shrink-0 transition', open && 'rotate-180')} />
+            </button>
+            {open && n.children.map((k) => leaf(k, true))}
+          </div>);
+      })}
+    </nav>
+  );
+  return (
+    <div className="flex min-h-screen">
+      <aside className={clsx('no-print sticky top-0 hidden h-screen flex-col bg-[#0B2545] transition-all md:flex', collapsed ? 'w-[68px]' : 'w-60')}>
+        <div className="flex h-16 items-center justify-center border-b border-white/10 px-3"><div className="rounded-md bg-white px-2 py-1"><img src="/api/logo" alt="ECG – Engineering Consultants Group" className={clsx('object-contain', collapsed ? 'h-7 w-10' : 'h-9 w-32')} /></div></div>
+        {nav}
+        <button onClick={() => setCollapsed(!collapsed)} className="m-3 flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-[#B9D5F4] hover:bg-white/10" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>{collapsed ? <PanelLeftOpen size={16} /> : <><PanelLeftClose size={16} /> Collapse</>}</button>
+      </aside>
+      {mobile && <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setMobile(false)}><aside className="flex h-full w-64 flex-col bg-[#0B2545]" onClick={(e) => e.stopPropagation()}><div className="flex h-16 items-center justify-center border-b border-white/10"><div className="rounded-md bg-white px-2 py-1"><img src="/api/logo" alt="ECG" className="h-9 w-32 object-contain" /></div></div>{nav}</aside></div>}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="no-print sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white px-4">
+          <button className="btn-ghost btn-sm md:hidden" onClick={() => setMobile(true)} aria-label="Open menu"><Menu size={20} /></button>
+          <form className="relative hidden max-w-md flex-1 sm:block" onSubmit={(e) => { e.preventDefault(); setFilters({ q }); router.push('/projects'); }}>
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input className="input pl-9" placeholder="Search projects by name or number…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search projects" />
+          </form>
+          <div className="flex-1 sm:hidden"><img src="/api/logo" alt="ECG" className="h-8 object-contain" /></div>
+          <button className="btn-ghost btn-sm ml-auto" onClick={th.toggle} aria-label={th.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={th.theme === 'dark' ? 'Light mode' : 'Dark mode'}>{th.theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}</button>
+          <div className="relative">
+            <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-100" onClick={() => setMenu(!menu)} aria-expanded={menu}>
+              {myPhoto ? <img src={`/api/files/${myPhoto}`} alt="" className="h-8 w-8 rounded-full object-cover" /> : <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">{(me.full_name || me.email)[0].toUpperCase()}</span>}
+              <span className="hidden text-left leading-tight sm:block"><span className="block text-sm font-medium text-slate-800">{me.full_name || me.email}</span><span className="block text-xs text-slate-500">{roleLabel(me.role)}</span></span><ChevronDown size={14} />
+            </button>
+            {menu && <div className="absolute right-0 z-40 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-xl" onMouseLeave={() => setMenu(false)}>
+              {!inst.standalone && <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm hover:bg-slate-50" onClick={async () => { setMenu(false); if (!(inst.ready && (await inst.install()))) setHelp(true); }}><Smartphone size={14} />Install app on this device</button>}
+              <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm hover:bg-slate-50" onClick={() => { setMenu(false); setPw(true); }}><KeyRound size={14} />Change password</button>
+              <button className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm hover:bg-slate-50" onClick={logout}><LogOut size={14} />Sign out</button>
+            </div>}
+          </div>
+        </header>
+        <main className="flex-1 p-4 sm:p-6">{me.role === 'admin' && <BirthdayAlarm />}{blocked ? <p className="text-slate-600">{first ? 'Redirecting…' : 'No pages are enabled for your account. Please contact the BIM Department Administrator.'}</p> : children}</main>
+        <footer className="no-print border-t border-slate-200 px-6 py-3 text-xs text-slate-400">ECG BIM Department Management Portal · A Dorsch Global Company</footer>
+      </div>
+      <Modal open={help} onClose={() => setHelp(false)} title="Install the portal on your phone" footer={<button className="btn-primary" onClick={() => setHelp(false)}>Got it</button>}>
+        <div className="space-y-3 text-sm text-slate-700">
+          <p><b>iPhone / iPad (Safari):</b> tap the <b>Share</b> button, then <b>Add to Home Screen</b>, then <b>Add</b>.</p>
+          <p><b>Android (Chrome):</b> tap the <b>⋮</b> menu, then <b>Install app</b> (or <b>Add to Home screen</b>).</p>
+          <p><b>Computer (Chrome / Edge):</b> click the install icon at the right end of the address bar.</p>
+          <p className="text-xs text-slate-500">Open the portal in the phone's browser first. The shortcut opens it full screen like an app.</p>
+        </div>
+      </Modal>
+      <Modal open={pw} onClose={() => setPw(false)} title="Change password" footer={<><button className="btn-secondary" onClick={() => setPw(false)}>Cancel</button>
+        <button className="btn-primary" onClick={async () => { try { await api('/api/auth/password', { body: { current: cur, next: nxt } }); toast('Password changed'); setPw(false); setCur(''); setNxt(''); } catch (e: any) { toast(e.message, 'err'); } }}>Save</button></>}>
+        <div className="space-y-3"><Field label="Current password"><input type="password" className="input" value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" /></Field>
+          <Field label="New password" hint="At least 10 characters."><input type="password" className="input" value={nxt} onChange={(e) => setNxt(e.target.value)} autoComplete="new-password" /></Field></div>
+      </Modal>
+    </div>
+  );
+}

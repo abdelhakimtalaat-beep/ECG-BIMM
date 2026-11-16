@@ -1,0 +1,130 @@
+'use client';
+import { compareByManagerThenStatus, compareByStatusThenManager } from '@/lib/projectSort';
+import { Suspense, useMemo, useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Download, ExternalLink, FileSpreadsheet, LayoutGrid, Plus, Table2, Upload } from 'lucide-react';
+import { useApp } from '@/components/store';
+import { FilterBar, filtersToText } from '@/components/FilterBar';
+import { Badge, Col, DataTable, Empty, Field, Modal, PageHeader, StatusBadge, useToast } from '@/components/ui';
+import { ProjectDetail, ProjectPhoto } from '@/components/ProjectDetail';
+import { ImportWizard } from '@/components/ImportWizard';
+import { api, download, fmtDate, fmtNum } from '@/lib/client';
+import { projectWorkload } from '@/lib/workload';
+import { COUNTRIES } from '@/lib/countries';
+import { hasArea, totalArea } from '@/lib/metrics';
+import { STATUSES, type Project, type Status } from '@/lib/types';
+
+function Inner() {
+  const { me, data, projects, filters, emp, refresh } = useApp(); const toast = useToast();
+  const sp = useSearchParams(); const router = useRouter();
+  const [view, setView] = useState<'cards' | 'table'>('table');
+  const [sort, setSort] = useState<'name' | 'area' | 'status' | 'manager'>('status');
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [openId, setOpenId] = useState<string | null>(sp.get('id'));
+  const [bulk, setBulk] = useState<Status | ''>(''); const [bulkReason, setBulkReason] = useState(''); const [confirmBulk, setConfirmBulk] = useState(false);
+  const [adding, setAdding] = useState(false); const [importing, setImporting] = useState(false);
+  useEffect(() => { setOpenId(sp.get('id')); }, [sp]);
+  useEffect(() => { try { const v = localStorage.getItem('ecg_proj_view'); if (v === 'cards' || v === 'table') setView(v); } catch {} }, []);
+
+  const mgrOf = useMemo(() => { const m = new Map<string, string>(); const c = new Map<string, string>();
+    for (const a of data.assignments) { const n = emp.get(a.employee_id)?.name; if (!n) continue; const t = a.role === 'manager' ? m : a.role === 'coordinator' ? c : null; if (t) t.set(a.project_id, t.has(a.project_id) ? t.get(a.project_id) + ' / ' + n : n); }
+    return { m, c }; }, [data.assignments, emp]);
+  const sharedNo = useMemo(() => { const c = new Map<string, number>(); for (const p of data.projects) if (p.project_no) c.set(p.project_no.toLowerCase(), (c.get(p.project_no.toLowerCase()) || 0) + 1); return c; }, [data.projects]);
+  const setV = (v: 'cards' | 'table') => { setView(v); try { localStorage.setItem('ecg_proj_view', v); } catch {} };
+  const open = (id: string | null) => { setOpenId(id); router.replace(id ? `/projects?id=${id}` : '/projects', { scroll: false }); };
+
+  const sorted = useMemo(() => {
+    if (sort === 'status') return [...projects].sort(compareByStatusThenManager(mgrOf.m)); // default: status, then BIM Manager
+    if (sort === 'manager') return [...projects].sort(compareByManagerThenStatus(mgrOf.m));
+    const order: Record<string, number> = { 'In Progress': 0, 'Not Started': 1, 'On Hold': 2, Closed: 3 };
+    const f: Record<string, (p: Project) => any> = { name: (p) => p.name.toLowerCase(), area: (p) => -(p.built_up_area ?? -1), status: (p) => order[p.status], manager: (p) => (mgrOf.m.get(p.id) || 'zzz').toLowerCase() };
+    return [...projects].sort((a, b) => (f[sort](a) > f[sort](b) ? 1 : f[sort](a) < f[sort](b) ? -1 : 0));
+  }, [projects, sort, mgrOf]);
+
+  const cols: Col<Project>[] = [
+    { key: 'no', header: 'Project No.', render: (p) => <span className="whitespace-nowrap">{p.project_no ?? <Badge tone="amber">missing</Badge>}{p.project_no && (sharedNo.get(p.project_no.toLowerCase()) || 0) > 1 && <span title="This project number is shared by several project records (packages or duplicates)"> <Badge tone="amber">shared</Badge></span>}</span>, sort: (p) => p.project_no, frozen: true },
+    { key: 'name', header: 'Project name', render: (p) => <span className="font-medium text-brand-900">{p.name}</span>, sort: (p) => p.name.toLowerCase(), className: 'min-w-[16rem]' },
+    { key: 'status', header: 'Status', render: (p) => <span className="flex items-center gap-1.5"><StatusBadge status={p.status} /><FormaButton url={p.forma_url} /></span>, sort: (p) => p.status },
+    { key: 'mgr', header: 'BIM Manager', render: (p) => mgrOf.m.get(p.id) ?? <Badge tone="red">none</Badge>, sort: (p) => mgrOf.m.get(p.id) ?? '' },
+    { key: 'coord', header: 'BIM Coordinator', render: (p) => mgrOf.c.get(p.id) ?? '—', sort: (p) => mgrOf.c.get(p.id) ?? '', hideBelow: 'md' },
+    { key: 'deltek', header: 'Deltek No.', render: (p) => p.deltek_number ?? '—', sort: (p) => p.deltek_number ?? '', hideBelow: 'md' },
+    { key: 'client', header: 'Client', render: (p) => <span className="block max-w-[14rem] truncate" title={p.client ?? ''}>{p.client ?? '—'}</span>, sort: (p) => (p.client ?? '').toLowerCase(), hideBelow: 'md' },
+    { key: 'pm', header: 'Project Manager', render: (p) => p.project_manager ?? '—', sort: (p) => (p.project_manager ?? '').toLowerCase(), hideBelow: 'lg' },
+    { key: 'tm', header: 'Technical Manager', render: (p) => p.technical_manager ?? '—', sort: (p) => (p.technical_manager ?? '').toLowerCase(), hideBelow: 'lg' },
+    { key: 'load', header: 'Workload', render: (p) => { const w = projectWorkload(p, data.settings.factors); return w == null ? '—' : fmtNum(w); }, sort: (p) => projectWorkload(p, data.settings.factors) ?? -1, hideBelow: 'lg' },
+    { key: 'loc', header: 'Location', render: (p) => [p.city, p.country].filter(Boolean).join(', ') || '—', sort: (p) => [p.city, p.country].filter(Boolean).join(', ').toLowerCase(), hideBelow: 'lg' },
+    { key: 'cde', header: 'CDE', render: (p) => p.cde ?? '—', sort: (p) => p.cde, hideBelow: 'md' },
+    { key: 'type', header: 'Type', render: (p) => p.type ?? '—', sort: (p) => p.type, hideBelow: 'lg' },
+    { key: 'area', header: 'Built-up area', render: (p) => (hasArea(p) ? fmtNum(p.built_up_area) : <span title={p.area_note ?? 'Missing'} className="text-slate-400">{p.area_raw ? `“${p.area_raw}”` : '—'}</span>), sort: (p) => p.built_up_area, className: 'text-right', hideBelow: 'md' },
+    { key: 'src', header: 'Workbook status', render: (p) => <span className="text-xs text-slate-500">{p.status_raw ?? '—'}{p.activity_raw ? ` / ${p.activity_raw}` : ''}</span>, hideBelow: 'lg' },
+    { key: 'upd', header: 'Updated', render: (p) => fmtDate(p.updated_at), sort: (p) => p.updated_at, hideBelow: 'lg' },
+  ];
+  const doExport = async (format: 'xlsx' | 'csv') => { try { await download('/api/export/projects', { ids: projects.map((p) => p.id), format, filters: filtersToText(filters, emp) }, `ecg-bim-projects.${format}`); } catch (e: any) { toast(e.message, 'err'); } };
+  const runBulk = async () => { try { const r = await api('/api/projects/bulk', { body: { ids: [...sel], status: bulk, reason: bulkReason || undefined, confirm: true } }); toast(`${r.changed} project(s) updated`); setSel(new Set()); setBulk(''); setBulkReason(''); setConfirmBulk(false); refresh(); } catch (e: any) { toast(e.message, 'err'); setConfirmBulk(false); } };
+
+  return (
+    <>
+      <PageHeader title="Portfolio" subtitle={`${projects.length} of ${data.projects.length} projects · ${fmtNum(totalArea(projects))} total valid built-up area (${projects.filter(hasArea).length} projects with a valid area)`}
+        actions={<><div className="flex overflow-hidden rounded-lg border border-slate-300"><button className={`px-3 py-2 text-sm ${view === 'cards' ? 'bg-brand-600 text-white' : 'bg-white'}`} onClick={() => setV('cards')} aria-pressed={view === 'cards'}><LayoutGrid size={16} /></button><button className={`px-3 py-2 text-sm ${view === 'table' ? 'bg-brand-600 text-white' : 'bg-white'}`} onClick={() => setV('table')} aria-pressed={view === 'table'}><Table2 size={16} /></button></div>
+          <button className="btn-secondary" onClick={() => doExport('xlsx')}><FileSpreadsheet size={16} />Excel</button><button className="btn-secondary" onClick={() => doExport('csv')}><Download size={16} />CSV</button>
+          {me.role === 'admin' && <button className="btn-secondary" onClick={() => setImporting(true)}><Upload size={16} />Import</button>}{me.role === 'admin' && <button className="btn-primary" onClick={() => setAdding(true)}><Plus size={16} />New project</button>}</>} />
+      <FilterBar show={['q', 'manager', 'coordinator', 'status', 'deltek', 'client', 'pm', 'tm', 'cde', 'type', 'area']} />
+
+      {view === 'cards' && <div className="mb-3 flex items-center gap-2 text-sm"><span className="text-slate-500">Sort by</span>
+        <select className="input w-44" value={sort} onChange={(e) => setSort(e.target.value as any)}><option value="name">Name</option><option value="area">Built-up area</option><option value="status">Status</option><option value="manager">BIM Manager</option></select></div>}
+
+      {sel.size > 0 && <div className="card no-print mb-3 flex flex-wrap items-center gap-2 border-brand-300 bg-brand-50 p-3"><b className="text-sm">{sel.size} selected</b>
+        <select className="input w-40" value={bulk} onChange={(e) => setBulk(e.target.value as any)}><option value="">Set status…</option>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
+        <button className="btn-primary btn-sm" disabled={!bulk} onClick={() => setConfirmBulk(true)}>Apply</button><button className="btn-ghost btn-sm" onClick={() => setSel(new Set())}>Clear selection</button></div>}
+
+      {!projects.length ? <Empty title="No projects match" hint="Adjust or reset the filters." /> : view === 'table'
+        ? <DataTable rows={sorted} cols={cols} rowKey={(p) => p.id} onRow={(p) => open(p.id)} selectable={['admin', 'bim_manager', 'bim_coordinator'].includes(me.role)} selected={sel} onSelect={setSel} pageSize={Math.max(25, sorted.length)} />
+        : <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{sorted.map((p) => (
+            <div key={p.id} role="button" tabIndex={0} onClick={() => open(p.id)} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(p.id); } }} className="card cursor-pointer overflow-hidden text-left transition hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"><ProjectPhoto project={p} className="aspect-[2/1] w-full" />
+              <div className="space-y-2 p-4"><div className="flex items-start justify-between gap-2"><h3 className="font-semibold leading-snug text-brand-900">{p.name}</h3><span className="flex shrink-0 items-center gap-1.5"><FormaButton url={p.forma_url} /><StatusBadge status={p.status} className="shrink-0" /></span></div>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs"><dt className="text-slate-500">Project no.</dt><dd>{p.project_no ?? '—'}</dd><dt className="text-slate-500">Built-up area</dt><dd>{hasArea(p) ? fmtNum(p.built_up_area) : '—'}</dd>
+                  <dt className="text-slate-500">BIM Manager</dt><dd className="truncate">{mgrOf.m.get(p.id) ?? '—'}</dd><dt className="text-slate-500">BIM Coordinator</dt><dd className="truncate">{mgrOf.c.get(p.id) ?? '—'}</dd><dt className="text-slate-500">Deltek no.</dt><dd className="truncate">{p.deltek_number ?? '—'}</dd><dt className="text-slate-500">Client</dt><dd className="truncate">{p.client ?? '—'}</dd><dt className="text-slate-500">Project Manager</dt><dd className="truncate">{p.project_manager ?? '—'}</dd><dt className="text-slate-500">Technical Manager</dt><dd className="truncate">{p.technical_manager ?? '—'}</dd><dt className="text-slate-500">CDE · Type</dt><dd>{p.cde ?? '—'} · {p.type ?? '—'}</dd><dt className="text-slate-500">Last updated</dt><dd>{fmtDate(p.updated_at)}</dd></dl></div></div>))}
+            </div>}
+
+      <ProjectDetail id={openId} onClose={() => open(null)} />
+      <Modal open={confirmBulk} onClose={() => setConfirmBulk(false)} title="Confirm bulk status update" footer={<><button className="btn-secondary" onClick={() => setConfirmBulk(false)}>Cancel</button><button className="btn-primary" onClick={runBulk}>Change {sel.size} project(s) to {bulk}</button></>}>
+        <p className="mb-3 text-sm">You are about to set <b>{sel.size}</b> project(s) to <b>{bulk}</b>. Each change is written to the status history and the audit log.</p><Field label="Reason (optional)"><input className="input" value={bulkReason} onChange={(e) => setBulkReason(e.target.value)} /></Field></Modal>
+      {adding && <NewProject onClose={() => setAdding(false)} />}
+      <ImportWizard open={importing} onClose={() => setImporting(false)} />
+    </>
+  );
+}
+
+function NewProject({ onClose }: { onClose: () => void }) {
+  const { data, refresh } = useApp(); const toast = useToast();
+  const [f, setF] = useState<any>({ project_no: '', name: '', cde: 'ACC', type: 'BIM', built_up_area: '', deltek_number: '', client: '', country: '', city: '', project_manager: '', technical_manager: '', status: 'Not Started', manager_id: '', coordinator_id: '', notes: '' });
+  const people = (c: string) => data.employees.filter((e) => e.active && e.job_category === c);
+  return (
+    <Modal open onClose={onClose} wide title="New project" footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!f.name.trim()} onClick={async () => {
+      try { const r: any = await api('/api/projects', { body: { project_no: f.project_no || null, name: f.name, cde: f.cde || null, type: f.type || null, deltek_number: f.deltek_number || null, client: f.client || null, country: f.country || null, city: f.city || null, project_manager: f.project_manager || null, technical_manager: f.technical_manager || null, built_up_area: f.built_up_area === '' ? null : Number(f.built_up_area), status: f.status, notes: f.notes || null, manager_id: f.manager_id || null, coordinator_ids: f.coordinator_id ? [f.coordinator_id] : [] } }); toast(r?.mail?.sent ? `Project created — notification e-mail sent to ${r.mail.sent} person${r.mail.sent === 1 ? '' : 's'}` : r?.mail?.failed ? 'Project created — the notification e-mail could not be sent' : 'Project created'); await refresh(); onClose(); } catch (e: any) { toast(e.message, 'err'); } }}>Create</button></>}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Project number"><input className="input" value={f.project_no} onChange={(e) => setF({ ...f, project_no: e.target.value })} /></Field>
+        <Field label="Project name"><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
+        <Field label="Deltek number"><input className="input" value={f.deltek_number} onChange={(e) => setF({ ...f, deltek_number: e.target.value })} /></Field>
+        <Field label="Client"><input className="input" value={f.client} onChange={(e) => setF({ ...f, client: e.target.value })} /></Field>
+        <Field label="Country"><input list="ecg-countries" className="input" value={f.country} onChange={(e) => setF({ ...f, country: e.target.value })} /><datalist id="ecg-countries">{COUNTRIES.map((c) => <option key={c} value={c} />)}</datalist></Field>
+        <Field label="City"><input className="input" value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} /></Field>
+        <Field label="Project Manager"><input className="input" value={f.project_manager} onChange={(e) => setF({ ...f, project_manager: e.target.value })} /></Field>
+        <Field label="Technical Manager"><input className="input" value={f.technical_manager} onChange={(e) => setF({ ...f, technical_manager: e.target.value })} /></Field>
+        <Field label="CDE"><input className="input" list="cdes" value={f.cde} onChange={(e) => setF({ ...f, cde: e.target.value })} /><datalist id="cdes"><option>ACC</option><option>Server</option></datalist></Field>
+        <Field label="Type"><input className="input" list="types" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} /><datalist id="types"><option>BIM</option><option>CAD</option></datalist></Field>
+        <Field label="Built-up area"><input type="number" min={0} className="input" value={f.built_up_area} onChange={(e) => setF({ ...f, built_up_area: e.target.value })} /></Field>
+        <Field label="Status"><select className="input" value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></Field>
+        <Field label="BIM Manager"><select className="input" value={f.manager_id} onChange={(e) => setF({ ...f, manager_id: e.target.value })}><option value="">(unassigned)</option>{people('bim_manager').map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></Field>
+        <Field label="BIM Coordinator"><select className="input" value={f.coordinator_id} onChange={(e) => setF({ ...f, coordinator_id: e.target.value })}><option value="">(unassigned)</option>{[...people('bim_coordinator'), ...people('bim_manager')].map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></Field>
+      </div></Modal>
+  );
+}
+
+/** Opens the project in Autodesk Forma (ACC) using the project's "Autodesk Forma URL"; nothing is shown when the project has no valid link. */
+function FormaButton({ url }: { url?: string | null }) {
+  if (!url || !/^https?:\/\/\S+$/i.test(url)) return null;
+  return <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} title="Open this project in Autodesk Forma (ACC)" aria-label="Open this project in Autodesk Forma (ACC)"
+    className="inline-flex items-center gap-1 rounded-full border border-brand-600 bg-brand-600 px-2.5 py-0.5 text-xs font-medium text-white hover:bg-brand-700"><ExternalLink size={12} />Forma</a>;
+}
+export default function ProjectsPage() { return <Suspense fallback={<p className="p-6 text-slate-500">Loading…</p>}><Inner /></Suspense>; }
