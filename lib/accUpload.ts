@@ -8,6 +8,7 @@ export const accStatsSchema = z.object({
   issues: z.object({ total: n, open: n, closed: n, by_status: counts, by_type: named, by_root_cause: named, avg_close_days: n.nullable(), overdue: n, with_due_date: n,
     monthly: z.array(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/), opened: n, closed: n })).max(24) }),
   assignees: z.array(z.object({ key: z.string().max(120), name: z.string().max(200), kind: z.enum(['role', 'user', 'company', 'none']), total: n, by_status: counts })).max(60).optional(),
+  locations: z.array(z.object({ key: z.string().max(120), name: z.string().max(400), building: z.string().max(200), total: n, by_status: counts })).max(200).optional(),
   reviews: z.object({ total: n, by_status: counts, open_tasks: n, unclaimed_tasks: n }), clashes: z.object({ tests: n, by_status: counts }), photos: n, meetings: n,
 });
 export const accUploadBody = z.object({ stats: z.array(accStatsSchema).min(1).max(500) });
