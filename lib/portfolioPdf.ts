@@ -48,14 +48,14 @@ export async function buildPortfolioPdf(projects: Project[], team: (id: string) 
   for (let i = 0; i < projects.length; i++) {
     const p = projects[i]; opts.onProgress?.(i, projects.length); doc.addPage(); header(p.project_no ? `Project ${p.project_no}` : 'ECG BIM Projects'); const t = team(p.id);
     const PX = M, PY = 92, PWD = 340, PHT = 215;
-    fill(SOFT); doc.roundedRect(PX, PY, PWD, PHT, 6, 'F');
+    fill(SOFT); doc.roundedRect(PX, PY, PWD, PHT, 6, 6, 'F');
     const photo = p.photo_id ? await toDataUrl(`/api/files/${p.photo_id}`, 'jpeg', { w: PWD, h: PHT }) : null;
-    if (photo) { doc.addImage(photo, 'JPEG', PX, PY, PWD, PHT); stroke(LINE); doc.setLineWidth(0.8); doc.roundedRect(PX, PY, PWD, PHT, 6, 'S'); }
+    if (photo) { doc.addImage(photo, 'JPEG', PX, PY, PWD, PHT); stroke(LINE); doc.setLineWidth(0.8); doc.roundedRect(PX, PY, PWD, PHT, 6, 6, 'S'); }
     else { doc.setFont('helvetica', 'bold'); doc.setFontSize(12); ink([160, 175, 195]); doc.text('Project photo not available', PX + PWD / 2, PY + PHT / 2 + 4, { align: 'center' }); }
 
     /* title block (right of photo) */
     const RX = PX + PWD + 28, RW = PW - M - RX; const col = STATUS_COLOR[p.status] ?? GREY;
-    fill(col); doc.roundedRect(RX, PY, 86, 18, 9, 'F'); doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); ink([255, 255, 255]); doc.text(p.status.toUpperCase(), RX + 43, PY + 12, { align: 'center' });
+    fill(col); doc.roundedRect(RX, PY, 86, 18, 9, 9, 'F'); doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); ink([255, 255, 255]); doc.text(p.status.toUpperCase(), RX + 43, PY + 12, { align: 'center' });
     if (p.project_no) { doc.setFontSize(9); ink(GOLD); doc.text(`PROJECT NO. ${p.project_no}`, RX + 98, PY + 12); }
     doc.setFont('helvetica', 'bold'); doc.setFontSize(20); ink(NAVY); const tl = (doc.splitTextToSize(p.name, RW) as string[]).slice(0, 3); doc.text(tl, RX, PY + 44, { lineHeightFactor: 1.15 });
     const loc = [p.city, p.country].filter(Boolean).join(', '); let ty = PY + 44 + tl.length * 23;
@@ -71,7 +71,7 @@ export async function buildPortfolioPdf(projects: Project[], team: (id: string) 
     const cw = (RW - 10) / 2, chh = 38; let gy = ty + 14; const maxRows = Math.floor((PH - 40 - gy) / (chh + 6));
     fields.slice(0, maxRows * 2).forEach(([l, v], k) => {
       const cx = RX + (k % 2) * (cw + 10), cy = gy + Math.floor(k / 2) * (chh + 6);
-      fill(SOFT); doc.roundedRect(cx, cy, cw, chh, 4, 'F'); fill(BLUE); doc.rect(cx, cy + 5, 2.5, chh - 10, 'F');
+      fill(SOFT); doc.roundedRect(cx, cy, cw, chh, 4, 4, 'F'); fill(BLUE); doc.rect(cx, cy + 5, 2.5, chh - 10, 'F');
       doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); ink(GREY); doc.text(l.toUpperCase(), cx + 10, cy + 13);
       doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); ink(INK); doc.text((doc.splitTextToSize(v, cw - 18) as string[]).slice(0, 1), cx + 10, cy + 29);
     });
@@ -81,7 +81,7 @@ export async function buildPortfolioPdf(projects: Project[], team: (id: string) 
     const block = (title: string, items: string[]) => {
       if (!items.length || ly > PH - 70) return; doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); ink(BLUE); doc.text(title.toUpperCase(), PX, ly); ly += 8;
       let x = PX, y = ly; doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
-      for (const it of items) { const w = doc.getTextWidth(it) + 14; if (x + w > PX + LWID) { x = PX; y += 19; } if (y > PH - 48) break; fill([226, 236, 250]); doc.roundedRect(x, y, w, 15, 7.5, 'F'); ink(NAVY); doc.text(it, x + 7, y + 10.5); x += w + 6; }
+      for (const it of items) { const w = doc.getTextWidth(it) + 14; if (x + w > PX + LWID) { x = PX; y += 19; } if (y > PH - 48) break; fill([226, 236, 250]); doc.roundedRect(x, y, w, 15, 7.5, 7.5, 'F'); ink(NAVY); doc.text(it, x + 7, y + 10.5); x += w + 6; }
       ly = y + 28;
     };
     block('Stages', p.stages ?? []); block('Level of development', p.lods ?? []); block('Scope', [...(p.scope_items ?? []), ...(p.scope_site ?? [])]);
