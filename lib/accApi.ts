@@ -61,7 +61,6 @@ export async function listHubProjects(token: string, accountId: string): Promise
 /** A daily request for ONE project (Project Admins may only extract their own projects). */
 async function ensureProjectRequest(token: string, accountId: string, p: HubProject): Promise<string> {
   const desc = `${REQ_NAME} ${p.id}`; const base = `/data-connector/v1/accounts/${accountId}/requests`;
-  try { const list = await aps(token, `${base}?projectId=${p.id}&limit=100`); const soon = Date.now() + 30 * 86400000; const mine = ((list?.results ?? list?.data ?? []) as any[]).find((r) => r.description === desc && r.isActive !== false && (!r.effectiveTo || Date.parse(r.effectiveTo) > soon)); if (mine?.id) return mine.id; } catch { /* listing is not allowed for everybody, or the request ends within 30 days: create a new one */ }
   const body = dcBody({ description: desc, scheduleInterval: 'DAY', reoccuringInterval: 1, effectiveTo: new Date(Date.now() + 365 * 86400000).toISOString() });   /* Autodesk requires an end date for a recurring request */
   let made; try { made = await aps(token, base, { method: 'POST', body: JSON.stringify({ ...body, projectId: p.id }) }); }
   catch (e: any) { if (!/ 400 /.test(String(e.message))) throw e; made = await aps(token, base, { method: 'POST', body: JSON.stringify({ ...body, projectIdList: [p.id] }) }); }
@@ -72,20 +71,21 @@ export interface SetupResult { created: number; skipped: { name: string; reason:
 /** Creates (once) a daily extract request for every ACC project whose name starts with a portal project number, or that is already known. */
 export async function setupRequests(token: string, accountId: string): Promise<SetupResult> {
   const hub = await listHubProjects(token, accountId); const nos = (await q<{ project_no: string }>(`select distinct project_no from projects where project_no is not null and project_no<>''`)).map((r) => r.project_no.toLowerCase());
-  const rowsKnown = await q<{ acc_project_id: string; request_id: string | null; fresh: boolean }>(`select acc_project_id, request_id, (request_id is not null and updated_at > now() - interval '300 days') as fresh from acc_requests`);
+  const rowsKnown = await q<{ acc_project_id: string; request_id: string | null; fresh: boolean }>(`select acc_project_id, request_id, (request_id is not null and updated_at > now() - interval '300 days') or (request_id is null and last_error like 'You are not a Project Admin%' and updated_at > now() - interval '7 days') as fresh from acc_requests`);
   const known = new Set(rowsKnown.map((r) => r.acc_project_id)); const fresh = new Set(rowsKnown.filter((r) => r.fresh).map((r) => r.acc_project_id));
   const mine = hub.filter((p) => known.has(p.id) || nos.some((n) => { const l = p.name.toLowerCase(); return l === n || l.startsWith(n + '-') || l.startsWith(n + ' '); }));
-  const skipped: SetupResult['skipped'] = []; let created = 0; let left = 0; const started = Date.now(); const queue = mine.filter((p) => !fresh.has(p.id));
+  const skipped: SetupResult['skipped'] = []; let created = 0; let left = 0; let quota = false; const started = Date.now(); const queue = mine.filter((p) => !fresh.has(p.id));
   const work = async () => {
     for (let p = queue.shift(); p; p = queue.shift()) {
-      if (Date.now() - started > 42000) { left++; continue; }   /* stay inside the server time limit; press Set up projects again for the rest */
+      if (quota || Date.now() - started > 42000) { left++; continue; }   /* stay inside the server time limit; press Set up projects again for the rest */
       try { const id = await ensureProjectRequest(token, accountId, p); if (!known.has(p.id)) created++; await q(`insert into acc_requests(acc_project_id,project_name,request_id,last_status,last_error,updated_at) values($1,$2,$3,'ready',null,now()) on conflict (acc_project_id) do update set project_name=excluded.project_name, request_id=excluded.request_id, last_status='ready', last_error=null, updated_at=now()`, [p.id, p.name, id]); }
-      catch (e: any) { const reason = /403|access level|Forbidden/i.test(String(e.message)) ? 'You are not a Project Admin of this project' : String(e.message).slice(0, 200); skipped.push({ name: p.name, reason }); await q(`insert into acc_requests(acc_project_id,project_name,request_id,last_status,last_error,updated_at) values($1,$2,null,'error',$3,now()) on conflict (acc_project_id) do update set last_status='error', last_error=excluded.last_error, updated_at=now()`, [p.id, p.name, reason]); }
+      catch (e: any) { if (/ 429 /.test(String(e.message))) { quota = true; left++; continue; }   /* Autodesk's daily limit: keep what is saved, try again tomorrow */
+        const reason = /403|access level|Forbidden/i.test(String(e.message)) ? 'You are not a Project Admin of this project' : String(e.message).slice(0, 200); skipped.push({ name: p.name, reason }); await q(`insert into acc_requests(acc_project_id,project_name,request_id,last_status,last_error,updated_at) values($1,$2,null,'error',$3,now()) on conflict (acc_project_id) do update set last_status='error', last_error=excluded.last_error, updated_at=now()`, [p.id, p.name, reason]); }
     }
   };
   await Promise.all([work(), work(), work(), work(), work(), work()]);
   const ok = mine.length - skipped.length - left;
-  return { created, skipped, message: mine.length ? `${ok} of ${mine.length} matching ACC project(s) are set up for the daily import${left ? `; ${left} not tried yet (press Set up projects again)` : ''}${skipped.length ? `; skipped: ${skipped.map((s) => `${s.name} (${s.reason})`).join('; ')}` : ''}.` : `No ACC project (of ${hub.length} visible) starts with one of the portal project numbers.` };
+  return { created, skipped, message: mine.length ? `${ok} of ${mine.length} matching ACC project(s) are set up for the daily import${left ? `; ${left} not done yet${quota ? " because Autodesk's daily request limit for your user was reached - press Set up projects again tomorrow" : ' (press Set up projects again)'}` : ''}${skipped.length ? `; skipped: ${skipped.map((s) => `${s.name} (${s.reason})`).join('; ')}` : ''}.` : `No ACC project (of ${hub.length} visible) starts with one of the portal project numbers.` };
 }
 /** Asks Autodesk for a fresh one-time extract of every set-up project. */
 export async function requestNow(token: string, accountId: string): Promise<number> {
