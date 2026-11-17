@@ -61,8 +61,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {entries.map((n) => {
         const leaf = (k: NavLeaf, sub = false) => (
           <Link key={k.href} href={k.href} onClick={() => setMobile(false)} title={k.label}
-            className={clsx('flex items-center gap-3 rounded-lg py-2.5 text-sm font-medium transition', sub && (!collapsed || mobile) ? 'ml-4 px-3' : 'px-3', active(k.href) ? 'bg-white/15 text-white' : 'text-[#DCEAFA] hover:bg-white/10 hover:text-white')}>
-            <k.icon size={sub ? 16 : 18} className="shrink-0" />{(!collapsed || mobile) && <span className="truncate">{k.short}</span>}
+            className={clsx('flex items-center gap-3 rounded-lg py-2.5 transition', sub && (!collapsed || mobile) ? 'ml-4 px-3 text-sm font-medium' : 'px-3 text-base font-bold', active(k.href) ? 'bg-white/15 text-white' : 'text-[#DCEAFA] hover:bg-white/10 hover:text-white')}>
+            <k.icon size={sub ? 16 : 20} className="shrink-0" />{(!collapsed || mobile) && <span className="truncate">{k.short}</span>}
           </Link>);
         if (!('children' in n)) return leaf(n);
         if (collapsed && !mobile) return <div key={n.id} className="flex flex-col gap-1">{n.children.map((k) => leaf(k))}</div>;
@@ -70,8 +70,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
         return (
           <div key={n.id} className="flex flex-col gap-1">
             <button type="button" aria-expanded={open} onClick={() => setOpenGroups((g) => ({ ...g, [n.id]: !open }))} title={n.label}
-              className={clsx('flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition', inside && !open ? 'bg-white/15 text-white' : 'text-[#DCEAFA] hover:bg-white/10 hover:text-white')}>
-              <n.icon size={18} className="shrink-0" /><span className="flex-1 truncate text-left">{n.short}</span><ChevronDown size={14} className={clsx('shrink-0 transition', open && 'rotate-180')} />
+              className={clsx('flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-bold transition', inside && !open ? 'bg-white/15 text-white' : 'text-[#DCEAFA] hover:bg-white/10 hover:text-white')}>
+              <n.icon size={20} className="shrink-0" /><span className="flex-1 truncate text-left">{n.short}</span><ChevronDown size={14} className={clsx('shrink-0 transition', open && 'rotate-180')} />
             </button>
             {open && n.children.map((k) => leaf(k, true))}
           </div>);
