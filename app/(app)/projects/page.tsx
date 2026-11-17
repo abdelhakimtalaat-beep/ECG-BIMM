@@ -2,7 +2,7 @@
 import { compareByManagerThenStatus, compareByStatusThenManager } from '@/lib/projectSort';
 import { Suspense, useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Download, ExternalLink, FileSpreadsheet, LayoutGrid, Plus, Table2, Upload } from 'lucide-react';
+import { Download, ExternalLink, FileSpreadsheet, FileText, LayoutGrid, Plus, Table2, Upload } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { FilterBar, filtersToText } from '@/components/FilterBar';
 import { Badge, Col, DataTable, Empty, Field, Modal, PageHeader, StatusBadge, useToast } from '@/components/ui';
@@ -59,6 +59,17 @@ function Inner() {
     { key: 'src', header: 'Workbook status', render: (p) => <span className="text-xs text-slate-500">{p.status_raw ?? '—'}{p.activity_raw ? ` / ${p.activity_raw}` : ''}</span>, hideBelow: 'lg' },
     { key: 'upd', header: 'Updated', render: (p) => fmtDate(p.updated_at), sort: (p) => p.updated_at, hideBelow: 'lg' },
   ];
+  const [pdfBusy, setPdfBusy] = useState<string | null>(null);
+  const memberOf = useMemo(() => { const m = new Map<string, string[]>(); for (const a of data.assignments) { if (a.role !== 'member') continue; const n = emp.get(a.employee_id)?.name; if (n) m.set(a.project_id, [...(m.get(a.project_id) ?? []), n]); } return m; }, [data.assignments, emp]);
+  const doPortfolioPdf = async () => {
+    if (!sorted.length || pdfBusy) return; setPdfBusy('Preparing…');
+    try {
+      const { buildPortfolioPdf } = await import('@/lib/portfolioPdf');
+      const blob = await buildPortfolioPdf(sorted, (id) => ({ manager: mgrOf.m.get(id), coordinator: mgrOf.c.get(id), members: (memberOf.get(id) ?? []).join(', ') }), { onProgress: (d, t) => setPdfBusy(`Building ${d}/${t}…`) });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `ECG-BIM-Projects-Portfolio-${new Date().toISOString().slice(0, 10)}.pdf`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('Portfolio PDF is ready');
+    } catch (e: any) { toast('Portfolio PDF failed: ' + (e?.message ?? e), 'err'); } finally { setPdfBusy(null); }
+  };
   const doExport = async (format: 'xlsx' | 'csv') => { try { await download('/api/export/projects', { ids: projects.map((p) => p.id), format, filters: filtersToText(filters, emp) }, `ecg-bim-projects.${format}`); } catch (e: any) { toast(e.message, 'err'); } };
   const runBulk = async () => { try { const r = await api('/api/projects/bulk', { body: { ids: [...sel], status: bulk, reason: bulkReason || undefined, confirm: true } }); toast(`${r.changed} project(s) updated`); setSel(new Set()); setBulk(''); setBulkReason(''); setConfirmBulk(false); refresh(); } catch (e: any) { toast(e.message, 'err'); setConfirmBulk(false); } };
 
@@ -66,7 +77,7 @@ function Inner() {
     <>
       <PageHeader title="Portfolio" subtitle={`${projects.length} of ${data.projects.length} projects · ${fmtNum(totalArea(projects))} total valid built-up area (${projects.filter(hasArea).length} projects with a valid area)`}
         actions={<><div className="flex overflow-hidden rounded-lg border border-slate-300"><button className={`px-3 py-2 text-sm ${view === 'cards' ? 'bg-brand-600 text-white' : 'bg-white'}`} onClick={() => setV('cards')} aria-pressed={view === 'cards'}><LayoutGrid size={16} /></button><button className={`px-3 py-2 text-sm ${view === 'table' ? 'bg-brand-600 text-white' : 'bg-white'}`} onClick={() => setV('table')} aria-pressed={view === 'table'}><Table2 size={16} /></button></div>
-          <button className="btn-secondary" onClick={() => doExport('xlsx')}><FileSpreadsheet size={16} />Excel</button><button className="btn-secondary" onClick={() => doExport('csv')}><Download size={16} />CSV</button>
+          <button className="btn-secondary" onClick={() => doExport('xlsx')}><FileSpreadsheet size={16} />Excel</button><button className="btn-secondary" onClick={() => doExport('csv')}><Download size={16} />CSV</button><button className="btn-secondary" disabled={!!pdfBusy || !sorted.length} title="Client-ready PDF: cover page, then one page per project (uses the current filters and order)" onClick={doPortfolioPdf}><FileText size={16} />{pdfBusy ?? 'Portfolio PDF'}</button>
           {me.role === 'admin' && <button className="btn-secondary" onClick={() => setImporting(true)}><Upload size={16} />Import</button>}{me.role === 'admin' && <button className="btn-primary" onClick={() => setAdding(true)}><Plus size={16} />New project</button>}</>} />
       <FilterBar show={['q', 'manager', 'coordinator', 'status', 'deltek', 'client', 'pm', 'tm', 'cde', 'type', 'area']} />
 
