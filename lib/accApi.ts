@@ -61,8 +61,8 @@ export async function listHubProjects(token: string, accountId: string): Promise
 /** A daily request for ONE project (Project Admins may only extract their own projects). */
 async function ensureProjectRequest(token: string, accountId: string, p: HubProject): Promise<string> {
   const desc = `${REQ_NAME} ${p.id}`; const base = `/data-connector/v1/accounts/${accountId}/requests`;
-  try { const list = await aps(token, `${base}?projectId=${p.id}&limit=100`); const mine = ((list?.results ?? list?.data ?? []) as any[]).find((r) => r.description === desc && r.isActive !== false); if (mine?.id) return mine.id; } catch { /* listing is not allowed for everybody: create instead */ }
-  const body = dcBody({ description: desc, scheduleInterval: 'DAY', reoccuringInterval: 1 });
+  try { const list = await aps(token, `${base}?projectId=${p.id}&limit=100`); const soon = Date.now() + 30 * 86400000; const mine = ((list?.results ?? list?.data ?? []) as any[]).find((r) => r.description === desc && r.isActive !== false && (!r.effectiveTo || Date.parse(r.effectiveTo) > soon)); if (mine?.id) return mine.id; } catch { /* listing is not allowed for everybody, or the request ends within 30 days: create a new one */ }
+  const body = dcBody({ description: desc, scheduleInterval: 'DAY', reoccuringInterval: 1, effectiveTo: new Date(Date.now() + 365 * 86400000).toISOString() });   /* Autodesk requires an end date for a recurring request */
   let made; try { made = await aps(token, base, { method: 'POST', body: JSON.stringify({ ...body, projectId: p.id }) }); }
   catch (e: any) { if (!/ 400 /.test(String(e.message))) throw e; made = await aps(token, base, { method: 'POST', body: JSON.stringify({ ...body, projectIdList: [p.id] }) }); }
   if (!made?.id) throw new ApiError(502, 'Autodesk did not return the id of the new extract request');
