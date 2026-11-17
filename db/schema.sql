@@ -554,3 +554,15 @@ create table if not exists acc_project_stats (
 );
 alter table acc_connection enable row level security;
 alter table acc_project_stats enable row level security;
+
+-- 039 ACC requests per project
+create table if not exists acc_requests (
+  acc_project_id text primary key,
+  project_name   text,
+  request_id     text,
+  last_job_id    text,
+  last_status    text,
+  last_error     text,
+  updated_at     timestamptz not null default now()
+);
+alter table acc_requests enable row level security;

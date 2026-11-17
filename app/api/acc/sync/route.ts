@@ -9,7 +9,7 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   return handle(async () => {
     const me = await requireUser(['admin']); const b = z.object({ request_now: z.boolean().optional() }).parse(await json(req).catch(() => ({})));
-    if (b.request_now) { const c = await one<{ account_id: string }>('select account_id from acc_connection where id=1'); if (c) await requestNow(await accessToken(), c.account_id); }
+    if (b.request_now) { const c = await one<{ account_id: string }>('select account_id from acc_connection where id=1'); if (c) await requestNow(await accessToken(), c.account_id); }   // one-time extracts of the set-up projects
     const r = await syncNow(); await audit(null, me.email, 'update', 'acc', null, `ACC sync: ${r.status}`);
     return ok(b.request_now && r.status !== 'imported' ? { ...r, message: 'A fresh extract was requested from Autodesk. It usually takes some minutes; press "Import now" again later. ' + r.message } : r);
   });
