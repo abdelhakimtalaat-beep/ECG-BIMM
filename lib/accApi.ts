@@ -79,26 +79,30 @@ async function ensureProjectRequest(token: string, accountId: string, p: HubProj
 export interface SetupResult { created: number; skipped: { name: string; reason: string }[]; message: string }
 /** Creates (once) a daily extract request for every ACC project whose name starts with a portal project number, or that is already known. */
 export async function setupRequests(token: string, accountId: string): Promise<SetupResult> {
-  const hub = await listHubProjects(token, accountId); const nos = (await q<{ project_no: string }>(`select distinct project_no from projects where project_no is not null and project_no<>''`)).map((r) => r.project_no.toLowerCase());
-  const rowsKnown = await q<{ acc_project_id: string; request_id: string | null; fresh: boolean }>(`select acc_project_id, request_id, (request_id is not null and updated_at > now() - interval '300 days') or (request_id is null and last_error like 'You are not a Project Admin%' and updated_at > now() - interval '7 days') as fresh from acc_requests`);
-  const known = new Set(rowsKnown.map((r) => r.acc_project_id)); const fresh = new Set(rowsKnown.filter((r) => r.fresh).map((r) => r.acc_project_id));
-  const mine = hub.filter((p) => known.has(p.id) || nos.some((n) => { const l = p.name.toLowerCase(); return l === n || l.startsWith(n + '-') || l.startsWith(n + ' '); }));
-  const skipped: SetupResult['skipped'] = []; let created = 0; let left = 0; let quota = false; const started = Date.now(); const queue = mine.filter((p) => !fresh.has(p.id));
+  const rows = await q<{ acc_project_id: string; project_name: string; request_id: string | null; fresh: boolean }>(`select acc_project_id, project_name, request_id, ((request_id is not null and updated_at > now() - interval '300 days') or (request_id is null and last_error like 'You are not a Project Admin%' and updated_at > now() - interval '7 days')) as fresh from acc_requests where tracked order by project_name`);
+  if (!rows.length) return { created: 0, skipped: [], message: 'No project is chosen yet. Press "Request extract now" and tick the projects you want to track.' };
+  const skipped: SetupResult['skipped'] = []; let created = 0; let left = 0; let quota = false; const started = Date.now(); const queue = rows.filter((r) => !r.fresh);
   const work = async () => {
-    for (let p = queue.shift(); p; p = queue.shift()) {
+    for (let r = queue.shift(); r; r = queue.shift()) {
       if (quota || Date.now() - started > 42000) { left++; continue; }   /* stay inside the server time limit; press Set up projects again for the rest */
-      try { const id = await ensureProjectRequest(token, accountId, p); if (!known.has(p.id)) created++; await q(`insert into acc_requests(acc_project_id,project_name,request_id,last_status,last_error,updated_at) values($1,$2,$3,'ready',null,now()) on conflict (acc_project_id) do update set project_name=excluded.project_name, request_id=excluded.request_id, last_status='ready', last_error=null, updated_at=now()`, [p.id, p.name, id]); }
+      try { const id = await ensureProjectRequest(token, accountId, { id: r.acc_project_id, name: r.project_name }); if (!r.request_id) created++; await q(`update acc_requests set request_id=$2, last_status='ready', last_error=null, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, id]); }
       catch (e: any) { if (/ 429 /.test(String(e.message))) { quota = true; left++; continue; }   /* Autodesk's daily limit: keep what is saved, try again tomorrow */
-        const reason = /403|access level|Forbidden/i.test(String(e.message)) ? 'You are not a Project Admin of this project' : String(e.message).slice(0, 200); skipped.push({ name: p.name, reason }); await q(`insert into acc_requests(acc_project_id,project_name,request_id,last_status,last_error,updated_at) values($1,$2,null,'error',$3,now()) on conflict (acc_project_id) do update set last_status='error', last_error=excluded.last_error, updated_at=now()`, [p.id, p.name, reason]); }
+        const reason = /403|access level|Forbidden/i.test(String(e.message)) ? 'You are not a Project Admin of this project' : String(e.message).slice(0, 200); skipped.push({ name: r.project_name, reason }); await q(`update acc_requests set last_status='error', last_error=$2, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, reason]); }
     }
   };
-  await Promise.all([work(), work(), work(), work(), work(), work()]);
-  const ok = mine.length - skipped.length - left;
-  return { created, skipped, message: mine.length ? `${ok} of ${mine.length} matching ACC project(s) are set up for the daily import${left ? `; ${left} not done yet${quota ? " because Autodesk's daily request limit for your user was reached - press Set up projects again tomorrow" : ' (press Set up projects again)'}` : ''}${skipped.length ? `; skipped: ${skipped.map((s) => `${s.name} (${s.reason})`).join('; ')}` : ''}.` : `No ACC project (of ${hub.length} visible) starts with one of the portal project numbers.` };
+  await Promise.all([work(), work(), work(), work()]);
+  const ok = rows.length - skipped.length - left;
+  return { created, skipped, message: `${ok} of ${rows.length} tracked project(s) are set up for the daily import${left ? `; ${left} not done yet${quota ? " because Autodesk's daily request limit for your user was reached - press Set up projects again tomorrow" : ' (press Set up projects again)'}` : ''}${skipped.length ? `; skipped: ${skipped.map((x) => `${x.name} (${x.reason})`).join('; ')}` : ''}.` };
+}
+/** Every ACC project the signed-in person can see, with what the portal knows about it (for the project picker). */
+export async function pickerProjects(token: string, accountId: string) {
+  const hub = await listHubProjects(token, accountId); const nos = (await q<{ project_no: string }>(`select distinct project_no from projects where project_no is not null and project_no<>''`)).map((r) => r.project_no.toLowerCase());
+  const st = new Map((await q<any>('select acc_project_id,tracked,request_id,once_request_id,last_status,last_error from acc_requests')).map((r: any) => [r.acc_project_id, r]));
+  return hub.map((p) => { const l = p.name.toLowerCase(); const r: any = st.get(p.id); return { id: p.id, name: p.name, matches: nos.some((n) => l === n || l.startsWith(n + '-') || l.startsWith(n + ' ')), tracked: !!r?.tracked, daily: !!r?.request_id, requested: !!r?.once_request_id, error: r?.last_status === 'error' ? (r.last_error ?? 'error') : null }; }).sort((x, y) => x.name.localeCompare(y.name));
 }
 /** Asks Autodesk for a fresh one-time extract of every set-up project. */
 export async function requestNow(token: string, accountId: string): Promise<{ n: number; error?: string }> {
-  const rows = await q<{ acc_project_id: string; project_name: string }>(`select acc_project_id,project_name from acc_requests where request_id is not null and (once_request_id is null or last_status='imported') order by (once_request_id is null) desc, project_name`); let n = 0; let error: string | undefined;
+  const rows = await q<{ acc_project_id: string; project_name: string }>(`select acc_project_id,project_name from acc_requests where tracked and (once_request_id is null or last_status='imported') order by (once_request_id is null) desc, project_name`); let n = 0; let error: string | undefined;
   for (const r of rows) {
     try {
       const made = await aps(token, `/data-connector/v1/accounts/${accountId}/requests`, { method: 'POST', body: JSON.stringify(oneTimeBody(r.acc_project_id)) });
@@ -121,9 +125,8 @@ export interface SyncResult { status: 'imported' | 'up_to_date' | 'waiting'; mes
 /** Imports the newest finished extract of every set-up project (new ones only) and refreshes the statistics. Stops before the server time limit; the next run continues. */
 export async function syncNow(): Promise<SyncResult> {
   const started = Date.now(); const token = await accessToken(); const conn = await one<any>('select * from acc_connection where id=1'); const accountId = conn.account_id as string;
-  let rows = await q<any>(`select * from acc_requests where request_id is not null order by project_name`);
-  if (!rows.length) { await setupRequests(token, accountId); rows = await q<any>(`select * from acc_requests where request_id is not null order by project_name`); }
-  if (!rows.length) { const m = 'No ACC project is set up yet. Check that you are Project Admin of a project whose name starts with its portal project number.'; await q(`update acc_connection set last_status='waiting', last_error=$1, last_sync_at=now() where id=1`, [m]); return { status: 'waiting', message: m }; }
+  const rows = await q<any>(`select * from acc_requests where tracked and (request_id is not null or once_request_id is not null) order by project_name`);
+  if (!rows.length) { const m = 'No tracked project has an extract request yet. Press "Request extract now", tick the projects you want, and request their extract.'; await q(`update acc_connection set last_status='waiting', last_error=$1, last_sync_at=now() where id=1`, [m]); return { status: 'waiting', message: m }; }
   let imported = 0, upToDate = 0, waiting = 0; const problems: string[] = []; const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
   for (const r of rows) {
     if (Date.now() - started > 40000) { problems.push('stopped early (time limit); press Import now again for the rest'); break; }

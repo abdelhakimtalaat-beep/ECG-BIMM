@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { handle } from '@/lib/api';
 import { ApiError, requireUser } from '@/lib/auth';
 import { audit, q } from '@/lib/db';
-import { exchangeCode, findHub, seal, setupRequests } from '@/lib/accApi';
+import { exchangeCode, findHub, seal } from '@/lib/accApi';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
     const hub = await findHub(t.access_token);
     await q(`insert into acc_connection(id,account_id,hub_name,refresh_token,connected_by,connected_at,request_id,last_status,last_error) values(1,$1,$2,$3,$4,now(),null,'connected',null)
       on conflict (id) do update set account_id=excluded.account_id,hub_name=excluded.hub_name,refresh_token=excluded.refresh_token,connected_by=excluded.connected_by,connected_at=now(),request_id=null,last_status='connected',last_error=null`, [hub.account_id, hub.name, seal(t.refresh_token), me.email]);
-    let note = 'connected'; try { note = 'connected. ' + (await setupRequests(t.access_token, hub.account_id)).message; } catch (e: any) { note = 'connected, but setting up the projects failed: ' + String(e?.message ?? e).slice(0, 250); }
+    const note = 'connected. Press "Request extract now" to choose the projects to track.';
     await audit(null, me.email, 'update', 'acc', null, `ACC connected (hub ${hub.name})`);
     const res = done(note); res.cookies.set('acc_state', '', { path: '/api/acc', maxAge: 0 }); return res;
    } catch (e: any) { if (e instanceof ApiError && e.status === 401) throw e; return NextResponse.redirect(new URL(`/admin?acc=${encodeURIComponent(String(e?.message ?? e).slice(0, 400))}`, req.url)); }   // show the reason in Administration > ACC instead of a raw error page

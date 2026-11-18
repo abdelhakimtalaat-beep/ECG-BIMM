@@ -10,7 +10,7 @@ export async function GET() {
     await requireUser(['admin']);
     const c = await one<any>('select account_id,hub_name,connected_by,connected_at,request_id,last_job_id,last_sync_at,last_status,last_error, refresh_token is not null as has_token from acc_connection where id=1');
     const projects = await q<any>(`select s.acc_project_id,s.name,s.synced_at,(select p.id from projects p where p.acc_project_id=s.acc_project_id limit 1) as portal_project_id from acc_project_stats s order by lower(s.name)`);
-    const requests = await q<any>('select acc_project_id,project_name,last_status,last_error,updated_at from acc_requests order by project_name');
+    const requests = await q<any>('select acc_project_id,project_name,last_status,last_error,updated_at from acc_requests where tracked order by project_name');
     return ok({ configured: apsConfigured(), connected: !!c?.has_token, connection: c ? { ...c, refresh_token: undefined } : null, projects, requests });
   });
 }
