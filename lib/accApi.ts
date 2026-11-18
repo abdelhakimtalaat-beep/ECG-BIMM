@@ -90,7 +90,12 @@ export async function setupRequests(token: string, accountId: string): Promise<S
 /** Asks Autodesk for a fresh one-time extract of every set-up project. */
 export async function requestNow(token: string, accountId: string): Promise<number> {
   const rows = await q<{ acc_project_id: string; project_name: string }>(`select acc_project_id,project_name from acc_requests where request_id is not null`); let n = 0;
-  for (const r of rows) { try { await aps(token, `/data-connector/v1/accounts/${accountId}/requests`, { method: 'POST', body: JSON.stringify(dcBody({ description: `${REQ_NAME} (one time) ${r.acc_project_id}`, scheduleInterval: 'ONE_TIME', projectId: r.acc_project_id })) }); n++; } catch { /* reported by the next import */ } }
+  for (const r of rows) {
+    try {
+      const made = await aps(token, `/data-connector/v1/accounts/${accountId}/requests`, { method: 'POST', body: JSON.stringify(dcBody({ description: `${REQ_NAME} (one time) ${r.acc_project_id}`, scheduleInterval: 'ONE_TIME', projectId: r.acc_project_id })) });
+      if (made?.id) await q(`update acc_requests set once_request_id=$2, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, made.id]); n++;
+    } catch (e: any) { if (/ 429 /.test(String(e.message))) break; /* quota reached: stop asking */ }
+  }
   return n;
 }
 async function download(token: string, url: string): Promise<Buffer> {
@@ -114,9 +119,14 @@ export async function syncNow(): Promise<SyncResult> {
   for (const r of rows) {
     if (Date.now() - started > 40000) { problems.push('stopped early (time limit); press Import now again for the rest'); break; }
     try {
-      const jl = await aps(token, `/data-connector/v1/accounts/${accountId}/requests/${r.request_id}/jobs?limit=20&sort=desc`);
-      const jobs = ((jl?.results ?? jl?.data ?? []) as any[]).filter((j) => /complete|success/i.test(String(j.status))).sort((a, b) => String(b.completedAt ?? b.createdAt ?? '').localeCompare(String(a.completedAt ?? a.createdAt ?? '')));
-      if (!jobs.length) { waiting++; continue; } const job = jobs[0];
+      let jobs: any[] = []; const seen: string[] = [];
+      for (const rid of [r.once_request_id, r.request_id].filter(Boolean)) {
+        const jl = await aps(token, `/data-connector/v1/accounts/${accountId}/requests/${rid}/jobs?limit=20&sort=desc`); const all = (jl?.results ?? jl?.data ?? []) as any[];
+        for (const j of all) seen.push(String(j.status ?? '?'));
+        jobs = all.filter((j) => /complete|success/i.test(String(j.status))).sort((a, b) => String(b.completedAt ?? b.createdAt ?? '').localeCompare(String(a.completedAt ?? a.createdAt ?? '')));
+        if (jobs.length) break;
+      }
+      if (!jobs.length) { waiting++; if (seen.length) problems.push(`${r.project_name}: Autodesk job status ${[...new Set(seen)].join('/')}`); continue; } const job = jobs[0];
       if (job.id === r.last_job_id) { upToDate++; continue; }
       const listing = await aps(token, `/data-connector/v1/accounts/${accountId}/jobs/${job.id}/data-listing`); const files = (listing?.results ?? listing?.data ?? listing ?? []) as any[]; const f = files.find((x) => /\.zip$/i.test(String(x.name ?? x))) ?? files[0];
       if (!f) throw new ApiError(502, 'The finished extract has no files');
