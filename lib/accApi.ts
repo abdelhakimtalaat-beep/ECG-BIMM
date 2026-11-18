@@ -42,6 +42,10 @@ async function aps(token: string, path: string, init: RequestInit = {}): Promise
   return j;
 }
 
+/** Raw answer of Autodesk (status + first 1500 characters), for the Diagnose button. */
+export async function apsRaw(token: string, path: string): Promise<string> {
+  const r = await fetch(`${BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } }); const t = await r.text(); return `HTTP ${r.status}\n${t.slice(0, 1500)}`;
+}
 // ---- account, requests, extracts
 export async function findHub(token: string): Promise<{ account_id: string; name: string }> {
   const hubs = ((await aps(token, '/project/v1/hubs')).data ?? []) as any[];

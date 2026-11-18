@@ -13,6 +13,8 @@ export function AccAdmin() {
   const load = useCallback(async () => { try { setS(await api<St>('/api/acc/status')); } catch (e: any) { toast(e.message, 'err'); } }, [toast]);
   useEffect(() => { load(); const m = new URLSearchParams(location.search).get('acc'); if (m) { toast(m.startsWith('connected') ? 'ACC ' + m : m, m.startsWith('connected') && !/failed|skipped/.test(m) ? 'ok' : 'err'); history.replaceState(null, '', '/admin'); } }, [load, toast]);
   const run = async (request_now: boolean) => { setBusy(true); try { const r = await api<{ message: string }>('/api/acc/sync', { body: { request_now } }); toast(r.message); await load(); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
+  const [diag, setDiag] = useState<string | null>(null);
+  const diagnose = async () => { setBusy(true); try { const r = await api<{ text: string }>('/api/acc/diagnose', { body: {} }); setDiag(r.text); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
   const setup = async () => { setBusy(true); try { const r = await api<{ message: string }>('/api/acc/setup', { body: {} }); toast(r.message); await load(); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
   const upload = async (f: File | undefined) => {
     if (!f) return; setBusy(true);
@@ -37,9 +39,10 @@ export function AccAdmin() {
         {c?.last_error && <p className="text-red-600">{c.last_error}</p>}
         <div className="flex flex-wrap gap-2 pt-1">
           <a className={`btn-primary ${!s.configured ? 'pointer-events-none opacity-50' : ''}`} href="/api/acc/connect">{s.connected ? 'Reconnect ACC' : 'Connect ACC'}</a>
-          {s.connected && <><button className="btn-secondary" disabled={busy} onClick={setup} title="Create the daily extract for the ACC projects whose name starts with a portal project number">Set up projects</button><button className="btn-secondary" disabled={busy} onClick={() => run(false)}>Import now</button><button className="btn-secondary" disabled={busy} onClick={() => run(true)} title="Asks Autodesk to prepare a fresh extract (takes some minutes), then press Import now">Request extract now</button><button className="btn-ghost text-red-600" onClick={() => setOff(true)}>Disconnect</button></>}
+          {s.connected && <><button className="btn-secondary" disabled={busy} onClick={setup} title="Create the daily extract for the ACC projects whose name starts with a portal project number">Set up projects</button><button className="btn-secondary" disabled={busy} onClick={() => run(false)}>Import now</button><button className="btn-secondary" disabled={busy} onClick={() => run(true)} title="Asks Autodesk to prepare a fresh extract (takes some minutes), then press Import now">Request extract now</button><button className="btn-secondary" disabled={busy} onClick={diagnose} title="Shows what Autodesk answers for the first set-up project">Diagnose</button><button className="btn-ghost text-red-600" onClick={() => setOff(true)}>Disconnect</button></>}
         </div>
         {busy && <Spinner />}
+        {diag && <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-100 p-3 text-xs">{diag}</pre>}
       </div>
       {s.connected && <div className="card p-4"><h3 className="mb-2 text-sm font-semibold text-brand-900">Projects set up for the daily import ({s.requests?.length ?? 0})</h3>
         {!s.requests?.length ? <p className="text-sm text-slate-500">None yet. Press “Set up projects”. Only ACC projects where you are Project Admin and whose name starts with a portal project number are set up.</p> : <ul className="divide-y divide-slate-100 text-sm">{s.requests.map((r) => <li key={r.acc_project_id} className="flex flex-wrap items-center justify-between gap-2 py-1.5"><span>{r.project_name}</span>{r.last_status === 'error' ? <span className="text-xs text-red-600">{r.last_error}</span> : <Badge tone={r.last_status === 'imported' ? 'green' : 'blue'}>{r.last_status === 'imported' ? 'Imported' : 'Ready'}</Badge>}</li>)}</ul>}</div>}
