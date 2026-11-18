@@ -46,6 +46,11 @@ async function aps(token: string, path: string, init: RequestInit = {}): Promise
 export async function apsRaw(token: string, path: string): Promise<string> {
   const r = await fetch(`${BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } }); const t = await r.text(); return `HTTP ${r.status}\n${t.slice(0, 1500)}`;
 }
+/** Raw answer of a POST to Autodesk (status + first 1500 characters), for the Diagnose button. */
+export async function apsRawPost(token: string, path: string, body: unknown): Promise<string> {
+  const r = await fetch(`${BASE}${path}`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const t = await r.text(); return `HTTP ${r.status}\n${t.slice(0, 1500)}`;
+}
+export const oneTimeBody = (projectId: string) => dcBody({ description: `${REQ_NAME} (one time) ${projectId}`, scheduleInterval: 'ONE_TIME', projectId });
 // ---- account, requests, extracts
 export async function findHub(token: string): Promise<{ account_id: string; name: string }> {
   const hubs = ((await aps(token, '/project/v1/hubs')).data ?? []) as any[];
@@ -92,15 +97,15 @@ export async function setupRequests(token: string, accountId: string): Promise<S
   return { created, skipped, message: mine.length ? `${ok} of ${mine.length} matching ACC project(s) are set up for the daily import${left ? `; ${left} not done yet${quota ? " because Autodesk's daily request limit for your user was reached - press Set up projects again tomorrow" : ' (press Set up projects again)'}` : ''}${skipped.length ? `; skipped: ${skipped.map((s) => `${s.name} (${s.reason})`).join('; ')}` : ''}.` : `No ACC project (of ${hub.length} visible) starts with one of the portal project numbers.` };
 }
 /** Asks Autodesk for a fresh one-time extract of every set-up project. */
-export async function requestNow(token: string, accountId: string): Promise<number> {
-  const rows = await q<{ acc_project_id: string; project_name: string }>(`select acc_project_id,project_name from acc_requests where request_id is not null`); let n = 0;
+export async function requestNow(token: string, accountId: string): Promise<{ n: number; error?: string }> {
+  const rows = await q<{ acc_project_id: string; project_name: string }>(`select acc_project_id,project_name from acc_requests where request_id is not null`); let n = 0; let error: string | undefined;
   for (const r of rows) {
     try {
-      const made = await aps(token, `/data-connector/v1/accounts/${accountId}/requests`, { method: 'POST', body: JSON.stringify(dcBody({ description: `${REQ_NAME} (one time) ${r.acc_project_id}`, scheduleInterval: 'ONE_TIME', projectId: r.acc_project_id })) });
+      const made = await aps(token, `/data-connector/v1/accounts/${accountId}/requests`, { method: 'POST', body: JSON.stringify(oneTimeBody(r.acc_project_id)) });
       if (made?.id) await q(`update acc_requests set once_request_id=$2, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, made.id]); n++;
-    } catch (e: any) { if (/ 429 /.test(String(e.message))) break; /* quota reached: stop asking */ }
+    } catch (e: any) { error = error ?? `${r.project_name}: ${String(e.message).slice(0, 300)}`; if (/ 429 /.test(String(e.message))) break; }
   }
-  return n;
+  return { n, error };
 }
 async function download(token: string, url: string): Promise<Buffer> {
   let r = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, redirect: 'manual' });

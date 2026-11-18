@@ -1,6 +1,6 @@
 import { handle, ok } from '@/lib/api';
 import { requireUser } from '@/lib/auth';
-import { accessToken, apsRaw } from '@/lib/accApi';
+import { accessToken, apsRaw, apsRawPost, oneTimeBody } from '@/lib/accApi';
 import { q, one } from '@/lib/db';
 
 export const maxDuration = 60;
@@ -13,6 +13,7 @@ export async function POST() {
     const t = await accessToken(); const base = `/data-connector/v1/accounts/${c.account_id}`; const out: string[] = [`Project: ${r.project_name}`];
     const calls: [string, string][] = [['Daily request', `${base}/requests/${r.request_id}`], ['Daily request jobs', `${base}/requests/${r.request_id}/jobs?limit=5&sort=desc`]];
     if (r.once_request_id) calls.push(['One-time request jobs', `${base}/requests/${r.once_request_id}/jobs?limit=5&sort=desc`]);
+    if (!r.once_request_id) out.push(`\n== Test: ask for a one-time extract of this project\n${await apsRawPost(t, `${base}/requests`, oneTimeBody(r.acc_project_id))}`);
     for (const [label, path] of calls) out.push(`\n== ${label}\n${await apsRaw(t, path)}`);
     return ok({ text: out.join('\n') });
   });
