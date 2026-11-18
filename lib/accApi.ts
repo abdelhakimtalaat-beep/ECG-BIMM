@@ -50,7 +50,7 @@ export async function apsRaw(token: string, path: string): Promise<string> {
 export async function apsRawPost(token: string, path: string, body: unknown): Promise<string> {
   const r = await fetch(`${BASE}${path}`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const t = await r.text(); return `HTTP ${r.status}\n${t.slice(0, 1500)}`;
 }
-export const oneTimeBody = (projectId: string) => dcBody({ description: `${REQ_NAME} (one time) ${projectId}`, scheduleInterval: 'ONE_TIME', projectId });
+export const oneTimeBody = (projectId: string) => dcBody({ description: `${REQ_NAME} one time extract ${projectId}`, scheduleInterval: 'ONE_TIME', projectId });
 // ---- account, requests, extracts
 export async function findHub(token: string): Promise<{ account_id: string; name: string }> {
   const hubs = ((await aps(token, '/project/v1/hubs')).data ?? []) as any[];
