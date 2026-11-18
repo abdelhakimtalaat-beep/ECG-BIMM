@@ -106,8 +106,10 @@ export async function requestNow(token: string, accountId: string): Promise<{ n:
   for (const r of rows) {
     try {
       const made = await aps(token, `/data-connector/v1/accounts/${accountId}/requests`, { method: 'POST', body: JSON.stringify(oneTimeBody(r.acc_project_id)) });
-      if (made?.id) await q(`update acc_requests set once_request_id=$2, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, made.id]); n++;
-    } catch (e: any) { error = error ?? `${r.project_name}: ${String(e.message).slice(0, 300)}`; if (/ 429 /.test(String(e.message))) break; }
+      if (made?.id) await q(`update acc_requests set once_request_id=$2, last_status='requested', last_error=null, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, made.id]); n++;
+    } catch (e: any) { const quota = / 429 /.test(String(e.message)); error = error ?? `${r.project_name}: ${String(e.message).slice(0, 300)}`;
+      await q(`update acc_requests set last_status='error', last_error=$2, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, quota ? "Autodesk's daily request limit for your user was reached - try again tomorrow" : String(e.message).slice(0, 200)]);
+      if (quota) break; }
   }
   return { n, error };
 }

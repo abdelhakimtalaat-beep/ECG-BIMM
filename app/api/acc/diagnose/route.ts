@@ -8,10 +8,10 @@ export const maxDuration = 60;
 export async function POST() {
   return handle(async () => {
     await requireUser(['admin']); const c = await one<{ account_id: string }>('select account_id from acc_connection where id=1'); if (!c) return ok({ text: 'ACC is not connected' });
-    const rows = await q<any>(`select acc_project_id, project_name, request_id, once_request_id from acc_requests where request_id is not null order by project_name limit 1`); const r = rows[0];
-    if (!r) return ok({ text: 'No project is set up yet' });
+    const rows = await q<any>(`select acc_project_id, project_name, request_id, once_request_id from acc_requests where tracked order by (once_request_id is null), (request_id is null), project_name limit 1`); const r = rows[0];
+    if (!r) return ok({ text: 'No project is tracked yet' });
     const t = await accessToken(); const base = `/data-connector/v1/accounts/${c.account_id}`; const out: string[] = [`Project: ${r.project_name}`];
-    const calls: [string, string][] = [['Daily request', `${base}/requests/${r.request_id}`], ['Daily request jobs', `${base}/requests/${r.request_id}/jobs?limit=5&sort=desc`]];
+    const calls: [string, string][] = r.request_id ? [['Daily request', `${base}/requests/${r.request_id}`], ['Daily request jobs', `${base}/requests/${r.request_id}/jobs?limit=5&sort=desc`]] : [];
     if (r.once_request_id) calls.push(['One-time request jobs', `${base}/requests/${r.once_request_id}/jobs?limit=5&sort=desc`]);
     if (!r.once_request_id) out.push(`\n== Test: ask for a one-time extract of this project\n${await apsRawPost(t, `${base}/requests`, oneTimeBody(r.acc_project_id))}`);
     for (const [label, path] of calls) out.push(`\n== ${label}\n${await apsRaw(t, path)}`);
