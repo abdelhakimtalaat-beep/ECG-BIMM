@@ -98,7 +98,7 @@ export async function setupRequests(token: string, accountId: string): Promise<S
 }
 /** Asks Autodesk for a fresh one-time extract of every set-up project. */
 export async function requestNow(token: string, accountId: string): Promise<{ n: number; error?: string }> {
-  const rows = await q<{ acc_project_id: string; project_name: string }>(`select acc_project_id,project_name from acc_requests where request_id is not null`); let n = 0; let error: string | undefined;
+  const rows = await q<{ acc_project_id: string; project_name: string }>(`select acc_project_id,project_name from acc_requests where request_id is not null and (once_request_id is null or last_status='imported') order by (once_request_id is null) desc, project_name`); let n = 0; let error: string | undefined;
   for (const r of rows) {
     try {
       const made = await aps(token, `/data-connector/v1/accounts/${accountId}/requests`, { method: 'POST', body: JSON.stringify(oneTimeBody(r.acc_project_id)) });
