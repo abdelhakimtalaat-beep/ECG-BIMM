@@ -76,6 +76,14 @@ async function ensureProjectRequest(token: string, accountId: string, p: HubProj
   if (!made?.id) throw new ApiError(502, 'Autodesk did not return the id of the new extract request');
   return made.id;
 }
+/** Extract requests that exist in ACC for ONE project (scheduled in ACC by a Project Admin, or created by the portal), newest first. Only reads. */
+export async function findProjectRequests(token: string, accountId: string, projectId: string): Promise<any[]> {
+  const base = `/data-connector/v1/accounts/${accountId}/requests`; const mine = (r: any) => r?.projectId === projectId || (Array.isArray(r?.projectIdList) && r.projectIdList.includes(projectId));
+  let list: any[] = [];
+  try { const r = await aps(token, `${base}?projectId=${projectId}&limit=100`); list = ((r?.results ?? r?.data ?? []) as any[]); }
+  catch { for (let off = 0; off < 500; off += 100) { const r = await aps(token, `${base}?limit=100&offset=${off}`); const page = ((r?.results ?? r?.data ?? []) as any[]); list.push(...page); if (page.length < 100) break; } }
+  return list.filter((r) => mine(r) && r.isActive !== false).sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')));
+}
 export interface SetupResult { created: number; skipped: { name: string; reason: string }[]; message: string }
 /** Creates (once) a daily extract request for every ACC project whose name starts with a portal project number, or that is already known. */
 export async function setupRequests(token: string, accountId: string): Promise<SetupResult> {
@@ -127,20 +135,22 @@ export interface SyncResult { status: 'imported' | 'up_to_date' | 'waiting'; mes
 /** Imports the newest finished extract of every set-up project (new ones only) and refreshes the statistics. Stops before the server time limit; the next run continues. */
 export async function syncNow(): Promise<SyncResult> {
   const started = Date.now(); const token = await accessToken(); const conn = await one<any>('select * from acc_connection where id=1'); const accountId = conn.account_id as string;
-  const rows = await q<any>(`select * from acc_requests where tracked and (request_id is not null or once_request_id is not null) order by project_name`);
-  if (!rows.length) { const m = 'No tracked project has an extract request yet. Press "Request extract now", tick the projects you want, and request their extract.'; await q(`update acc_connection set last_status='waiting', last_error=$1, last_sync_at=now() where id=1`, [m]); return { status: 'waiting', message: m }; }
+  const rows = await q<any>(`select * from acc_requests where tracked order by project_name`);
+  if (!rows.length) { const m = 'No project is tracked yet. Press "Choose projects" and tick the projects you want.'; await q(`update acc_connection set last_status='waiting', last_error=$1, last_sync_at=now() where id=1`, [m]); return { status: 'waiting', message: m }; }
   let imported = 0, upToDate = 0, waiting = 0; const problems: string[] = []; const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
   for (const r of rows) {
     if (Date.now() - started > 40000) { problems.push('stopped early (time limit); press Import now again for the rest'); break; }
     try {
-      let jobs: any[] = []; const seen: string[] = [];
-      for (const rid of [r.once_request_id, r.request_id].filter(Boolean)) {
-        const jl = await aps(token, `/data-connector/v1/accounts/${accountId}/requests/${rid}/jobs?limit=20&sort=desc`); const all = (jl?.results ?? jl?.data ?? []) as any[];
+      let jobs: any[] = []; const seen: string[] = []; let reqs: any[] = [];
+      try { reqs = await findProjectRequests(token, accountId, r.acc_project_id); } catch { /* listing not allowed: fall back to the requests the portal made itself */ }
+      const ids = [...new Set([...reqs.map((x) => x.id), r.once_request_id, r.request_id].filter(Boolean))].slice(0, 8);
+      for (const rid of ids) {
+        const jl = await aps(token, `/data-connector/v1/accounts/${accountId}/requests/${rid}/jobs?limit=5&sort=desc`); const all = (jl?.results ?? jl?.data ?? []) as any[];
         for (const j of all) seen.push(String(j.status ?? '?'));
-        jobs = all.filter((j) => /complete|success/i.test(String(j.status))).sort((a, b) => String(b.completedAt ?? b.createdAt ?? '').localeCompare(String(a.completedAt ?? a.createdAt ?? '')));
-        if (jobs.length) break;
+        jobs.push(...all.filter((j) => /complete|success/i.test(String(j.status))));
       }
-      if (!jobs.length) { waiting++; if (seen.length) problems.push(`${r.project_name}: Autodesk job status ${[...new Set(seen)].join('/')}`); continue; } const job = jobs[0];
+      jobs.sort((a, b) => String(b.completedAt ?? b.createdAt ?? '').localeCompare(String(a.completedAt ?? a.createdAt ?? '')));
+      if (!jobs.length) { waiting++; problems.push(!ids.length ? `${r.project_name}: no extract is scheduled in ACC for this project (a Project Admin must schedule one)` : seen.length ? `${r.project_name}: Autodesk job status ${[...new Set(seen)].join('/')}` : `${r.project_name}: scheduled in ACC, but no extract has finished yet`); continue; } const job = jobs[0];
       if (job.id === r.last_job_id) { upToDate++; continue; }
       const listing = await aps(token, `/data-connector/v1/accounts/${accountId}/jobs/${job.id}/data-listing`); const files = (listing?.results ?? listing?.data ?? listing ?? []) as any[]; const f = files.find((x) => /\.zip$/i.test(String(x.name ?? x))) ?? files[0];
       if (!f) throw new ApiError(502, 'The finished extract has no files');
@@ -151,7 +161,7 @@ export async function syncNow(): Promise<SyncResult> {
   }
   await q(`update projects p set acc_project_id=s.acc_project_id from acc_project_stats s where p.acc_project_id is null and p.project_no is not null and p.project_no<>'' and (lower(s.name)=lower(p.project_no) or lower(s.name) like lower(p.project_no)||'-%' or lower(s.name) like lower(p.project_no)||' %')`);
   const status = imported ? 'imported' : waiting && !upToDate ? 'waiting' : 'up_to_date';
-  const message = `${imported} project(s) imported, ${upToDate} already up to date, ${waiting} waiting for Autodesk's first extract${problems.length ? `. Problems: ${problems.join(' | ')}` : ''}.`;
+  const message = `${imported} project(s) imported, ${upToDate} already up to date, ${waiting} with no finished extract yet${problems.length ? `. Problems: ${problems.join(' | ')}` : ''}.`;
   await q(`update acc_connection set last_status=$1, last_error=$2, last_sync_at=now() where id=1`, [status, problems.length ? problems.join(' | ').slice(0, 500) : null]);
   return { status, message, projects: imported };
 }

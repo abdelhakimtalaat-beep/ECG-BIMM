@@ -13,3 +13,10 @@
 7. Portfolio → open a project → **ACC statistics** → choose its ACC project (projects whose number starts the ACC project name are linked automatically).
 
 The portal sees only the ACC projects that the signed-in account may extract.
+
+## Recommended way: schedule the extract inside ACC (no request limit)
+
+1. In ACC, open the project as **Project Admin** > **Data Connector** (Insight) > **Schedule extraction**: choose **Daily**, a start time (for example 01:00), all services, and save.
+2. In the portal, **Administration > ACC > Choose projects**: tick the projects to track and save.
+3. The portal imports the newest finished extract of every tracked project by itself every day (Vercel Cron in `vercel.json`, `0 3 * * *` = 03:00 UTC = 05:00 Cairo). Keep the ACC schedule earlier than that time. To change the import time, edit the cron expression (it is in UTC) and push.
+4. **Import now** does the same at any moment. The portal only reads; it creates no request at Autodesk, so Autodesk's daily request limit does not apply.
