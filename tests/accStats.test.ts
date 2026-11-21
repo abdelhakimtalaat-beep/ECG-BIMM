@@ -57,3 +57,14 @@ test('browser zip reader gives the same summary as the server reader', async () 
   const ab = z.buffer.slice(z.byteOffset, z.byteOffset + z.byteLength) as ArrayBuffer;
   const got = await readExtractZip(ab); assert.deepEqual(summarize(got, '2026-11-16'), summarize(files, '2026-11-16'));
 });
+test('review dashboard figures', () => {
+  const f = { 'admin_projects.csv': 'id,name\nP1,Proj\n', 'reviews_reviews.csv': ['id,bim360_project_id,status,is_archived,workflow_name,started_at,finished_at,next_due_date,docs_count,approved_count,rejected_count',
+    'v1,P1,open,f,WF A,2026-10-01 10:00:00,,2026-11-01,2,0,0', 'v2,P1,closed,f,WF A,2026-10-01 00:00:00,2026-10-11 00:00:00,,3,2,1', 'v3,P1,void,f,WF B,2026-09-01 00:00:00,,,1,0,0', 'v4,P1,closed,t,WF B,2026-09-01 00:00:00,2026-09-03 00:00:00,,1,1,0'].join('\n') + '\n',
+    'reviews_review_tasks.csv': 'review_id,bim360_project_id,name,state\nv1,P1,Initial Review,unclaimed\nv1,P1,Initial Review,claimed\nv2,P1,Final Review,unclaimed\nv1,P1,Initial Review,void\n' };
+  const d = summarize(f, '2026-11-16').find((x) => x.project_id === 'P1')!.review_detail!;
+  assert.equal(d.total, 3); assert.equal(d.in_progress, 1); assert.equal(d.closed, 1); assert.equal(d.void, 1); assert.equal(d.overdue, 1); assert.equal(d.avg_days, 10);
+  assert.equal(d.docs, 6); assert.equal(d.approved_docs, 2); assert.equal(d.rejected_docs, 1);
+  assert.deepEqual(d.by_workflow.map((w) => [w.name, w.total, w.in_progress, w.closed]), [['WF A', 2, 1, 1], ['WF B', 1, 0, 0]]);
+  assert.deepEqual(d.pending_tasks, [{ name: 'Initial Review', unclaimed: 1, claimed: 1 }]);
+  assert.equal(d.monthly.find((m) => m.month === '2026-10')!.started, 2); assert.equal(d.monthly.find((m) => m.month === '2026-10')!.finished, 1);
+});

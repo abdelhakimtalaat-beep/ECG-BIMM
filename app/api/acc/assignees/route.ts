@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   return handle(async () => {
     await requireTab('/acc-stats');
-    const rows = await q<any>(`select p.id,p.name,p.project_no,s.acc_project_id,s.synced_at,s.stats->'assignees' as assignees,s.stats->'locations' as locations,s.stats->'matrix' as matrix,(s.stats->'issues'->>'total')::int as total from projects p join acc_project_stats s on s.acc_project_id=p.acc_project_id order by p.project_no nulls last, lower(p.name)`);
+    const rows = await q<any>(`select p.id,p.name,p.project_no,s.acc_project_id,s.synced_at,s.stats->'assignees' as assignees,s.stats->'locations' as locations,s.stats->'matrix' as matrix,s.stats->'review_detail' as review_detail,(s.stats->'issues'->>'total')::int as total from projects p join acc_project_stats s on s.acc_project_id=p.acc_project_id order by p.project_no nulls last, lower(p.name)`);
     return ok({ projects: rows });
   });
 }
