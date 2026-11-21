@@ -76,14 +76,13 @@ async function ensureProjectRequest(token: string, accountId: string, p: HubProj
   if (!made?.id) throw new ApiError(502, 'Autodesk did not return the id of the new extract request');
   return made.id;
 }
-/** Extract requests that exist in ACC for ONE project (scheduled in ACC by a Project Admin, or created by the portal), newest first. Only reads. */
-export async function findProjectRequests(token: string, accountId: string, projectId: string): Promise<any[]> {
-  const base = `/data-connector/v1/accounts/${accountId}/requests`; const mine = (r: any) => r?.projectId === projectId || (Array.isArray(r?.projectIdList) && r.projectIdList.includes(projectId));
-  let list: any[] = [];
-  try { const r = await aps(token, `${base}?projectId=${projectId}&limit=100`); list = ((r?.results ?? r?.data ?? []) as any[]); }
-  catch { for (let off = 0; off < 500; off += 100) { const r = await aps(token, `${base}?limit=100&offset=${off}`); const page = ((r?.results ?? r?.data ?? []) as any[]); list.push(...page); if (page.length < 100) break; } }
-  return list.filter((r) => mine(r) && r.isActive !== false).sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')));
+/** Every extract request of the account that the signed-in person can see (scheduled in ACC or created by the portal). Only reads. Note: Autodesk ignores a projectId filter here, so the caller filters. */
+export async function listAllRequests(token: string, accountId: string): Promise<any[]> {
+  const out: any[] = [];
+  for (let off = 0; off < 1000; off += 100) { const r = await aps(token, `/data-connector/v1/accounts/${accountId}/requests?limit=100&offset=${off}`); const page = ((r?.results ?? r?.data ?? []) as any[]); out.push(...page); if (page.length < 100) break; }
+  return out;
 }
+export const requestsOfProject = (all: any[], projectId: string): any[] => all.filter((r) => (r?.projectId === projectId || (Array.isArray(r?.projectIdList) && r.projectIdList.includes(projectId))) && r.isActive !== false).sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')));
 export interface SetupResult { created: number; skipped: { name: string; reason: string }[]; message: string }
 /** Creates (once) a daily extract request for every ACC project whose name starts with a portal project number, or that is already known. */
 export async function setupRequests(token: string, accountId: string): Promise<SetupResult> {
@@ -102,11 +101,18 @@ export async function setupRequests(token: string, accountId: string): Promise<S
   const ok = rows.length - skipped.length - left;
   return { created, skipped, message: `${ok} of ${rows.length} tracked project(s) are set up for the daily import${left ? `; ${left} not done yet${quota ? " because Autodesk's daily request limit for your user was reached - press Set up projects again tomorrow" : ' (press Set up projects again)'}` : ''}${skipped.length ? `; skipped: ${skipped.map((x) => `${x.name} (${x.reason})`).join('; ')}` : ''}.` };
 }
+/** What exists in ACC for a project: a daily schedule, or only one-time extracts (with the date of the newest). */
+const accInfo = (reqs: any[]): { acc: 'daily' | 'once' | null; accDate: string | null } => {
+  if (!reqs.length) return { acc: null, accDate: null };
+  const daily = reqs.some((r) => r.scheduleInterval && r.scheduleInterval !== 'ONE_TIME'); const d = reqs.map((r) => String(r.lastQueuedAt ?? r.createdAt ?? '')).sort().pop() ?? '';
+  return { acc: daily ? 'daily' : 'once', accDate: d ? d.slice(0, 10) : null };
+};
 /** Every ACC project the signed-in person can see, with what the portal knows about it (for the project picker). */
 export async function pickerProjects(token: string, accountId: string) {
   const hub = await listHubProjects(token, accountId); const nos = (await q<{ project_no: string }>(`select distinct project_no from projects where project_no is not null and project_no<>''`)).map((r) => r.project_no.toLowerCase());
+  let allReq: any[] = []; try { allReq = await listAllRequests(token, accountId); } catch { /* listing not allowed */ }
   const st = new Map((await q<any>('select acc_project_id,tracked,request_id,once_request_id,last_status,last_error from acc_requests')).map((r: any) => [r.acc_project_id, r]));
-  return hub.map((p) => { const l = p.name.toLowerCase(); const r: any = st.get(p.id); return { id: p.id, name: p.name, matches: nos.some((n) => l === n || l.startsWith(n + '-') || l.startsWith(n + ' ')), tracked: !!r?.tracked, daily: !!r?.request_id, requested: !!r?.once_request_id, error: r?.last_status === 'error' ? (r.last_error ?? 'error') : null }; }).sort((x, y) => x.name.localeCompare(y.name));
+  return hub.map((p) => { const l = p.name.toLowerCase(); const r: any = st.get(p.id); return { id: p.id, name: p.name, matches: nos.some((n) => l === n || l.startsWith(n + '-') || l.startsWith(n + ' ')), tracked: !!r?.tracked, daily: !!r?.request_id, requested: !!r?.once_request_id, error: r?.last_status === 'error' ? (r.last_error ?? 'error') : null, ...accInfo(requestsOfProject(allReq, p.id)) }; }).sort((x, y) => x.name.localeCompare(y.name));
 }
 /** Asks Autodesk for a fresh one-time extract of every set-up project. */
 export async function requestNow(token: string, accountId: string): Promise<{ n: number; error?: string }> {
@@ -137,12 +143,12 @@ export async function syncNow(): Promise<SyncResult> {
   const started = Date.now(); const token = await accessToken(); const conn = await one<any>('select * from acc_connection where id=1'); const accountId = conn.account_id as string;
   const rows = await q<any>(`select * from acc_requests where tracked order by project_name`);
   if (!rows.length) { const m = 'No project is tracked yet. Press "Choose projects" and tick the projects you want.'; await q(`update acc_connection set last_status='waiting', last_error=$1, last_sync_at=now() where id=1`, [m]); return { status: 'waiting', message: m }; }
+  let allReq: any[] = []; try { allReq = await listAllRequests(token, accountId); } catch { /* listing not allowed: the portal's own requests are still read */ }
   let imported = 0, upToDate = 0, waiting = 0; const problems: string[] = []; const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
   for (const r of rows) {
     if (Date.now() - started > 40000) { problems.push('stopped early (time limit); press Import now again for the rest'); break; }
     try {
-      let jobs: any[] = []; const seen: string[] = []; let reqs: any[] = [];
-      try { reqs = await findProjectRequests(token, accountId, r.acc_project_id); } catch { /* listing not allowed: fall back to the requests the portal made itself */ }
+      let jobs: any[] = []; const seen: string[] = []; const reqs = requestsOfProject(allReq, r.acc_project_id);
       const ids = [...new Set([...reqs.map((x) => x.id), r.once_request_id, r.request_id].filter(Boolean))].slice(0, 8);
       for (const rid of ids) {
         const jl = await aps(token, `/data-connector/v1/accounts/${accountId}/requests/${rid}/jobs?limit=5&sort=desc`); const all = (jl?.results ?? jl?.data ?? []) as any[];
@@ -150,13 +156,15 @@ export async function syncNow(): Promise<SyncResult> {
         jobs.push(...all.filter((j) => /complete|success/i.test(String(j.status))));
       }
       jobs.sort((a, b) => String(b.completedAt ?? b.createdAt ?? '').localeCompare(String(a.completedAt ?? a.createdAt ?? '')));
-      if (!jobs.length) { waiting++; problems.push(!ids.length ? `${r.project_name}: no extract is scheduled in ACC for this project (a Project Admin must schedule one)` : seen.length ? `${r.project_name}: Autodesk job status ${[...new Set(seen)].join('/')}` : `${r.project_name}: scheduled in ACC, but no extract has finished yet`); continue; } const job = jobs[0];
+      if (!jobs.length) { waiting++; const why = (!ids.length ? `${r.project_name}: no extract is scheduled in ACC for this project (a Project Admin must schedule one)` : seen.length ? `${r.project_name}: Autodesk job status ${[...new Set(seen)].join('/')}` : `${r.project_name}: scheduled in ACC, but no extract has finished yet`); problems.push(why); await q(`update acc_requests set last_status='waiting', last_error=$2, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, why.slice(0, 300)]); continue; } const job = jobs[0];
       if (job.id === r.last_job_id) { upToDate++; continue; }
+      const doneAt = String(job.completedAt ?? job.createdAt ?? ''); const old = doneAt && Date.now() - Date.parse(doneAt) > 3 * 86400000;
       const listing = await aps(token, `/data-connector/v1/accounts/${accountId}/jobs/${job.id}/data-listing`); const files = (listing?.results ?? listing?.data ?? listing ?? []) as any[]; const f = files.find((x) => /\.zip$/i.test(String(x.name ?? x))) ?? files[0];
       if (!f) throw new ApiError(502, 'The finished extract has no files');
       const zip = await download(token, `${BASE}/data-connector/v1/accounts/${accountId}/jobs/${job.id}/data/${encodeURIComponent(f.name ?? f)}`);
       for (const s of summarizeZip(zip, today)) await q(`insert into acc_project_stats(acc_project_id,name,stats,synced_at) values($1,$2,$3,now()) on conflict (acc_project_id) do update set name=excluded.name, stats=excluded.stats, synced_at=now()`, [s.project_id, s.name, JSON.stringify(s)]);
-      await q(`update acc_requests set last_job_id=$2, last_status='imported', last_error=null, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, job.id]); imported++;
+      const note = old ? `Imported an OLD extract (${doneAt.slice(0, 10)}); schedule a daily extract in ACC to keep it current` : null; if (note) problems.push(`${r.project_name}: ${note}`);
+      await q(`update acc_requests set last_job_id=$2, last_status='imported', last_error=$3, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, job.id, note]); imported++;
     } catch (e: any) { problems.push(`${r.project_name}: ${String(e.message).slice(0, 160)}`); await q(`update acc_requests set last_status='error', last_error=$2, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, String(e.message).slice(0, 300)]); }
   }
   await q(`update projects p set acc_project_id=s.acc_project_id from acc_project_stats s where p.acc_project_id is null and p.project_no is not null and p.project_no<>'' and (lower(s.name)=lower(p.project_no) or lower(s.name) like lower(p.project_no)||'-%' or lower(s.name) like lower(p.project_no)||' %')`);

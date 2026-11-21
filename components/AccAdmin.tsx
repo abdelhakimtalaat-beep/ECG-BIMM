@@ -48,7 +48,7 @@ export function AccAdmin() {
         {diag && <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-100 p-3 text-xs">{diag}</pre>}
       </div>
       {s.connected && <div className="card p-4"><h3 className="mb-2 text-sm font-semibold text-brand-900">Tracked projects ({s.requests?.length ?? 0})</h3>
-        {!s.requests?.length ? <p className="text-sm text-slate-500">None yet. Press “Choose projects” and tick the projects you want to track.</p> : <ul className="divide-y divide-slate-100 text-sm">{s.requests.map((r) => <li key={r.acc_project_id} className="flex flex-wrap items-center justify-between gap-2 py-1.5"><span>{r.project_name}</span>{r.last_status === 'error' ? <span className="text-xs text-red-600">{r.last_error}</span> : r.last_status === 'imported' ? <Badge tone="green">Imported</Badge> : r.once_request_id || r.request_id ? <Badge tone="blue">Waiting for the first finished extract</Badge> : <Badge tone="gray">Tracked - imported when an extract exists in ACC</Badge>}</li>)}</ul>}</div>}
+        {!s.requests?.length ? <p className="text-sm text-slate-500">None yet. Press “Choose projects” and tick the projects you want to track.</p> : <ul className="divide-y divide-slate-100 text-sm">{s.requests.map((r) => <li key={r.acc_project_id} className="flex flex-wrap items-center justify-between gap-2 py-1.5"><span>{r.project_name}</span>{r.last_status === 'error' ? <span className="text-xs text-red-600">{r.last_error}</span> : r.last_status === 'waiting' && r.last_error ? <span className="text-xs text-amber-700">{r.last_error}</span> : r.last_status === 'imported' ? <span className="flex items-center gap-2"><Badge tone="green">Imported</Badge>{r.last_error && <span className="text-xs text-amber-700">{r.last_error}</span>}</span> : r.once_request_id || r.request_id ? <Badge tone="blue">Waiting for the first finished extract</Badge> : <Badge tone="gray">Tracked - imported when an extract exists in ACC</Badge>}</li>)}</ul>}</div>}
       <div className="card space-y-2 p-4 text-sm"><h3 className="text-sm font-semibold text-brand-900">Upload an ACC extract (no connection needed)</h3>
         <p className="text-slate-600">In ACC create a Data Connector extract, download its zip and choose it here. The file is read in your browser; only totals per project, role and assignee are sent to the portal (no e-mail addresses).</p>
         <input type="file" accept=".zip,application/zip" disabled={busy} className="block text-sm" onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ''; }} /></div>
@@ -60,7 +60,7 @@ export function AccAdmin() {
     </div>);
 }
 
-interface PickRow { id: string; name: string; matches: boolean; tracked: boolean; daily: boolean; requested: boolean; error: string | null }
+interface PickRow { id: string; name: string; matches: boolean; tracked: boolean; daily: boolean; requested: boolean; error: string | null; acc?: 'daily' | 'once' | null; accDate?: string | null }
 /** Lists every ACC project the connected account can see; the ticked ones are tracked and requested from Autodesk. */
 function Picker({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const toast = useToast(); const [rows, setRows] = useState<PickRow[] | null>(null); const [sel, setSel] = useState<Set<string>>(new Set()); const [qs, setQs] = useState(''); const [busy, setBusy] = useState(false);
@@ -83,7 +83,7 @@ function Picker({ onClose, onDone }: { onClose: () => void; onDone: () => void }
         <ul className="max-h-[50vh] divide-y divide-slate-100 overflow-auto rounded-lg border border-slate-200 text-sm">
           {shown.map((p) => <li key={p.id}><label className="flex cursor-pointer items-start gap-3 px-3 py-2 hover:bg-slate-50"><input type="checkbox" className="mt-1 h-4 w-4" checked={sel.has(p.id)} onChange={() => toggle(p.id)} />
             <span className="flex-1"><span className="block">{p.name}</span>{p.error && <span className="block text-xs text-red-600">{p.error.slice(0, 120)}</span>}</span>
-            <span className="flex shrink-0 gap-1">{p.matches && <Badge tone="blue">In portal</Badge>}{p.daily && <Badge tone="green">Daily set up</Badge>}{p.requested && <Badge tone="gray">Requested</Badge>}</span></label></li>)}
+            <span className="flex shrink-0 gap-1">{p.matches && <Badge tone="blue">In portal</Badge>}{p.acc === 'daily' && <Badge tone="green">Daily extract in ACC</Badge>}{p.acc === 'once' && <Badge tone="amber">One-time extract only{p.accDate ? ` (${p.accDate})` : ''}</Badge>}{!p.acc && <Badge tone="gray">No extract in ACC</Badge>}{p.daily && <Badge tone="green">Daily set up</Badge>}{p.requested && <Badge tone="gray">Requested</Badge>}</span></label></li>)}
           {!shown.length && <li className="px-3 py-4 text-slate-500">No project matches.</li>}
         </ul></div>}
     </Modal>);
