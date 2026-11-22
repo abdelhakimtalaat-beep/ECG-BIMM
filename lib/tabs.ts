@@ -1,6 +1,6 @@
 // Platform tabs an Administrator can enable per read-only user. Pure; unit tested.
 export const TAB_LIST = [
-  { href: '/', label: 'Executive Dashboard' }, { href: '/org', label: 'Org Chart' }, { href: '/projects', label: 'Portfolio' }, { href: '/teams', label: 'Projects Workload' },
+  { href: '/', label: 'Executive Dashboard' }, { href: '/org', label: 'Org Chart' }, { href: '/projects', label: 'Portfolio' }, { href: '/projects/map', label: 'Projects Map' }, { href: '/teams', label: 'Projects Workload' },
   { href: '/tasks', label: 'Tasks' }, { href: '/vacations', label: 'Vacations' }, { href: '/reels', label: 'BIM Reels' }, { href: '/courses', label: 'Internal Courses' }, { href: '/contacts', label: 'Contacts' }, { href: '/meetings', label: 'Meetings' },
   { href: '/process-map', label: 'BIM Process Map' }, { href: '/acc-stats', label: 'ACC Statistics' }, { href: '/proposals', label: 'Proposals' }, { href: '/email-templates', label: 'Emails Template' }, { href: '/evaluation', label: 'Evaluation' }, { href: '/wishes', label: 'Wish List' },
 ] as const;

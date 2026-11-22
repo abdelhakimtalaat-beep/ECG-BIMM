@@ -14,8 +14,8 @@ export async function GET() {
     }
     if (me.is_guest) { // general access: project data only when a tab that needs it is enabled
       const any = (...t: string[]) => t.some((x) => canSeeTab(me, x));
-      if (!any('/projects', '/', '/teams', '/acc-stats', '/process-map', '/org', '/tasks')) { data.projects = []; data.assignments = []; }
-      if (!any('/projects', '/')) data.history = [];
+      if (!any('/projects', '/projects/map', '/', '/teams', '/acc-stats', '/process-map', '/org', '/tasks')) { data.projects = []; data.assignments = []; }
+      if (!any('/projects', '/projects/map', '/')) data.history = [];
     }
     return ok({ me, data }); });
 }
