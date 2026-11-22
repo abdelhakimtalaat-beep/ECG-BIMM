@@ -12,7 +12,7 @@ export function AccAdmin() {
   const toast = useToast(); const [s, setS] = useState<St | null>(null); const [busy, setBusy] = useState(false); const [off, setOff] = useState(false);
   const load = useCallback(async () => { try { setS(await api<St>('/api/acc/status')); } catch (e: any) { toast(e.message, 'err'); } }, [toast]);
   useEffect(() => { load(); const m = new URLSearchParams(location.search).get('acc'); if (m) { toast(m.startsWith('connected') ? 'ACC ' + m : m, m.startsWith('connected') && !/failed|skipped/.test(m) ? 'ok' : 'err'); history.replaceState(null, '', '/admin'); } }, [load, toast]);
-  const run = async (request_now: boolean) => { setBusy(true); try { let r = { message: '', more: false as boolean | undefined }; for (let i = 0; i < 8; i++) { r = await api<{ message: string; more?: boolean }>('/api/acc/sync', { body: { request_now: request_now && i === 0 } }); if (!r.more) break; } toast(r.message); await load(); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
+  const run = async (request_now: boolean) => { setBusy(true); try { let r: { message: string; more?: boolean } = { message: '' }; for (let i = 0; i < 8; i++) { r = await api<{ message: string; more?: boolean }>('/api/acc/sync', { body: { request_now: request_now && i === 0 } }); if (!r.more) break; } toast(r.message); await load(); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
   const [diag, setDiag] = useState<string | null>(null); const [pick, setPick] = useState(false);
   const diagnose = async () => { setBusy(true); try { const r = await api<{ text: string }>('/api/acc/diagnose', { body: {} }); setDiag(r.text); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
   const setup = async () => { setBusy(true); try { const r = await api<{ message: string }>('/api/acc/setup', { body: {} }); toast(r.message); await load(); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
@@ -70,7 +70,7 @@ function Picker({ onClose, onDone }: { onClose: () => void; onDone: () => void }
   const old = (d: string) => !!d && Date.now() - Date.parse(d) > 3 * 86400000;
   const go = async () => {
     setBusy(true);
-    try { const projects = (rows ?? []).filter((p) => sel.has(p.id)).map((p) => ({ id: p.id, name: p.name })); let r = { message: '', more: false as boolean | undefined };
+    try { const projects = (rows ?? []).filter((p) => sel.has(p.id)).map((p) => ({ id: p.id, name: p.name })); let r: { message: string; more?: boolean } = { message: '' };
       for (let i = 0; i < 8; i++) { r = await api<{ message: string; more?: boolean }>('/api/acc/sync', { body: { projects } }); if (!r.more) break; }
       toast(r.message); onDone(); onClose(); }
     catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); }
