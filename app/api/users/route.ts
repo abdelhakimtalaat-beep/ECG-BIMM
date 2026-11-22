@@ -8,7 +8,7 @@ const tabsSchema = z.array(z.enum(TAB_HREFS as [string, ...string[]])).min(1, 'C
 export async function GET() {
   return handle(async () => {
     await requireUser(['admin']);
-    return ok(await q('select id,email,full_name,role,employee_id,allowed_tabs,active,last_login_at,created_at from users order by email'));
+    return ok(await q('select id,email,full_name,role,employee_id,allowed_tabs,active,last_login_at,created_at from users where not is_guest order by email'));
   });
 }
 // A portal user is created FROM an employee: the sign-in e-mail is the employee's work e-mail, so it cannot be mistyped or invented.

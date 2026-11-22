@@ -6,12 +6,13 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { ImportWizard } from '@/components/ImportWizard';
 import { AccAdmin } from '@/components/AccAdmin';
+import { GuestAccessAdmin } from '@/components/GuestAccessAdmin';
 import { Badge, Field, Modal, PageHeader, Spinner, useToast } from '@/components/ui';
 import { api, fmtDate, roleLabel } from '@/lib/client';
 import { STATUSES, type Role } from '@/lib/types';
 import { DEFAULT_FACTORS, FACTOR_GROUPS, FACTOR_TITLES, type Factors } from '@/lib/workload';
 
-const TABS = [['users', 'Users & roles'], ['factors', 'Workload factors'], ['status', 'Status mapping'], ['quality', 'Data quality'], ['import', 'Import & history'], ['audit', 'Audit log'], ['brand', 'Branding & backup'], ['acc', 'ACC']] as const;
+const TABS = [['users', 'Users & roles'], ['factors', 'Workload factors'], ['status', 'Status mapping'], ['quality', 'Data quality'], ['import', 'Import & history'], ['audit', 'Audit log'], ['brand', 'Branding & backup'], ['guest', 'General access'], ['acc', 'ACC']] as const;
 
 export default function AdminPage() {
   const { me } = useApp(); const router = useRouter();
@@ -23,7 +24,7 @@ export default function AdminPage() {
     <>
       <PageHeader title="Administration" subtitle="Users, status mapping, data quality, imports and audit trail. Visible to the Department Manager / Administrator only." />
       <div className="mb-4 flex flex-wrap gap-1 border-b border-slate-200" role="tablist">{TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${tab === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{l}</button>)}</div>
-      {tab === 'users' && <Users />}{tab === 'factors' && <Factors />}{tab === 'status' && <StatusMapping />}{tab === 'quality' && <Quality />}{tab === 'import' && <Imports />}{tab === 'audit' && <Audit />}{tab === 'brand' && <Brand />}{tab === 'acc' && <AccAdmin />}
+      {tab === 'users' && <Users />}{tab === 'factors' && <Factors />}{tab === 'status' && <StatusMapping />}{tab === 'quality' && <Quality />}{tab === 'import' && <Imports />}{tab === 'audit' && <Audit />}{tab === 'brand' && <Brand />}{tab === 'guest' && <GuestAccessAdmin />}{tab === 'acc' && <AccAdmin />}
     </>
   );
 }

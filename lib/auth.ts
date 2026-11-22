@@ -1,9 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { one } from './db';
 import type { Me, Role } from './types';
 import { canSeeTab } from './tabs';
+import { guestApiAllowed } from './guest';
+import { getGuestCfg } from './guestServer';
 
 export const COOKIE = 'ecg_session';
 const MAX_AGE = 60 * 60 * 10; // 10 hours
@@ -31,14 +33,16 @@ export async function currentUser(): Promise<Me | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret());
-    const u = await one<Me & { active: boolean }>('select id,email,full_name,role,employee_id,allowed_tabs,active from users where id=$1', [payload.uid]);
+    const u = await one<Me & { active: boolean; is_guest: boolean }>('select id,email,full_name,role,employee_id,allowed_tabs,active,is_guest from users where id=$1', [payload.uid]);
     if (!u || !u.active) return null;
+    if (u.is_guest) { const g = await getGuestCfg(); if (!g.enabled) return null; return { id: u.id, email: u.email, full_name: u.full_name, role: 'viewer', employee_id: null, allowed_tabs: g.tabs, is_guest: true }; }   /* general access: always read only, tabs from the Administrator's setting */
     return { id: u.id, email: u.email, full_name: u.full_name, role: u.role, employee_id: u.employee_id, allowed_tabs: u.allowed_tabs ?? null };
   } catch { return null; }
 }
 export async function requireUser(roles?: Role[]): Promise<Me> {
   const u = await currentUser();
   if (!u) throw new ApiError(401, 'Not signed in');
+  if (u.is_guest) { const h = await headers(); if (!guestApiAllowed(h.get('x-ecg-method'), h.get('x-ecg-path'), u.allowed_tabs ?? [])) throw new ApiError(403, 'This is not available with general access'); }
   if (roles && !roles.includes(u.role)) throw new ApiError(403, 'You do not have permission to do this');
   return u;
 }
