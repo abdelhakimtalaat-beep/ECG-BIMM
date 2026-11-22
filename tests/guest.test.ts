@@ -22,3 +22,7 @@ test('a guest may only read what the enabled tabs need', () => {
   assert.equal(guestApiAllowed('GET', '/api/employees', ['/org']), true); assert.equal(guestApiAllowed('GET', '/api/employees', ['/projects']), false);
   assert.equal(guestApiAllowed(null, '/api/data', t), false); assert.equal(guestApiAllowed('GET', null, t), false);   // fails closed without the request details
 });
+test('guests may open the 3D model of a project but not choose it', () => {
+  assert.equal(guestApiAllowed('GET', '/api/acc/model', ['/projects']), true); assert.equal(guestApiAllowed('GET', '/api/acc/model', ['/tasks']), false);
+  assert.equal(guestApiAllowed('GET', '/api/acc/model/browse', ['/projects']), false); assert.equal(guestApiAllowed('PUT', '/api/acc/model', ['/projects']), false); assert.equal(guestApiAllowed('DELETE', '/api/acc/model', ['/projects']), false);
+});

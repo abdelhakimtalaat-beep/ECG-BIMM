@@ -2,6 +2,7 @@
 import { compareByManagerThenStatus, compareByStatusThenManager } from '@/lib/projectSort';
 import { Suspense, useMemo, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { ModelButton } from '@/components/ModelButton';
 import { Download, ExternalLink, FileSpreadsheet, FileText, LayoutGrid, Plus, Table2, Upload } from 'lucide-react';
 import { useApp } from '@/components/store';
 import { FilterBar, filtersToText } from '@/components/FilterBar';
@@ -44,7 +45,7 @@ function Inner() {
   const cols: Col<Project>[] = [
     { key: 'no', header: 'Project No.', render: (p) => <span className="whitespace-nowrap">{p.project_no ?? <Badge tone="amber">missing</Badge>}{p.project_no && (sharedNo.get(p.project_no.toLowerCase()) || 0) > 1 && <span title="This project number is shared by several project records (packages or duplicates)"> <Badge tone="amber">shared</Badge></span>}</span>, sort: (p) => p.project_no, frozen: true },
     { key: 'name', header: 'Project name', render: (p) => <span className="font-medium text-brand-900">{p.name}</span>, sort: (p) => p.name.toLowerCase(), className: 'min-w-[16rem]' },
-    { key: 'status', header: 'Status', render: (p) => <span className="flex items-center gap-1.5"><StatusBadge status={p.status} /><FormaButton url={p.forma_url} /></span>, sort: (p) => p.status },
+    { key: 'status', header: 'Status', render: (p) => <span className="flex items-center gap-1.5"><StatusBadge status={p.status} /><FormaButton url={p.forma_url} /><ModelButton id={p.id} name={p.name} /></span>, sort: (p) => p.status },
     { key: 'mgr', header: 'BIM Manager', render: (p) => mgrOf.m.get(p.id) ?? <Badge tone="red">none</Badge>, sort: (p) => mgrOf.m.get(p.id) ?? '' },
     { key: 'coord', header: 'BIM Coordinator', render: (p) => mgrOf.c.get(p.id) ?? '—', sort: (p) => mgrOf.c.get(p.id) ?? '', hideBelow: 'md' },
     { key: 'deltek', header: 'Deltek No.', render: (p) => p.deltek_number ?? '—', sort: (p) => p.deltek_number ?? '', hideBelow: 'md' },
@@ -92,7 +93,7 @@ function Inner() {
         ? <DataTable rows={sorted} cols={cols} rowKey={(p) => p.id} onRow={(p) => open(p.id)} selectable={['admin', 'bim_manager', 'bim_coordinator'].includes(me.role)} selected={sel} onSelect={setSel} pageSize={Math.max(25, sorted.length)} />
         : <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{sorted.map((p) => (
             <div key={p.id} role="button" tabIndex={0} onClick={() => open(p.id)} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(p.id); } }} className="card cursor-pointer overflow-hidden text-left transition hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"><ProjectPhoto project={p} className="aspect-[2/1] w-full" />
-              <div className="space-y-2 p-4"><div className="flex items-start justify-between gap-2"><h3 className="font-semibold leading-snug text-brand-900">{p.name}</h3><span className="flex shrink-0 items-center gap-1.5"><FormaButton url={p.forma_url} /><StatusBadge status={p.status} className="shrink-0" /></span></div>
+              <div className="space-y-2 p-4"><div className="flex items-start justify-between gap-2"><h3 className="font-semibold leading-snug text-brand-900">{p.name}</h3><span className="flex shrink-0 items-center gap-1.5"><FormaButton url={p.forma_url} /><ModelButton id={p.id} name={p.name} /><StatusBadge status={p.status} className="shrink-0" /></span></div>
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs"><dt className="text-slate-500">Project no.</dt><dd>{p.project_no ?? '—'}</dd><dt className="text-slate-500">Built-up area</dt><dd>{hasArea(p) ? fmtNum(p.built_up_area) : '—'}</dd>
                   <dt className="text-slate-500">BIM Manager</dt><dd className="truncate">{mgrOf.m.get(p.id) ?? '—'}</dd><dt className="text-slate-500">BIM Coordinator</dt><dd className="truncate">{mgrOf.c.get(p.id) ?? '—'}</dd><dt className="text-slate-500">Deltek no.</dt><dd className="truncate">{p.deltek_number ?? '—'}</dd><dt className="text-slate-500">Client</dt><dd className="truncate">{p.client ?? '—'}</dd><dt className="text-slate-500">Project Manager</dt><dd className="truncate">{p.project_manager ?? '—'}</dd><dt className="text-slate-500">Technical Manager</dt><dd className="truncate">{p.technical_manager ?? '—'}</dd><dt className="text-slate-500">CDE · Type</dt><dd>{p.cde ?? '—'} · {p.type ?? '—'}</dd><dt className="text-slate-500">Last updated</dt><dd>{fmtDate(p.updated_at)}</dd></dl></div></div>))}
             </div>}

@@ -7,6 +7,8 @@ import { summarizeZip } from './accStats';
 
 const BASE = 'https://developer.api.autodesk.com';
 export const SCOPES = 'data:read data:write data:create account:read';
+/** Scopes asked when connecting. viewables:read lets the portal open models in the 3D viewer (the stored token is only ever used with a smaller scope in the browser). */
+export const AUTH_SCOPES = SCOPES + ' viewables:read';
 const REQ_NAME = 'ECG BIM Portal daily extract';
 export const apsConfigured = () => !!(process.env.APS_CLIENT_ID && process.env.APS_CLIENT_SECRET);
 const need = () => { if (!apsConfigured()) throw new ApiError(400, 'APS_CLIENT_ID / APS_CLIENT_SECRET are not set in the server environment'); return { id: process.env.APS_CLIENT_ID!, secret: process.env.APS_CLIENT_SECRET! }; };
@@ -18,8 +20,8 @@ export function unseal(s: string): string { const [iv, tag, enc] = s.split('.').
 
 // ---- OAuth
 const basic = () => { const c = need(); return 'Basic ' + Buffer.from(`${c.id}:${c.secret}`).toString('base64'); };
-export const authorizeUrl = (redirect: string, state: string) => `${BASE}/authentication/v2/authorize?${new URLSearchParams({ response_type: 'code', client_id: need().id, redirect_uri: redirect, scope: SCOPES, state })}`;
-async function tokenCall(body: Record<string, string>): Promise<{ access_token: string; refresh_token?: string }> {
+export const authorizeUrl = (redirect: string, state: string) => `${BASE}/authentication/v2/authorize?${new URLSearchParams({ response_type: 'code', client_id: need().id, redirect_uri: redirect, scope: AUTH_SCOPES, state })}`;
+export async function tokenCall(body: Record<string, string>): Promise<{ access_token: string; refresh_token?: string; expires_in?: number }> {
   const r = await fetch(`${BASE}/authentication/v2/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json', Authorization: basic() }, body: new URLSearchParams(body) });
   const t: any = await r.json().catch(() => ({}));
   if (!r.ok || !t.access_token) throw new ApiError(502, `Autodesk sign-in failed: ${t.developerMessage || t.error_description || t.error || r.status}`);
@@ -35,7 +37,7 @@ export async function accessToken(): Promise<string> {
   if (t.refresh_token) await q('update acc_connection set refresh_token=$1 where id=1', [seal(t.refresh_token)]);
   return t.access_token;
 }
-async function aps(token: string, path: string, init: RequestInit = {}): Promise<any> {
+export async function aps(token: string, path: string, init: RequestInit = {}): Promise<any> {
   const r = await fetch(path.startsWith('http') ? path : BASE + path, { ...init, headers: { Authorization: `Bearer ${token}`, Accept: 'application/json', ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(init.headers as any) } });
   const text = await r.text(); let j: any = null; try { j = text ? JSON.parse(text) : null; } catch { /* not JSON */ }
   if (!r.ok) throw new ApiError(502, `Autodesk ${r.status} on ${path.split('?')[0]}: ${String(j?.developerMessage || j?.message || j?.reason || text).slice(0, 300)}`);

@@ -28,6 +28,7 @@ export function guestApiAllowed(method: string | null, path: string | null, tabs
   if (method !== 'GET' && method !== 'HEAD') return false;
   if (p === 'auth/me' || p === 'logo' || p === 'data') return true;
   if (!tabs.length) return false;
+  if (p === 'acc/model') return tabs.includes('/projects') || tabs.includes('/');   /* the 3D model viewer of a project (not the model picker, which is acc/model/browse) */
   if (/^(projects|employees)\/[^/]+\/photo$/.test(p)) return true;
   if (p.startsWith('files/')) return tabs.some((t) => ['/projects', '/', '/org', '/teams', '/contacts'].includes(t));
   if (p.startsWith('employees/')) return false;   /* HR data, CV and documents of an employee */
