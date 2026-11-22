@@ -1,7 +1,7 @@
 import { ApiError } from './auth';
 import { one, q } from './db';
 import { aps } from './accApi';
-import { addressKey, addressText, findPlusCode, geocodeQueries, hasAddress, resolveCode, validPoint, type Addr, type Pt } from './geo';
+import { addressKey, sameCountry, addressText, findPlusCode, geocodeQueries, hasAddress, resolveCode, validPoint, type Addr, type Pt } from './geo';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 interface AccProj { id: string; name: string; addr: Addr; pt: Pt | null }
@@ -52,12 +52,13 @@ export async function refreshLocations(token: string, opts: { force?: boolean } 
   let acc: AccProj[]; try { acc = await listAccAddresses(token, conn.account_id); }
   catch (e: any) { throw new ApiError(502, `Could not read the project addresses from ACC. The account that connected ACC must be an Account Admin. ${String(e.message).slice(0, 220)}`); }
   const byId = new Map(acc.map((p) => [p.id, p]));
-  const rows = await q<{ id: string; name: string; project_no: string | null; acc_project_id: string | null; geo_key: string | null; geo_lat: number | null }>('select id,name,project_no,acc_project_id,geo_key,geo_lat from projects order by project_no nulls last, name');
+  const rows = await q<{ id: string; name: string; project_no: string | null; country: string | null; acc_project_id: string | null; geo_key: string | null; geo_lat: number | null }>('select id,name,project_no,country,acc_project_id,geo_key,geo_lat from projects order by project_no nulls last, name');
   let checked = 0, more = false;
   for (const p of rows) {
     let a = p.acc_project_id ? byId.get(p.acc_project_id.replace(/^b\./, '')) : undefined;
     if (!a) { const no = norm(p.project_no ?? ''); if (no) { const m = acc.filter((x) => { const l = norm(x.name); return l === no || l.startsWith(no + '-') || l.startsWith(no + ' '); }); if (m.length === 1) { a = m[0]; await q('update projects set acc_project_id=$2 where id=$1 and acc_project_id is null', [p.id, a.id]); } } }
     if (!a) { await q(`update projects set geo_note='Not linked to an ACC project (the ACC project name must start with the project number)', geo_updated=now() where id=$1 and geo_lat is null`, [p.id]); continue; }
+    if (!sameCountry(p.country, a.addr.country)) { await q(`update projects set geo_lat=null,geo_lng=null,geo_precision=null,geo_address=$2,geo_key=null,geo_note=$3,geo_updated=now() where id=$1`, [p.id, addressText(a.addr) || null, `The ACC address is in "${String(a.addr.country).trim()}" but the project's country in the portal is "${String(p.country).trim()}". Correct the address in ACC`]); continue; }
     const key = addressKey(a.addr, a.pt); if (!opts.force && p.geo_key === key && p.geo_lat !== null) continue;
     if (Date.now() - started > 42_000) { more = true; break; }
     checked++; const r = await locate(a);

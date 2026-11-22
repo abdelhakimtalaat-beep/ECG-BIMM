@@ -56,3 +56,9 @@ export function geocodeQueries(a: Addr): { locality: string[]; address: string[]
   return { locality, address: [join(l1, l2, a.city ?? '', a.state ?? '', country), join(l1, a.city ?? '', country)].filter((x, i, arr) => x && !code && arr.indexOf(x) === i), city: [city, join(a.city ?? '', country)].filter((x, i, arr) => x && arr.indexOf(x) === i) };
 }
 export const distanceKm = (p: Pt, q: Pt) => { const r = Math.PI / 180, d = Math.sin(((q.lat - p.lat) * r) / 2) ** 2 + Math.cos(p.lat * r) * Math.cos(q.lat * r) * Math.sin(((q.lng - p.lng) * r) / 2) ** 2; return 12742 * Math.asin(Math.sqrt(d)); };
+
+/** Country names and ISO codes of the countries ECG works in, so "AU" and "Australia" (or "EG" and "Egypt") compare as equal. */
+const ISO: Record<string, string> = { sa: 'saudi arabia', ksa: 'saudi arabia', eg: 'egypt', ae: 'united arab emirates', uae: 'united arab emirates', qa: 'qatar', kw: 'kuwait', bh: 'bahrain', om: 'oman', jo: 'jordan', iq: 'iraq', lb: 'lebanon', ly: 'libya', ma: 'morocco', dz: 'algeria', tn: 'tunisia', sd: 'sudan', ye: 'yemen', tr: 'turkey', gb: 'united kingdom', uk: 'united kingdom', us: 'united states', usa: 'united states', de: 'germany', fr: 'france', it: 'italy', in: 'india', pk: 'pakistan', cn: 'china', sg: 'singapore', my: 'malaysia', au: 'australia', ca: 'canada', za: 'south africa', ng: 'nigeria', ke: 'kenya' };
+export const countryName = (v: unknown): string => { const s = clean(v).toLowerCase().replace(/\./g, ''); return ISO[s] ?? s; };
+/** True when the two countries agree, or when either is unknown (nothing to compare). */
+export const sameCountry = (portal: unknown, acc: unknown): boolean => { const a = countryName(portal), b = countryName(acc); return !a || !b || a === b; };

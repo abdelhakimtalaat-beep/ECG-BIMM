@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addressKey, decodeFull, distanceKm, findPlusCode, geocodeQueries, recoverShort, resolveCode, validPoint } from '../lib/geo.ts';
+import { sameCountry, addressKey, decodeFull, distanceKm, findPlusCode, geocodeQueries, recoverShort, resolveCode, validPoint } from '../lib/geo.ts';
 test('plus code: full code decodes to the known place', () => {
   const p = decodeFull('8FVC9G8F+6X')!;   /* Zurich, from the Open Location Code reference */
   assert.ok(Math.abs(p.lat - 47.3655) < 0.001 && Math.abs(p.lng - 8.5242) < 0.001, JSON.stringify(p));
@@ -28,4 +28,8 @@ test('coordinates and keys', () => {
   assert.equal(addressKey(a, null), addressKey({ ...a }, null)); assert.notEqual(addressKey(a, null), addressKey({ ...a, city: 'Giza' }, null));
   const q = geocodeQueries(a); assert.ok(q.locality[0].startsWith('El Shorouk, Cairo Governorate')); assert.ok(!q.locality[0].includes('4923422')); assert.equal(q.address.length, 0);
   assert.ok(geocodeQueries({ line1: '12 Nile Street', city: 'Cairo', country: 'Egypt' }).address[0].includes('12 Nile Street'));
+});
+test('country check', () => {
+  assert.equal(sameCountry('Egypt', 'EG'), true); assert.equal(sameCountry('Egypt', 'AU'), false); assert.equal(sameCountry('Egypt', 'Australia'), false);
+  assert.equal(sameCountry(null, 'AU'), true); assert.equal(sameCountry('Egypt', ''), true); assert.equal(sameCountry('KSA', 'Saudi Arabia'), true);
 });
