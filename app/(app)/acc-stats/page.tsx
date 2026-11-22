@@ -10,7 +10,7 @@ type By = Record<string, number>;
 interface Asg { key: string; name: string; kind: 'role' | 'user' | 'company' | 'none'; total: number; by_status: By }
 interface Loc { key: string; name: string; building: string; total: number; by_status: By }
 interface Cell { building: string; key: string; by_status: By }
-interface Proj { id: string; name: string; project_no: string | null; acc_project_id: string; synced_at: string; assignees: Asg[] | null; locations: Loc[] | null; matrix: Cell[] | null; review_detail: ReviewDetail | null; total: number }
+interface Proj { id: string; name: string; project_no: string | null; acc_project_id: string; synced_at: string; assignees: Asg[] | null; locations: Loc[] | null; matrix: Cell[] | null; review_detail: ReviewDetail | null; managers: { id: string; name: string }[] | null; total: number }
 // Colours follow ACC: orange = open, green = completed, red = in dispute and not approved, cyan = pending, dark gray = closed
 const COLS: [string, string, string][] = [['open', 'Open', '#F97316'], ['pending', 'Pending', '#06B6D4'], ['completed', 'Completed', '#16A34A'], ['in_dispute', 'In dispute', '#DC2626'], ['not_approved', 'Not approved', '#F87171'], ['closed', 'Closed', '#475569'], ['draft', 'Draft', '#CBD5E1']];
 const KIND: Record<string, string> = { role: 'Role', user: 'Person', company: 'Company', none: '—' };
@@ -23,9 +23,12 @@ const Wide = ({ n, children, cap }: { n: number; children: React.ReactNode; cap:
 const Dot = ({ c }: { c: string }) => <span className="mr-1 inline-block h-2.5 w-2.5 rounded-sm align-middle" style={{ background: c }} />;
 
 export default function AccStatsPage() {
-  const toast = useToast(); const [rows, setRows] = useState<Proj[] | null>(null); const [sel, setSel] = useState(''); const [kind, setKind] = useState('all'); const [tab, setTab] = useState<'issues' | 'reviews'>('issues'); const [view, setView] = useState<'assignee' | 'location'>('assignee'); const [bld, setBld] = useState('all'); const [cap, setCap] = useState<'chart' | 'table' | 'both' | null>(null); const [menu, setMenu] = useState(false); const exportRef = useRef<HTMLDivElement>(null);
+  const toast = useToast(); const [rows, setRows] = useState<Proj[] | null>(null); const [sel, setSel] = useState(''); const [mgr, setMgr] = useState('all'); const [kind, setKind] = useState('all'); const [tab, setTab] = useState<'issues' | 'reviews'>('issues'); const [view, setView] = useState<'assignee' | 'location'>('assignee'); const [bld, setBld] = useState('all'); const [cap, setCap] = useState<'chart' | 'table' | 'both' | null>(null); const [menu, setMenu] = useState(false); const exportRef = useRef<HTMLDivElement>(null);
   useEffect(() => { api<{ projects: Proj[] }>('/api/acc/assignees').then((r) => { setRows(r.projects); setSel(r.projects[0]?.id ?? ''); }).catch((e) => { toast(e.message, 'err'); setRows([]); }); }, [toast]);
   useEffect(() => { setBld('all'); }, [sel]);
+  const managers = useMemo(() => { const m = new Map<string, string>(); for (const r of rows ?? []) for (const x of r.managers ?? []) m.set(x.id, x.name); return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1])); }, [rows]);
+  const visible = useMemo(() => (rows ?? []).filter((r) => mgr === 'all' || (mgr === 'none' ? !(r.managers ?? []).length : (r.managers ?? []).some((x) => x.id === mgr))), [rows, mgr]);
+  useEffect(() => { if (rows && !visible.some((r) => r.id === sel)) setSel(visible[0]?.id ?? ''); }, [visible, rows, sel]);
   const p = rows?.find((x) => x.id === sel);
   const buildings = useMemo(() => [...new Set([...(p?.matrix ?? []).map((c) => c.building), ...(p?.locations ?? []).map((l) => l.building)])].sort((a, b) => (a === 'No location' ? 1 : 0) - (b === 'No location' ? 1 : 0) || a.localeCompare(b)), [p]);
   // every assignee of the project, with the counts of the chosen building (zeros included)
@@ -56,10 +59,11 @@ export default function AccStatsPage() {
       </div>} />
       {rows.length === 0 ? <Empty title="No ACC statistics yet" hint="The administrator uploads an ACC extract (Administration > ACC) and links the project to its ACC project." /> : <>
         <div className="flex flex-wrap items-end gap-3">
-          <label className="text-sm"><span className="mb-1 block text-xs font-medium text-slate-600">Project</span><select className="input w-80" value={sel} onChange={(e) => setSel(e.target.value)}>{rows.map((x) => <option key={x.id} value={x.id}>{x.project_no ? `${x.project_no} — ` : ''}{x.name}</option>)}</select></label>
+          <label className="text-sm"><span className="mb-1 block text-xs font-medium text-slate-600">BIM Manager</span><select className="input w-56" value={mgr} onChange={(e) => setMgr(e.target.value)}><option value="all">All BIM Managers</option>{managers.map(([id, n]) => <option key={id} value={id}>{n}</option>)}<option value="none">No BIM Manager assigned</option></select></label>
+          <label className="text-sm"><span className="mb-1 block text-xs font-medium text-slate-600">Project{mgr === 'all' ? '' : ` (${visible.length})`}</span><select className="input w-80" value={sel} onChange={(e) => setSel(e.target.value)}>{visible.map((x) => <option key={x.id} value={x.id}>{x.project_no ? `${x.project_no} — ` : ''}{x.name}</option>)}</select></label>
           <div className="flex overflow-hidden rounded-lg border border-slate-200 text-sm" role="tablist" aria-label="Dashboard">{([['issues', 'Issues'], ['reviews', 'Reviews']] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={`px-3 py-2 font-medium ${tab === k ? 'bg-brand-900 text-white' : 'bg-white hover:bg-slate-50'}`} onClick={() => setTab(k)}>{l}</button>)}</div>
           {tab === 'issues' && <div className="flex overflow-hidden rounded-lg border border-slate-200 text-sm" role="tablist" aria-label="View">{([['assignee', 'By assignee'], ['location', 'By location']] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={view === k} className={`px-3 py-2 ${view === k ? 'bg-brand-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'}`} onClick={() => setView(k)}>{l}</button>)}</div>}
-          {p && <p className="pb-2 text-xs text-slate-500">{tab === 'reviews' ? `${p.review_detail?.total ?? 0} reviews` : `${p.total} issues`} · extract of {fmtDate(p.synced_at)} (not live)</p>}
+          {p && <p className="pb-2 text-xs text-slate-500">{tab === 'reviews' ? `${p.review_detail?.total ?? 0} reviews` : `${p.total} issues`} · extract of {fmtDate(p.synced_at)} (not live){(p.managers ?? []).length ? ` · BIM Manager: ${(p.managers ?? []).map((x) => x.name).join(', ')}` : ''}</p>}
         </div>
         {p && tab === 'issues' && <section className="card flex flex-wrap items-end gap-4 p-3" aria-label="Filters">
           <label className="text-sm"><span className="mb-1 block text-xs font-medium text-slate-600">Location filter (building / area)</span><select className="input w-64" value={bld} onChange={(e) => setBld(e.target.value)}><option value="all">All locations</option>{buildings.map((b) => <option key={b} value={b}>{b}</option>)}</select></label>
