@@ -48,7 +48,7 @@ export default function MapPage() {
   useEffect(() => { let dead = false; loadLeaflet().then((L) => {
     if (dead || !el.current || map.current) return;
     const m = L.map(el.current, { center: [27, 30], zoom: 5, worldCopyJump: true }); map.current = m;
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors' }).addTo(m);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, referrerPolicy: 'strict-origin-when-cross-origin', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors' }).addTo(m);
     layer.current = L.layerGroup().addTo(m); setTimeout(() => { try { m.invalidateSize(); } catch {} }, 200); setReady(true);
   }).catch((e) => setErr(e.message)); return () => { dead = true; }; }, [geo !== null]);   /* the map box only exists once the pins are loaded, so try again then */
   const [ready, setReady] = useState(false);
