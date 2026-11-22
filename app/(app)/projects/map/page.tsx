@@ -18,8 +18,8 @@ const PRECISION: Record<string, string> = { acc: 'Exact (coordinates in ACC)', p
 let load: Promise<any> | null = null;
 const loadLeaflet = () => (load ??= new Promise<any>((res, rej) => {
   if (window.L) return res(window.L);
-  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = `${LEAFLET}/leaflet.css`; css.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='; css.crossOrigin = ''; document.head.appendChild(css);
-  const s = document.createElement('script'); s.src = `${LEAFLET}/leaflet.js`; s.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='; s.crossOrigin = '';
+  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = `${LEAFLET}/leaflet.css`; document.head.appendChild(css);
+  const s = document.createElement('script'); s.src = `${LEAFLET}/leaflet.js`;
   s.onload = () => res(window.L); s.onerror = () => { load = null; rej(new Error('The map could not be loaded (check the internet connection)')); }; document.head.appendChild(s);
 }));
 const pinSvg = (c: string, on: boolean) => `<svg xmlns="http://www.w3.org/2000/svg" width="${on ? 38 : 30}" height="${on ? 50 : 40}" viewBox="0 0 30 40"><path d="M15 39C15 39 2 24.5 2 14.5a13 13 0 0 1 26 0C28 24.5 15 39 15 39z" fill="${c}" stroke="#fff" stroke-width="2"/><circle cx="15" cy="14.5" r="5" fill="#fff"/></svg>`;
@@ -49,7 +49,7 @@ export default function MapPage() {
     if (dead || !el.current || map.current) return;
     const m = L.map(el.current, { center: [27, 30], zoom: 5, worldCopyJump: true }); map.current = m;
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors' }).addTo(m);
-    layer.current = L.layerGroup().addTo(m); setReady(true);
+    layer.current = L.layerGroup().addTo(m); setTimeout(() => { try { m.invalidateSize(); } catch {} }, 200); setReady(true);
   }).catch((e) => setErr(e.message)); return () => { dead = true; }; }, []);
   const [ready, setReady] = useState(false);
   useEffect(() => () => { try { map.current?.remove(); } catch {} map.current = null; }, []);
