@@ -137,16 +137,40 @@ async function download(token: string, url: string): Promise<Buffer> {
   throw new ApiError(502, 'Autodesk returned something that is not a zip file');
 }
 
-export interface SyncResult { status: 'imported' | 'up_to_date' | 'waiting'; message: string; projects?: number }
+export interface SyncResult { status: 'imported' | 'up_to_date' | 'waiting'; message: string; projects?: number; more?: boolean }
 /** Imports the newest finished extract of every set-up project (new ones only) and refreshes the statistics. Stops before the server time limit; the next run continues. */
-export async function syncNow(): Promise<SyncResult> {
+/** Projects that have extraction data in ACC (a request of that project that has produced at least one job), newest extract first. Pure. */
+export function extractedProjects(all: any[], names: Map<string, string>) {
+  const by = new Map<string, { id: string; name: string; daily: boolean; date: string; requests: number }>();
+  for (const r of all) {
+    if (r?.isActive === false || !r?.lastQueuedAt) continue; const ids: string[] = [r.projectId, ...(Array.isArray(r.projectIdList) ? r.projectIdList : [])].filter(Boolean);
+    for (const id of new Set(ids)) { const e = by.get(id) ?? by.set(id, { id, name: names.get(id) ?? id, daily: false, date: '', requests: 0 }).get(id)!; e.requests++; if (r.scheduleInterval && r.scheduleInterval !== 'ONE_TIME') e.daily = true; const d = String(r.lastQueuedAt).slice(0, 10); if (d > e.date) e.date = d; }
+  }
+  return [...by.values()].sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+}
+/** Reads the account's requests and the hub's project names (read only) and lists the projects with extraction data. */
+export async function detectExtracted(token: string, accountId: string, all?: any[]) {
+  const reqs = all ?? await listAllRequests(token, accountId); let names = new Map<string, string>();
+  try { names = new Map((await listHubProjects(token, accountId)).map((p) => [p.id, p.name])); } catch { /* names are optional */ }
+  return extractedProjects(reqs, names);
+}
+/** Adds every project with extraction data to the tracked projects, so the daily import picks them up automatically. */
+async function trackExtracted(token: string, accountId: string, all: any[]) {
+  for (const p of await detectExtracted(token, accountId, all)) await q(`insert into acc_requests(acc_project_id,project_name,last_status,tracked,updated_at) values($1,$2,'selected',true,now()) on conflict (acc_project_id) do update set tracked=true, project_name=case when acc_requests.project_name is null or acc_requests.project_name = '' then excluded.project_name else acc_requests.project_name end`, [p.id, p.name]);
+}
+export async function syncNow(opts: { detect?: boolean; projects?: { id: string; name: string }[] } = {}): Promise<SyncResult> {
   const started = Date.now(); const token = await accessToken(); const conn = await one<any>('select * from acc_connection where id=1'); const accountId = conn.account_id as string;
-  const rows = await q<any>(`select * from acc_requests where tracked order by project_name`);
-  if (!rows.length) { const m = 'No project is tracked yet. Press "Choose projects" and tick the projects you want.'; await q(`update acc_connection set last_status='waiting', last_error=$1, last_sync_at=now() where id=1`, [m]); return { status: 'waiting', message: m }; }
   let allReq: any[] = []; try { allReq = await listAllRequests(token, accountId); } catch { /* listing not allowed: the portal's own requests are still read */ }
+  if (opts.detect) await trackExtracted(token, accountId, allReq);
+  for (const x of opts.projects ?? []) await q(`insert into acc_requests(acc_project_id,project_name,last_status,tracked,updated_at) values($1,$2,'selected',true,now()) on conflict (acc_project_id) do update set tracked=true, project_name=excluded.project_name`, [x.id, x.name]);
+  const ids = (opts.projects ?? []).map((x) => x.id);
+  const rows = await q<any>(ids.length ? `select * from acc_requests where tracked and acc_project_id = any($1::text[]) order by project_name` : `select * from acc_requests where tracked order by (last_status='imported'), updated_at, project_name`, ids.length ? [ids] : []);
+  if (!rows.length) { const m = 'No project with extraction data was found. In ACC, a Project Admin must schedule (or run) a Data Connector extract for the project.'; await q(`update acc_connection set last_status='waiting', last_error=$1, last_sync_at=now() where id=1`, [m]); return { status: 'waiting', message: m }; }
   let imported = 0, upToDate = 0, waiting = 0; const problems: string[] = []; const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
-  for (const r of rows) {
-    if (Date.now() - started > 40000) { problems.push('stopped early (time limit); press Import now again for the rest'); break; }
+  const queue = [...rows]; let more = false;
+  const work = async () => {
+  for (let r = queue.shift(); r; r = queue.shift()) {
+    if (Date.now() - started > 45000) { more = true; break; }
     try {
       let jobs: any[] = []; const seen: string[] = []; const reqs = requestsOfProject(allReq, r.acc_project_id);
       const ids = [...new Set([...reqs.map((x) => x.id), r.once_request_id, r.request_id].filter(Boolean))].slice(0, 8);
@@ -167,9 +191,11 @@ export async function syncNow(): Promise<SyncResult> {
       await q(`update acc_requests set last_job_id=$2, last_status='imported', last_error=$3, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, job.id, note]); imported++;
     } catch (e: any) { problems.push(`${r.project_name}: ${String(e.message).slice(0, 160)}`); await q(`update acc_requests set last_status='error', last_error=$2, updated_at=now() where acc_project_id=$1`, [r.acc_project_id, String(e.message).slice(0, 300)]); }
   }
+  };
+  await Promise.all([work(), work(), work(), work(), work()]);
   await q(`update projects p set acc_project_id=s.acc_project_id from acc_project_stats s where p.acc_project_id is null and p.project_no is not null and p.project_no<>'' and (lower(s.name)=lower(p.project_no) or lower(s.name) like lower(p.project_no)||'-%' or lower(s.name) like lower(p.project_no)||' %')`);
   const status = imported ? 'imported' : waiting && !upToDate ? 'waiting' : 'up_to_date';
-  const message = `${imported} project(s) imported, ${upToDate} already up to date, ${waiting} with no finished extract yet${problems.length ? `. Problems: ${problems.join(' | ')}` : ''}.`;
+  const message = `${imported} project(s) imported, ${upToDate} already up to date, ${waiting} with no finished extract yet${problems.length ? `. Problems: ${problems.join(' | ')}` : ''}${more ? '. More projects remain - press Import now again' : ''}.`;
   await q(`update acc_connection set last_status=$1, last_error=$2, last_sync_at=now() where id=1`, [status, problems.length ? problems.join(' | ').slice(0, 500) : null]);
-  return { status, message, projects: imported };
+  return { status, message, projects: imported, more };
 }
