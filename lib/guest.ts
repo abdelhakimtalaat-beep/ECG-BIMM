@@ -31,7 +31,7 @@ export function guestApiAllowed(method: string | null, path: string | null, tabs
   if (p === 'acc/model') return tabs.includes('/projects') || tabs.includes('/projects/map') || tabs.includes('/');   /* the 3D model viewer of a project (not the model picker, which is acc/model/browse) */
   if (p === 'acc/locations') return tabs.includes('/projects/map');   /* map pins (GET only: the refresh is a POST and is refused above) */
   if (/^(projects|employees)\/[^/]+\/photo$/.test(p)) return true;
-  if (p.startsWith('files/')) return tabs.some((t) => ['/projects', '/projects/map', '/', '/org', '/teams', '/contacts'].includes(t));
+  if (p.startsWith('files/')) return tabs.some((t) => ['/projects', '/projects/map', '/projects/clients', '/', '/org', '/teams', '/contacts'].includes(t));
   if (p.startsWith('employees/')) return false;   /* HR data, CV and documents of an employee */
   const hit = PREFIX_TABS.find(([k]) => p === k || p.startsWith(k + '/'));
   return !!hit && hit[1].some((t) => tabs.includes(t));

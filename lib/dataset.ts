@@ -4,7 +4,7 @@ import { mergeFactors } from './workload';
 import { mergeStages } from './proposals';
 
 export async function loadDataset(): Promise<Dataset> {
-  const [employees, projects, assignments, reels, settingsRows, mappings, history, task_areas, tasks, teams] = await Promise.all([
+  const [employees, projects, assignments, reels, settingsRows, mappings, history, task_areas, tasks, teams, clients] = await Promise.all([
     q(`select e.id,e.employee_code,e.name,e.job_title,e.job_category,e.discipline,e.year_value,e.team_location,e.active,e.notes,e.photo_id,e.cv_id,(select a.filename from attachments a where a.id=e.cv_id) as cv_filename,e.email,e.mobile,e.ext,e.education,
               r.manager_id as reports_to
        from employees e left join reporting_relationships r on r.employee_id=e.id and r.valid_to is null
@@ -19,6 +19,7 @@ export async function loadDataset(): Promise<Dataset> {
     q(`select id,manager_id,team_id,project_id from task_areas`),
     q(`select id,area_id,title,start_date::text as start_date,due_date::text as due_date,assignee_id,status,comment,building_no,created_at,updated_at from tasks order by due_date nulls last, created_at`),
     q(`select t.id,t.name,coalesce((select array_agg(m.employee_id) from team_members m where m.team_id=t.id),'{}') as member_ids from teams t order by lower(t.name)`),
+    q(`select id,name,key,country,logo_id from clients order by lower(name)`).catch(() => []),   /* before migration 046 the Clients table does not exist yet */
   ]);
   const s: any = {};
   for (const r of settingsRows) s[r.key] = r.value;
@@ -29,5 +30,5 @@ export async function loadDataset(): Promise<Dataset> {
     factors: mergeFactors(s.factors),
     stage_factors: mergeStages(s.stage_factors),
   };
-  return { employees, projects, assignments, reels, settings, mappings, history, task_areas, tasks, teams } as Dataset;
+  return { employees, projects, assignments, reels, settings, mappings, history, task_areas, tasks, teams, clients } as Dataset;
 }

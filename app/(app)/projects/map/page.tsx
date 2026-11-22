@@ -81,7 +81,7 @@ export default function MapPage() {
   const lastUpdate: string | null = useMemo(() => ((geo ?? []).map((g) => g.updated).filter(Boolean) as string[]).sort().pop() ?? null, [geo]);
 
   return (<>
-    <PageHeader title="Projects Map" subtitle={geo ? `${located.length} of ${projects.length} projects on the map · locations come from the project address in ACC${lastUpdate ? ` · read ${fmtDateTime(new Date(lastUpdate))}` : ''}` : 'Loading…'}
+    <PageHeader title="Google Map" subtitle={geo ? `${located.length} of ${projects.length} projects on the map · locations come from the project address in ACC${lastUpdate ? ` · read ${fmtDateTime(new Date(lastUpdate))}` : ''}` : 'Loading…'}
       actions={canRefresh ? <button className="btn-secondary" disabled={busy} onClick={() => refresh(false)} title="Read the project addresses from ACC again"><RefreshCw size={16} className={busy ? 'animate-spin' : ''} />{busy ? 'Reading ACC…' : 'Update from ACC'}</button> : undefined} />
     <FilterBar show={['q', 'manager', 'coordinator', 'status', 'client', 'type']} />
     {err && <div className="card mb-3 border-red-300 bg-red-50 p-3 text-sm text-red-800">{err}</div>}

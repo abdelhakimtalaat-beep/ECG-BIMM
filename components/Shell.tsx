@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { canSeeTab, firstAllowedTab, tabOfPath } from '@/lib/tabs';
 import clsx from 'clsx';
-import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown, GraduationCap, PlayCircle, Plane, BarChart3, MapPin } from 'lucide-react';
+import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown, GraduationCap, PlayCircle, Plane, BarChart3, MapPin, Building2 } from 'lucide-react';
 import { api, roleLabel } from '@/lib/client';
 import { useApp } from './store';
 import { Field, Modal, useToast } from './ui';
@@ -19,7 +19,8 @@ const NAV: (NavLeaf | NavGroup)[] = [
   { href: '/org', label: 'Department Organization Chart', short: 'Org Chart', icon: Network },
   { id: 'projects', short: 'Projects', label: 'Projects', icon: FolderKanban, children: [
     { href: '/projects', label: 'Projects Portfolio', short: 'Portfolio', icon: FolderKanban },
-    { href: '/projects/map', label: 'Projects Map', short: 'Map', icon: MapPin },
+    { href: '/projects/clients', label: 'Clients', short: 'Clients', icon: Building2 },
+    { href: '/projects/map', label: 'Google Map', short: 'Google Map', icon: MapPin },
     { href: '/process-map', label: 'BIM Process Map', short: 'Process Map', icon: Workflow },
     { href: '/acc-stats', label: 'ACC Statistics', short: 'ACC Statistics', icon: BarChart3 },
     { href: '/teams', label: 'Projects Workload', short: 'Projects Workload', icon: Users },

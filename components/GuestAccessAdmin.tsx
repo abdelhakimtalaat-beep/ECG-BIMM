@@ -7,7 +7,7 @@ import { Badge, Spinner, useToast } from './ui';
 interface Guest { id: string; email: string; full_name: string | null; active: boolean; last_login_at: string | null }
 interface Resp { cfg: { enabled: boolean; tabs: string[]; domains: string[] }; guests: Guest[] }
 const GROUPS = [
-  { label: 'Projects', hrefs: ['/projects', '/projects/map', '/process-map', '/acc-stats', '/teams', '/proposals'] },
+  { label: 'Projects', hrefs: ['/projects', '/projects/clients', '/projects/map', '/process-map', '/acc-stats', '/teams', '/proposals'] },
   { label: 'BIMMers', hrefs: ['/tasks', '/vacations', '/meetings', '/evaluation'] },
   { label: 'Training', hrefs: ['/reels', '/courses'] },
 ];
