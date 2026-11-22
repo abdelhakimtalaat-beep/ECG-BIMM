@@ -19,7 +19,7 @@ export async function loadDataset(): Promise<Dataset> {
     q(`select id,manager_id,team_id,project_id from task_areas`),
     q(`select id,area_id,title,start_date::text as start_date,due_date::text as due_date,assignee_id,status,comment,building_no,created_at,updated_at from tasks order by due_date nulls last, created_at`),
     q(`select t.id,t.name,coalesce((select array_agg(m.employee_id) from team_members m where m.team_id=t.id),'{}') as member_ids from teams t order by lower(t.name)`),
-    q(`select id,name,key,country,logo_id from clients order by lower(name)`).catch(() => []),   /* before migration 046 the Clients table does not exist yet */
+    q(`select id,name,key,country,logo_id,description,name_ar from clients order by lower(name)`).catch(() => []),   /* before migration 046 the Clients table does not exist yet */
   ]);
   const s: any = {};
   for (const r of settingsRows) s[r.key] = r.value;

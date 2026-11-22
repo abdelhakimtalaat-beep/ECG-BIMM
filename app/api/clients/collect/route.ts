@@ -4,7 +4,7 @@ import { audit, tx } from '@/lib/db';
 import { clientKey, clusterNames, mostCommon, pickName, tidyName } from '@/lib/clients';
 
 export const dynamic = 'force-dynamic';
-interface CRow { id: string; name: string; key: string; country: string | null; logo_id: string | null; created_at: string }
+interface CRow { id: string; name: string; key: string; country: string | null; logo_id: string | null; created_at: string; description: string | null; name_ar: string | null }
 /**
  * Administrator / BIM Manager: collects the client names written in the projects and puts every spelling of the same client into ONE card
  * (case, spaces, punctuation, Mostafa/Moustafa, "Ltd", "Group", "Developments", acronyms like TMG). Cards that already exist are merged too:
@@ -15,7 +15,7 @@ export async function POST() {
     const me = await requireUser(['admin', 'bim_manager']);
     return await tx(async (c) => {
       const projects = (await c.query(`select id, client, country from projects where client is not null and btrim(client)<>''`)).rows as { id: string; client: string; country: string | null }[];
-      const cards = (await c.query('select id,name,key,country,logo_id,created_at from clients order by created_at')).rows as CRow[];
+      const cards = (await c.query('select id,name,key,country,logo_id,created_at,description,name_ar from clients order by created_at')).rows as CRow[];
       const clusters = clusterNames([...projects.map((p) => p.client), ...cards.map((x) => x.name)]);
       let created = 0, merged = 0, unified = 0;
       for (const names of clusters) {
@@ -30,6 +30,7 @@ export async function POST() {
         let logo = primary?.logo_id ?? null;
         for (const o of cs.filter((x) => x.id !== id)) {   /* the other cards of the same client are merged into the kept one */
           if (o.logo_id && !logo) { logo = o.logo_id; await c.query('update clients set logo_id=$2, updated_at=now() where id=$1', [id, o.logo_id]); await c.query('update clients set logo_id=null where id=$1', [o.id]); }
+          await c.query('update clients set description=coalesce(description,$2), name_ar=coalesce(name_ar,$3) where id=$1', [id, o.description, o.name_ar]);
           await c.query('delete from clients where id=$1', [o.id]); if (o.logo_id && o.logo_id !== logo) await c.query('delete from attachments where id=$1', [o.logo_id]); merged++;
         }
         const wrong = ps.filter((p) => p.client !== name).map((p) => p.id);

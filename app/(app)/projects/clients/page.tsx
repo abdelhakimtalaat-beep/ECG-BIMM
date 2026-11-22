@@ -31,7 +31,7 @@ function Inner() {
   const clients = data.clients ?? [];
   const projectsOf = useMemo(() => { const m = new Map<string, typeof data.projects>(); for (const p of data.projects) { const k = clientKey(p.client); if (k) m.set(k, [...(m.get(k) ?? []), p]); } return m; }, [data.projects]);
   const countries = useMemo(() => [...new Set(clients.map((c) => c.country).filter(Boolean) as string[])].sort(), [clients]);
-  const shown = useMemo(() => clients.filter((c) => (!country || c.country === country) && (!q || c.name.toLowerCase().includes(q.toLowerCase()))), [clients, q, country]);
+  const shown = useMemo(() => clients.filter((c) => (!country || c.country === country) && (!q || `${c.name} ${c.name_ar ?? ''} ${c.description ?? ''}`.toLowerCase().includes(q.toLowerCase()))), [clients, q, country]);
   const noClient = useMemo(() => data.projects.filter((p) => !clientKey(p.client)).length, [data.projects]);
   const unlinked = useMemo(() => { const have = new Set(clients.map((c) => c.key)); return [...projectsOf.keys()].filter((k) => !have.has(k)).length; }, [clients, projectsOf]);
   const cur = openId ? clients.find((c) => c.id === openId) ?? null : null;
@@ -47,24 +47,26 @@ function Inner() {
       : !shown.length ? <Empty title="No client matches" hint="Change the search or the country." />
       : <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">{shown.map((c) => { const n = projectsOf.get(c.key)?.length ?? 0; return (
         <button key={c.id} onClick={() => setOpenId(c.id)} className="card flex flex-col items-center gap-2 p-3 text-center transition hover:border-brand-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label={`${c.name}, ${n} projects`}>
-          <Logo c={c} /><div className="w-full"><p className="break-words font-semibold leading-snug text-brand-900">{c.name}</p><p className="text-sm text-slate-500">{c.country || '—'}</p><p className="mt-1 text-xs text-slate-400">{n} project{n === 1 ? '' : 's'}</p></div></button>); })}</div>}
+          <Logo c={c} /><div className="w-full"><p className="break-words font-semibold leading-snug text-brand-900">{c.name}</p>{c.description && <p className="line-clamp-2 text-xs text-slate-600">{c.description}</p>}{c.name_ar && <p dir="rtl" className="break-words text-sm font-medium text-slate-700">{c.name_ar}</p>}<p className="text-sm text-slate-500">{c.country || '—'}</p><p className="mt-1 text-xs text-slate-400">{n} project{n === 1 ? '' : 's'}</p></div></button>); })}</div>}
     {adding && <AddModal onClose={() => setAdding(false)} onDone={async (id) => { setAdding(false); await refresh(); setOpenId(id); }} />}
     {cur && <ClientModal key={cur.id} c={cur} all={clients} projects={projectsOf.get(cur.key) ?? []} canEdit={canEdit} onClose={() => setOpenId(null)} onChanged={refresh} />}
   </>);
 }
 
 function AddModal({ onClose, onDone }: { onClose: () => void; onDone: (id: string) => void }) {
-  const toast = useToast(); const [name, setName] = useState(''); const [country, setCountry] = useState(''); const [busy, setBusy] = useState(false);
-  return <Modal open onClose={onClose} title="Add client" footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!name.trim() || busy} onClick={async () => { setBusy(true); try { const r = await api<{ id: string }>('/api/clients', { method: 'POST', body: { name, country: country || null } }); onDone(r.id); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } }}>Add</button></>}>
+  const toast = useToast(); const [name, setName] = useState(''); const [country, setCountry] = useState(''); const [desc, setDesc] = useState(''); const [ar, setAr] = useState(''); const [busy, setBusy] = useState(false);
+  return <Modal open onClose={onClose} title="Add client" footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!name.trim() || busy} onClick={async () => { setBusy(true); try { const r = await api<{ id: string }>('/api/clients', { method: 'POST', body: { name, description: desc || null, name_ar: ar || null, country: country || null } }); onDone(r.id); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } }}>Add</button></>}>
     <div className="space-y-3"><Field label="Client name"><input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus /></Field>
+      <Field label="Client description"><textarea className="input min-h-[70px]" value={desc} onChange={(e) => setDesc(e.target.value)} /></Field>
+      <Field label="Client in Arabic"><input className="input" dir="rtl" value={ar} onChange={(e) => setAr(e.target.value)} /></Field>
       <Field label="Country"><input className="input" list="client-countries" value={country} onChange={(e) => setCountry(e.target.value)} /><datalist id="client-countries">{COUNTRIES.map((c) => <option key={c} value={c} />)}</datalist></Field></div></Modal>;
 }
 
 function ClientModal({ c, all, projects, canEdit, onClose, onChanged }: { c: ClientRow; all: ClientRow[]; projects: any[]; canEdit: boolean; onClose: () => void; onChanged: () => Promise<any> | void }) {
   const toast = useToast(); const file = useRef<HTMLInputElement>(null);
-  const [name, setName] = useState(c.name); const [country, setCountry] = useState(c.country ?? ''); const [busy, setBusy] = useState(false); const [del, setDel] = useState(false); const [merge, setMerge] = useState('');
+  const [name, setName] = useState(c.name); const [country, setCountry] = useState(c.country ?? ''); const [desc, setDesc] = useState(c.description ?? ''); const [ar, setAr] = useState(c.name_ar ?? ''); const [busy, setBusy] = useState(false); const [del, setDel] = useState(false); const [merge, setMerge] = useState('');
   const run = async (fn: () => Promise<unknown>, ok?: string, close = false) => { setBusy(true); try { await fn(); await onChanged(); if (ok) toast(ok); if (close) onClose(); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };
-  const dirty = name.trim() !== c.name || (country.trim() || '') !== (c.country ?? '');
+  const dirty = name.trim() !== c.name || (country.trim() || '') !== (c.country ?? '') || desc.trim() !== (c.description ?? '') || ar.trim() !== (c.name_ar ?? '');
   return (<Modal open onClose={onClose} wide title={c.name} footer={<button className="btn-secondary" onClick={onClose}>Close</button>}>
     <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
       <div><Logo c={c} size="h-40" />
@@ -73,8 +75,10 @@ function ClientModal({ c, all, projects, canEdit, onClose, onChanged }: { c: Cli
           {c.logo_id && <button className="btn-ghost btn-sm" disabled={busy} onClick={() => run(() => api(`/api/clients/${c.id}/logo`, { method: 'DELETE' }), 'Logo removed')}><Trash2 size={14} />Remove</button>}</div>}</div>
       <div className="space-y-3">
         <Field label="Client name"><input className="input" value={name} disabled={!canEdit} onChange={(e) => setName(e.target.value)} /></Field>
+        <Field label="Client description"><textarea className="input min-h-[70px]" value={desc} disabled={!canEdit} onChange={(e) => setDesc(e.target.value)} /></Field>
+        <Field label="Client in Arabic"><input className="input" dir="rtl" value={ar} disabled={!canEdit} onChange={(e) => setAr(e.target.value)} /></Field>
         <Field label="Country"><input className="input" list="client-countries2" value={country} disabled={!canEdit} onChange={(e) => setCountry(e.target.value)} /><datalist id="client-countries2">{COUNTRIES.map((x) => <option key={x} value={x} />)}</datalist></Field>
-        {canEdit && <div className="flex flex-wrap gap-2"><button className="btn-primary btn-sm" disabled={!dirty || !name.trim() || busy} onClick={() => run(() => api(`/api/clients/${c.id}`, { method: 'PUT', body: { name, country: country.trim() || null } }), 'Saved')}>Save</button>
+        {canEdit && <div className="flex flex-wrap gap-2"><button className="btn-primary btn-sm" disabled={!dirty || !name.trim() || busy} onClick={() => run(() => api(`/api/clients/${c.id}`, { method: 'PUT', body: { name, description: desc.trim() || null, name_ar: ar.trim() || null, country: country.trim() || null } }), 'Saved')}>Save</button>
           {dirty && <span className="self-center text-xs text-slate-500">Renaming also renames the client in its projects.</span>}</div>}
         <div><p className="label">Projects ({projects.length})</p>{projects.length ? <ul className="max-h-48 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 text-sm">{projects.map((p) => <li key={p.id} className="flex items-center justify-between gap-2 px-3 py-1.5"><Link className="min-w-0 truncate text-brand-700 hover:underline" href={`/projects?id=${p.id}`}>{p.project_no ? `${p.project_no} · ` : ''}{p.name}</Link><StatusBadge status={p.status} /></li>)}</ul> : <p className="text-sm text-slate-500">No project uses this client name.</p>}</div>
         {canEdit && <div className="border-t border-slate-200 pt-3"><p className="label">Same client written differently?</p><div className="flex flex-wrap gap-2"><select className="input w-64" value={merge} onChange={(e) => setMerge(e.target.value)} aria-label="Merge into"><option value="">Merge into…</option>{all.filter((x) => x.id !== c.id).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
