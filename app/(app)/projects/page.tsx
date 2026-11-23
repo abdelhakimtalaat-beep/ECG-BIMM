@@ -118,7 +118,8 @@ function NewProject({ onClose }: { onClose: () => void }) {
         <Field label="Project number"><input className="input" value={f.project_no} onChange={(e) => setF({ ...f, project_no: e.target.value })} /></Field>
         <Field label="Project name"><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
         <Field label="Deltek number"><input className="input" value={f.deltek_number} onChange={(e) => setF({ ...f, deltek_number: e.target.value })} /></Field>
-        <Field label="Client"><input className="input" value={f.client} onChange={(e) => setF({ ...f, client: e.target.value })} /></Field>
+        <Field label="Client"><select className="input" value={f.client} onChange={(e) => { const c = (data.clients ?? []).find((x) => x.name === e.target.value); setF({ ...f, client: e.target.value, country: c?.country || f.country }); }}>
+          <option value="">— select a client —</option>{(data.clients ?? []).map((c) => <option key={c.id} value={c.name}>{c.name}{c.country ? ` (${c.country})` : ''}</option>)}</select></Field>
         <Field label="Country"><input list="ecg-countries" className="input" value={f.country} onChange={(e) => setF({ ...f, country: e.target.value })} /><datalist id="ecg-countries">{COUNTRIES.map((c) => <option key={c} value={c} />)}</datalist></Field>
         <Field label="City"><input className="input" value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} /></Field>
         <Field label="Project Manager"><input className="input" value={f.project_manager} onChange={(e) => setF({ ...f, project_manager: e.target.value })} /></Field>

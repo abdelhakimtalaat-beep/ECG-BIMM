@@ -112,8 +112,8 @@ export function ProjectDetail({ id, onClose }: { id: string | null; onClose: () 
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Project number">{inp('project_no')}</Field><Field label="Project name">{inp('name')}</Field>
-          <Field label="Deltek number">{inp('deltek_number')}</Field><Field label="Client"><input type="text" list="client-names" className="input" disabled={!can('client')} value={('client' in E ? E.client : p.client) ?? ''} onChange={(e) => setEdit({ ...E, client: e.target.value })} />
-            <datalist id="client-names">{(data.clients ?? []).map((c) => <option key={c.id} value={c.name} />)}</datalist>
+          <Field label="Deltek number">{inp('deltek_number')}</Field><Field label="Client"><select className="input" disabled={!can('client')} value={('client' in E ? E.client : p.client) ?? ''} onChange={(e) => setEdit({ ...E, client: e.target.value })}>
+              <option value="">— select a client —</option>{(() => { const cur: string = ('client' in E ? E.client : p.client) ?? ''; const list = data.clients ?? []; return [...(cur && !list.some((c) => c.name === cur) ? [<option key="cur" value={cur}>{cur} (not in Clients tab)</option>] : []), ...list.map((c) => <option key={c.id} value={c.name}>{c.name}{c.country ? ` (${c.country})` : ''}</option>)]; })()}</select>
             {(() => { const cur: string = ('client' in E ? E.client : p.client) ?? ''; const k = clientKey(cur); if (!k) return null; const c = (data.clients ?? []).find((x) => x.key === k);
               return c ? <Link href={`/projects/clients?id=${c.id}`} className="mt-1.5 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-brand-700 hover:bg-brand-50" title="Open this client in the Clients tab">
                 {c.logo_id ? <img src={`/api/files/${c.logo_id}`} alt="" className="h-5 w-5 rounded object-contain" /> : <Building2 size={14} />}<span className="font-medium">{c.name}</span>{c.country ? <span className="text-slate-500">· {c.country}</span> : null}<span className="text-slate-400">→ Clients</span></Link>
