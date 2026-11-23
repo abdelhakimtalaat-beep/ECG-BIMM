@@ -31,7 +31,7 @@ function Inner() {
   const clients = data.clients ?? [];
   const projectsOf = useMemo(() => { const m = new Map<string, typeof data.projects>(); for (const p of data.projects) { const k = clientKey(p.client); if (k) m.set(k, [...(m.get(k) ?? []), p]); } return m; }, [data.projects]);
   const countries = useMemo(() => [...new Set(clients.map((c) => c.country).filter(Boolean) as string[])].sort(), [clients]);
-  const shown = useMemo(() => clients.filter((c) => (!country || c.country === country) && (!q || `${c.name} ${c.name_ar ?? ''} ${c.description ?? ''}`.toLowerCase().includes(q.toLowerCase()))), [clients, q, country]);
+  const shown = useMemo(() => clients.filter((c) => (!country || c.country === country) && (!q || `${c.name} ${c.name_ar ?? ''} ${c.description ?? ''}`.toLowerCase().includes(q.toLowerCase()))).sort((a, b) => (projectsOf.get(b.key)?.length ?? 0) - (projectsOf.get(a.key)?.length ?? 0) || a.name.localeCompare(b.name)), [clients, q, country, projectsOf]);   /* most projects first */
   const noClient = useMemo(() => data.projects.filter((p) => !clientKey(p.client)).length, [data.projects]);
   const unlinked = useMemo(() => { const have = new Set(clients.map((c) => c.key)); return [...projectsOf.keys()].filter((k) => !have.has(k)).length; }, [clients, projectsOf]);
   const mgr = useMemo(() => { const e = new Map<string, string>(data.employees.map((x) => [x.id, x.name] as [string, string])); const m = new Map<string, string>(); for (const a of data.assignments) if (a.role === 'manager') { const n = e.get(a.employee_id); if (n) m.set(a.project_id, m.has(a.project_id) ? `${m.get(a.project_id)}, ${n}` : n); } return m; }, [data.employees, data.assignments]);
