@@ -18,7 +18,7 @@ export default function WishesPage() {
 
   const load = useCallback(async () => { try { setRows((await api<{ wishes: Wish[] }>('/api/wishes')).wishes); } catch (e: any) { toast(e.message, 'err'); } }, [toast]);
   useEffect(() => { load(); }, [load]);
-  const call = async (fn: () => Promise<any>, msg?: string) => { try { await fn(); if (msg) toast(msg); await load(); } catch (e: any) { toast(e.message, 'err'); } };
+  const call = async (fn: () => Promise<any>, msg?: string) => { try { const r = await fn(); if (msg) toast(msg); else if (r?.notified === 'sent') toast('The requester was notified by e-mail'); await load(); } catch (e: any) { toast(e.message, 'err'); } };
   const shown = useMemo(() => sortWishes((rows ?? []).filter((w) => status === 'all' || w.status === status), by), [rows, status, by]);
 
   return (
@@ -64,7 +64,7 @@ function WishForm({ init, admin, onClose, onDone }: { init: Partial<Wish>; admin
     try {
       if (isNew) { await api('/api/wishes', { body: { title: f.title, description: f.description || null, area: f.area || null } }); onDone('Thank you — your idea was added'); return; }
       const body: any = {}; if (own || admin) { body.title = f.title; body.description = f.description || null; body.area = f.area || null; } if (admin) body.admin_note = f.admin_note || null;
-      await api(`/api/wishes/${init.id}`, { method: 'PATCH', body }); onDone('Saved');
+      const r: any = await api(`/api/wishes/${init.id}`, { method: 'PATCH', body }); onDone(r?.notified === 'sent' ? 'Saved. The requester was notified by e-mail' : 'Saved');
     } catch (e: any) { toast(e.message, 'err'); }
   };
   return <Modal open onClose={onClose} title={isNew ? 'Propose an idea' : 'Edit idea'} footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={f.title.trim().length < 3} onClick={save}>{isNew ? 'Submit' : 'Save'}</button></>}>
