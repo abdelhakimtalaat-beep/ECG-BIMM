@@ -21,7 +21,7 @@ export function GuestAccessAdmin() {
   const load = useCallback(() => api<Resp>('/api/guest-access').then(apply).catch((e) => toast(e.message, 'err')), [toast]);
   useEffect(() => { load(); }, [load]);
   if (!d) return <Spinner />;
-  const grouped = new Set(GROUPS.flatMap((g) => g.hrefs)); const top = TAB_LIST.map((t) => t.href as string).filter((h) => !grouped.has(h) && h !== '/admin');
+  const grouped = new Set(GROUPS.flatMap((g) => g.hrefs)); const top = TAB_LIST.map((t) => t.href as string).filter((h) => !grouped.has(h) && h !== '/admin' && h !== '/troubleshooting');
   const setMany = (hs: string[], v: boolean) => setTabs((x) => { const n = new Set(x); hs.forEach((h) => (v ? n.add(h) : n.delete(h))); return n; });
   const Row = ({ h }: { h: string }) => <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={tabs.has(h)} onChange={(e) => setMany([h], e.target.checked)} />{label(h)}{SENSITIVE.has(h) && <span className="text-xs text-amber-700">(personal data)</span>}</label>;
   const save = async () => { setBusy(true); try { apply(await api<Resp>('/api/guest-access', { method: 'PUT', body: { enabled: on, domains, tabs: [...tabs] } })); toast('General access saved'); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); } };

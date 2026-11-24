@@ -44,3 +44,8 @@ test('project assignment e-mail: new project, role, team and portal link', () =>
   const u = assignedMail({ name: 'Mona', role: 'manager', isNew: false, by: 'Admin', project: { name: 'Tower A' }, managers: [], coordinators: [] });
   assert.equal(u.subject, 'Project assignment: Tower A — you are BIM Manager'); assert.ok(!u.text.includes('Open the portal')); assert.ok(u.text.includes('BIM Manager: —'));
 });
+
+test('mail message can carry an attached file', () => {
+  const m = buildMessage({ email: 'o@x.com', name: 'ECG' }, { to: 'a@b.com', subject: 'Re: x', text: 'hi', attachments: [{ filename: 'fix.png', mime: 'image/png', data: Buffer.from([1, 2, 3]) }] });
+  assert.match(m, /Content-Type: multipart\/mixed/); assert.match(m, /Content-Disposition: attachment; filename="fix.png"/); assert.match(m, /AQID/);
+});

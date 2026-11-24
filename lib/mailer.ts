@@ -3,7 +3,7 @@
 import tls from 'node:tls';
 import type { Duplex } from 'node:stream';
 
-export interface Mail { to: string; subject: string; text: string; ics?: { method: 'REQUEST' | 'CANCEL'; content: string } }
+export interface Mail { to: string; subject: string; text: string; ics?: { method: 'REQUEST' | 'CANCEL'; content: string }; attachments?: { filename: string; mime: string; data: Buffer }[] }
 export interface MailOpts { connect?: () => Duplex; user?: string; pass?: string; fromName?: string; timeoutMs?: number }
 export const mailEnabled = () => !!(process.env.SMTP_USER && process.env.SMTP_PASS);
 
@@ -16,6 +16,10 @@ export function buildMessage(from: { email: string; name: string }, m: Mail): st
   const bd = 'ecg-' + Math.random().toString(36).slice(2);
   const head = [`From: ${hdr(clean(from.name))} <${from.email}>`, `To: ${m.to}`, `Subject: ${hdr(clean(m.subject))}`, `Date: ${new Date().toUTCString()}`, 'MIME-Version: 1.0'];
   const text = `Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${wrap(b64(m.text))}`;
+  if (m.attachments?.length) {   /* text + files (e.g. a screenshot with an answer) */
+    const parts = m.attachments.map((a) => `--${bd}\r\nContent-Type: ${a.mime.replace(/[\r\n;]/g, '')}; name="${hdr(clean(a.filename))}"\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename="${hdr(clean(a.filename))}"\r\n\r\n${wrap(b64(a.data))}`);
+    return [...head, `Content-Type: multipart/mixed; boundary="${bd}"`, '', `--${bd}`, text, ...parts, `--${bd}--`, ''].join('\r\n');
+  }
   if (!m.ics) return head.join('\r\n') + '\r\n' + text + '\r\n';
   return [...head, `Content-Type: multipart/alternative; boundary="${bd}"`, '', `--${bd}`, text, `--${bd}`,
     `Content-Type: text/calendar; charset=UTF-8; method=${m.ics.method}`, 'Content-Transfer-Encoding: base64', '', wrap(b64(m.ics.content)), `--${bd}--`, ''].join('\r\n');

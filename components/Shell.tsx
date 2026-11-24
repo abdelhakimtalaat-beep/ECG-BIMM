@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { canSeeTab, firstAllowedTab, tabOfPath } from '@/lib/tabs';
 import clsx from 'clsx';
-import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown, GraduationCap, PlayCircle, Plane, BarChart3, MapPin, Building2 } from 'lucide-react';
+import { ClipboardCheck, LayoutDashboard, Network, FolderKanban, Users, CalendarDays, Settings, ListChecks, Lightbulb, Contact, Mail, FileText, Workflow, CalendarClock, Smartphone, Moon, Sun, Menu, PanelLeftClose, PanelLeftOpen, LogOut, KeyRound, Search, ChevronDown, GraduationCap, PlayCircle, Plane, BarChart3, MapPin, Building2, LifeBuoy } from 'lucide-react';
 import { api, roleLabel } from '@/lib/client';
 import { useApp } from './store';
 import { Field, Modal, useToast } from './ui';
@@ -39,6 +39,7 @@ const NAV: (NavLeaf | NavGroup)[] = [
   { href: '/contacts', label: 'Other Departments Contacts', short: 'Contacts', icon: Contact },
   { href: '/email-templates', label: 'Emails Template', short: 'Emails Template', icon: Mail },
   { href: '/wishes', label: 'Wish List', short: 'Wish List', icon: Lightbulb },
+  { href: '/troubleshooting', label: 'Troubleshooting', short: 'Troubleshooting', icon: LifeBuoy },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {

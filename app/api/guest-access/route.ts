@@ -20,7 +20,7 @@ export async function PUT(req: Request) {
     if (b.set_active) { await q('update users set active=$2 where id=$1 and is_guest', [b.set_active.id, b.set_active.active]); await audit(null, me.email, 'update', 'guest', b.set_active.id, b.set_active.active ? 'Guest unblocked' : 'Guest blocked'); }
     else {
       const cur = await getGuestCfg();
-      const next = { enabled: b.enabled ?? cur.enabled, tabs: b.tabs ? b.tabs.filter((t) => TAB_HREFS.includes(t) && t !== '/admin') : cur.tabs, domains: b.domains !== undefined ? parseDomains(b.domains) : cur.domains };
+      const next = { enabled: b.enabled ?? cur.enabled, tabs: b.tabs ? b.tabs.filter((t) => TAB_HREFS.includes(t) && t !== '/admin' && t !== '/troubleshooting') : cur.tabs, domains: b.domains !== undefined ? parseDomains(b.domains) : cur.domains };
       await saveGuestCfg(next); await audit(null, me.email, 'update', 'guest_access', null, `General access ${next.enabled ? 'ON' : 'OFF'}; ${next.tabs.length} tab(s); domains: ${next.domains.join(', ') || 'any'}`);
     }
     return ok({ cfg: await getGuestCfg(), guests: await guests() });
