@@ -12,17 +12,27 @@ test('workflow permissions', () => {
   assert.ok(canReopen(req, t('Resolved')) && canReopen(adm, t('Resolved')) && !canReopen(eng, t('Resolved')) && !canReopen(req, t('Answered')));
   assert.ok(showDraft(adm, t('Answered')) && showDraft(eng, t('Answered')) && !showDraft(req, t('Answered')));
 });
-const ok = { project_id: 'p', software: 'Revit', title: 'Crash', problem: 'Revit crashes when I sync', priority: 'High', extension: '1234' };
+const ok = { project_id: 'p', ticket_type: 'Troubleshooting', software: 'Revit', title: 'Crash', problem: 'Revit crashes when I sync', priority: 'High', extension: '1234' };
 test('validation: everything is mandatory except mobile and image', () => {
   assert.equal(validateNew(ok), null); assert.equal(validateNew({ ...ok, mobile: '0100 123 4567' }), null); assert.equal(validateNew({ ...ok, mobile: '' }), null);
   assert.match(validateNew({ ...ok, project_id: '' })!, /project/); assert.match(validateNew({ ...ok, software: 'Excel' })!, /software/); assert.match(validateNew({ ...ok, title: 'ab' })!, /title/);
-  assert.match(validateNew({ ...ok, problem: 'short' })!, /problem/); assert.match(validateNew({ ...ok, priority: '' })!, /priority/); assert.match(validateNew({ ...ok, extension: '' })!, /extension/);
+  assert.match(validateNew({ ...ok, problem: 'short' })!, /description/); assert.match(validateNew({ ...ok, ticket_type: '' })!, /type/); assert.equal(validateNew({ ...ok, ticket_type: 'New Tool' }), null); assert.match(validateNew({ ...ok, priority: '' })!, /priority/); assert.match(validateNew({ ...ok, extension: '' })!, /extension/);
   assert.match(validateNew({ ...ok, extension: 'abc' })!, /extension/); assert.match(validateNew({ ...ok, mobile: 'abc' })!, /mobile/);
+});
+test('reviewers added by the Administrator', () => {
+  const rev = { id: 'v', role: 'bim_coordinator', reviewer: true }; const x = { id: 'n', role: 'bim_coordinator' };
+  assert.ok(canView(rev, t('New')) && !canView(x, t('New')) && showDraft(rev, t('Answered')) && canReturn(rev, t('Answered')) && canResolve(rev, t('Answered')) && canReopen(rev, t('Resolved')));
+  assert.ok(!canResolve(rev, t('New')) && !canAssign(rev, t('New')) && !canAnswer(rev, t('Assigned')));   /* a reviewer confirms answers; only the Administrator transfers or answers directly */
+});
+test('reviewers added by the Administrator', () => {
+  const rev = { id: 'v', role: 'bim_coordinator', reviewer: true }; const x = { id: 'n', role: 'bim_coordinator' };
+  assert.ok(canView(rev, t('New')) && !canView(x, t('New')) && showDraft(rev, t('Answered')) && canReturn(rev, t('Answered')) && canResolve(rev, t('Answered')) && canReopen(rev, t('Resolved')));
+  assert.ok(!canResolve(rev, t('New')) && !canAssign(rev, t('New')) && !canAnswer(rev, t('Assigned')));   /* a reviewer confirms answers; only the Administrator transfers or answers directly */
 });
 test('e-mails', () => {
   const tk = { ticket_no: 12, title: 'Crash', project_name: '3613 Spine', software: 'Revit', priority: 'High', problem: 'It crashes' }; assert.equal(ticketNo(12), 'TS-0012');
   const r = ticketMessage(tk, { kind: 'resolved', answer: 'Update the add-in', hasImage: true }, 'Sara', 'https://x/troubleshooting');
-  assert.equal(r.subject, '[TS-0012] Answer to your query: Crash'); assert.ok(r.text.includes('Update the add-in') && r.text.includes('attached') && r.text.includes('Reopen') && r.text.startsWith('Hello Sara,'));
+  assert.equal(r.subject, '[TS-0012] Answer to your ticket: Crash'); assert.ok(r.text.includes('Update the add-in') && r.text.includes('attached') && r.text.includes('Reopen') && r.text.startsWith('Hello Sara,'));
   assert.ok(ticketMessage(tk, { kind: 'new', by: 'Sara' }, 'Admin', null).text.includes('It crashes')); assert.ok(ticketMessage(tk, { kind: 'returned', by: 'Boss', note: 'add steps' }, 'E', null).text.includes('add steps'));
   assert.ok(!ticketMessage(tk, { kind: 'resolved', answer: 'x', hasImage: false }, 'S', null).text.includes('attached'));
 });

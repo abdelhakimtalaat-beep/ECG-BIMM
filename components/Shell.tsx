@@ -39,7 +39,7 @@ const NAV: (NavLeaf | NavGroup)[] = [
   { href: '/contacts', label: 'Other Departments Contacts', short: 'Contacts', icon: Contact },
   { href: '/email-templates', label: 'Emails Template', short: 'Emails Template', icon: Mail },
   { href: '/wishes', label: 'Wish List', short: 'Wish List', icon: Lightbulb },
-  { href: '/troubleshooting', label: 'Troubleshooting', short: 'Troubleshooting', icon: LifeBuoy },
+  { href: '/troubleshooting', label: 'BIM Ticket', short: 'BIM Ticket', icon: LifeBuoy },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
