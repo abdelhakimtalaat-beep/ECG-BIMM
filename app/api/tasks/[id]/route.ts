@@ -37,15 +37,20 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return ok({ mail });
   });
 }
-export async function DELETE(_: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handle(async () => {
     const me = await requireUser();
     const { id } = await ctx.params; z.string().uuid().parse(id);
     const cur = await load(id);
     await assertAreaEditor(me, cur);
-    await q('delete from tasks where id=$1', [id]);
-    await audit(null, me.email, 'delete', 'task', id, `Deleted task "${cur.title}"`);
+    const scope = new URL(req.url).searchParams.get('scope');   /* repeating tasks: this one (default), this and the following, or the whole series */
+    let removed = 1;
+    if (cur.series_id && (scope === 'all' || scope === 'following')) {
+      const r = scope === 'all' ? await q('delete from tasks where series_id=$1 returning id', [cur.series_id]) : await q('delete from tasks where series_id=$1 and coalesce(start_date,due_date) >= coalesce($2::date,$3::date) returning id', [cur.series_id, cur.sd, cur.dd]);
+      removed = r.length;
+    } else await q('delete from tasks where id=$1', [id]);
+    await audit(null, me.email, 'delete', 'task', id, removed > 1 ? `Deleted ${removed} tasks of the repeating task "${cur.title}"` : `Deleted task "${cur.title}"`);
     const mail = await safe(() => taskCancel({ id, area_id: cur.area_id, title: cur.title, start_date: cur.sd, due_date: cur.dd, assignee_id: cur.assignee_id, comment: cur.comment }, cur.assignee_id));
-    return ok({ mail });
+    return ok({ mail, removed });
   });
 }

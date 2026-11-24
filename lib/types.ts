@@ -39,7 +39,7 @@ export interface StatusMapping { id: string; source_status: string; activity_fla
 export interface HistoryRow { project_id: string; old_status: Status | null; new_status: Status; changed_at: string; changed_by: string | null }
 export interface TaskArea { id: string; manager_id: string | null; team_id: string | null; project_id: string }
 export interface Team { id: string; name: string; member_ids: string[] }
-export interface Task { id: string; area_id: string; title: string; start_date: string | null; due_date: string | null; assignee_id: string | null; status: string; comment: string | null; building_no: string | null; created_at: string; updated_at: string }
+export interface Task { id: string; area_id: string; title: string; start_date: string | null; due_date: string | null; assignee_id: string | null; status: string; comment: string | null; building_no: string | null; series_id?: string | null; created_at: string; updated_at: string }
 export interface ClientRow { id: string; name: string; key: string; country: string | null; logo_id: string | null; description?: string | null; name_ar?: string | null }
 export interface Dataset {
   clients?: ClientRow[];

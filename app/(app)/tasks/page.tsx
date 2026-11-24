@@ -1,8 +1,9 @@
 'use client';
 import { compareByStatusThenManager, managerNames } from '@/lib/projectSort';
 import { useMemo, useState } from 'react';
-import { BellRing, ChevronDown, ChevronRight, FolderPlus, Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
+import { BellRing, ChevronDown, ChevronRight, FolderPlus, Pencil, Plus, Repeat, Trash2, UsersRound } from 'lucide-react';
 import { useApp } from '@/components/store';
+import { occurrences, REPEAT_MAX, type Freq } from '@/lib/taskRepeat';
 import { TaskCalendar } from '@/components/TaskCalendar';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, StatusBadge, useToast } from '@/components/ui';
 import { api, fmtDate } from '@/lib/client';
@@ -102,7 +103,7 @@ export default function TasksPage() {
                       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{['Task', 'Building', 'Assignee', 'Start date', 'Due date', 'Status', 'Comment', ''].map((h) => <th key={h} className="th">{h}</th>)}</tr></thead>
                         <tbody>{shownRows.map((t) => { const late = isOverdue(t, today); return (
                           <tr key={t.id} className={`border-t border-slate-100 ${late ? 'bg-red-50/60' : ''}`}>
-                            <td className="td min-w-[14rem] font-medium">{t.title}</td>
+                            <td className="td min-w-[14rem] font-medium">{t.title}{t.series_id && <span className="ml-1.5 inline-flex align-middle text-brand-600" title="Repeating task"><Repeat size={13} aria-label="Repeating task" /></span>}</td>
                             <td className="td whitespace-nowrap">{t.building_no ?? '—'}</td>
                             <td className="td whitespace-nowrap">{t.assignee_id ? emp.get(t.assignee_id)?.name ?? '—' : <span className="text-slate-400">Unassigned</span>}</td>
                             <td className="td whitespace-nowrap">{t.start_date ? fmtDate(t.start_date) : '—'}</td>
@@ -122,7 +123,10 @@ export default function TasksPage() {
       <Confirm open={!!delTeam} title="Delete team" message={`Delete team "${delTeam?.name}" with its projects and ${tasks.filter((t) => areas.some((a) => a.id === t.area_id && a.team_id === delTeam?.id)).length} task(s)?`} confirmLabel="Delete" danger onClose={() => setDelTeam(null)} onConfirm={() => { const t = delTeam!; setDelTeam(null); call(() => api(`/api/teams/${t.id}`, { method: 'DELETE' }), 'Team deleted'); }} />
       {addArea && <AddArea group={addArea} onClose={() => setAddArea(null)} onDone={async () => { setAddArea(null); await refresh(); }} />}
       {taskForm && <TaskForm {...taskForm} onClose={() => setTaskForm(null)} onDone={async () => { setTaskForm(null); await refresh(); }} />}
-      <Confirm open={!!delTask} title="Delete task" message={`Delete "${delTask?.title}"?`} confirmLabel="Delete" danger onClose={() => setDelTask(null)} onConfirm={() => { const t = delTask!; setDelTask(null); call(() => api(`/api/tasks/${t.id}`, { method: 'DELETE' }), 'Task deleted'); }} />
+      {delTask?.series_id && <Modal open onClose={() => setDelTask(null)} title="Delete repeating task" footer={<button className="btn-secondary" onClick={() => setDelTask(null)}>Cancel</button>}>
+        <p className="mb-3 text-sm">"{delTask.title}" repeats. What do you want to delete?</p>
+        <div className="flex flex-col gap-2">{([['', 'Only this task'], ['following', 'This task and the following ones'], ['all', 'All tasks of the series']] as const).map(([scope, label]) => <button key={scope} className={scope === 'all' ? 'btn-danger' : 'btn-secondary'} onClick={() => { const t = delTask!; setDelTask(null); call(() => api(`/api/tasks/${t.id}${scope ? `?scope=${scope}` : ''}`, { method: 'DELETE' }), 'Deleted'); }}>{label}</button>)}</div></Modal>}
+      <Confirm open={!!delTask && !delTask.series_id} title="Delete task" message={`Delete "${delTask?.title}"?`} confirmLabel="Delete" danger onClose={() => setDelTask(null)} onConfirm={() => { const t = delTask!; setDelTask(null); call(() => api(`/api/tasks/${t.id}`, { method: 'DELETE' }), 'Task deleted'); }} />
       <Confirm open={!!delArea} title="Remove project" message={`Remove this project from the area? Its ${tasks.filter((t) => t.area_id === delArea).length} task(s) will be deleted too.`} confirmLabel="Remove" danger onClose={() => setDelArea(null)} onConfirm={() => { const id = delArea!; setDelArea(null); call(() => api(`/api/task-areas/${id}`, { method: 'DELETE' }), 'Project removed'); }} />
     </div>
   );
@@ -151,11 +155,15 @@ function TaskForm({ area_id, task, onClose, onDone }: { area_id: string; task?: 
   const title = (preset === '__other' ? f.title : preset).trim();
   const needC = commentMissing(f.status, f.comment);
   const bad = !!f.start_date && !!f.due_date && f.due_date < f.start_date;
+  const [rep, setRep] = useState(false); const [freq, setFreq] = useState<Freq>('weekly'); const [days, setDays] = useState<Set<number>>(new Set()); const [until, setUntil] = useState('');
+  const occ = useMemo(() => (rep && until ? occurrences(f.start_date || null, f.due_date || null, { freq, weekdays: [...days], until }) : []), [rep, freq, days, until, f.start_date, f.due_date]);
+  const repBad = rep && (!(f.start_date || f.due_date) || !until || !occ.length || occ.length > REPEAT_MAX || (freq === 'days' && !days.size));
+  const DAYS: [string, number][] = [['Sat', 6], ['Sun', 0], ['Mon', 1], ['Tue', 2], ['Wed', 3], ['Thu', 4], ['Fri', 5]];
   const save = async () => {
     const body = { building_no: f.building_no.trim() || null, comment: f.comment.trim() || null, title, start_date: f.start_date || null, due_date: f.due_date || null, assignee_id: f.assignee_id || null, status: f.status };
-    try { const r: any = task ? await api(`/api/tasks/${task.id}`, { method: 'PATCH', body }) : await api('/api/tasks', { body: { ...body, area_id } }); toast(r?.mail === 'sent' ? 'Saved — assignee notified by e-mail' : r?.mail === 'failed' ? 'Saved, but the e-mail could not be sent' : r?.mail === 'off' ? 'Saved — e-mail notifications are not set up yet (SMTP_USER / SMTP_PASS)' : r?.mail === 'skipped' ? 'Saved — no e-mail sent (no assignee, or the assignee has no e-mail address)' : 'Saved'); onDone(); } catch (e: any) { toast(e.message, 'err'); }
+    try { const r: any = task ? await api(`/api/tasks/${task.id}`, { method: 'PATCH', body }) : await api('/api/tasks', { body: { ...body, area_id, repeat: rep ? { freq, weekdays: [...days], until } : null } }); if (r?.count) { toast(`${r.count} repeating tasks added${r.mail === 'sent' ? '; the assignee was notified of the first one' : ''}`); onDone(); return; } toast(r?.mail === 'sent' ? 'Saved — assignee notified by e-mail' : r?.mail === 'failed' ? 'Saved, but the e-mail could not be sent' : r?.mail === 'off' ? 'Saved — e-mail notifications are not set up yet (SMTP_USER / SMTP_PASS)' : r?.mail === 'skipped' ? 'Saved — no e-mail sent (no assignee, or the assignee has no e-mail address)' : 'Saved'); onDone(); } catch (e: any) { toast(e.message, 'err'); }
   };
-  return <Modal open onClose={onClose} title={task ? 'Edit task' : 'Add task'} footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!title || bad || needC} onClick={save}>Save</button></>}>
+  return <Modal open onClose={onClose} title={task ? 'Edit task' : 'Add task'} footer={<><button className="btn-secondary" onClick={onClose}>Cancel</button><button className="btn-primary" disabled={!title || bad || needC || repBad} onClick={save}>Save</button></>}>
     <div className="grid grid-cols-2 gap-3">
       <div className="col-span-2"><Field label="Task"><select className="input" value={preset} onChange={(e) => setPreset(e.target.value)}><option value="">— choose a task —</option>{TASK_TEMPLATES.map((t) => <option key={t}>{t}</option>)}<option value="__other">Other (type a new task)…</option></select></Field>
         {preset === '__other' && <input className="input mt-2" autoFocus placeholder="Type the task name" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />}</div>
@@ -163,6 +171,13 @@ function TaskForm({ area_id, task, onClose, onDone }: { area_id: string; task?: 
       <Field label="Start date"><input type="date" className="input" value={f.start_date} onChange={(e) => setF({ ...f, start_date: e.target.value })} /></Field>
       <Field label="Due date"><input type="date" className="input" value={f.due_date} onChange={(e) => setF({ ...f, due_date: e.target.value })} /></Field>
       {bad && <p className="col-span-2 rounded bg-red-50 p-2 text-sm text-red-700">The due date is before the start date.</p>}
+      {!task && <div className="col-span-2 rounded-lg border border-slate-200 p-3">
+        <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" className="h-4 w-4" checked={rep} onChange={(e) => setRep(e.target.checked)} /><Repeat size={14} />Repeat this task</label>
+        {rep && <div className="mt-3 grid grid-cols-2 gap-3">
+          <Field label="Repeat"><select className="input" value={freq} onChange={(e) => setFreq(e.target.value as Freq)}><option value="daily">Every day</option><option value="weekly">Every week (same weekday)</option><option value="monthly">Every month (same day)</option><option value="days">On certain days of the week</option></select></Field>
+          <Field label="Repeat until"><input type="date" className="input" value={until} min={f.start_date || f.due_date || undefined} onChange={(e) => setUntil(e.target.value)} /></Field>
+          {freq === 'days' && <div className="col-span-2"><p className="label">Days</p><div className="flex flex-wrap gap-1.5">{DAYS.map(([n, i]) => <button type="button" key={n} aria-pressed={days.has(i)} onClick={() => setDays((x) => { const m = new Set(x); m.has(i) ? m.delete(i) : m.add(i); return m; })} className={`rounded-lg border px-3 py-1.5 text-sm ${days.has(i) ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>{n}</button>)}</div></div>}
+          <p className={`col-span-2 text-xs ${repBad && (until || freq === 'days') ? 'text-red-700' : 'text-slate-500'}`}>{!(f.start_date || f.due_date) ? 'Set a start or due date first: the repeat starts from it.' : !until ? 'Choose the date to repeat until.' : freq === 'days' && !days.size ? 'Choose at least one day.' : !occ.length ? 'The end date must be on or after the first date.' : occ.length > REPEAT_MAX ? `That would create ${occ.length}+ tasks (the limit is ${REPEAT_MAX}). Choose an earlier end date.` : `${occ.length} task${occ.length === 1 ? '' : 's'} will be created, from ${fmtDate(occ[0].start ?? occ[0].due!)} to ${fmtDate(occ[occ.length - 1].start ?? occ[occ.length - 1].due!)}. Each has the same length as the first. Only the first one starts with your chosen status; the others start as Not Started.`}</p></div>}</div>}
       <Field label="Assignee"><select className="input" value={f.assignee_id} onChange={(e) => setF({ ...f, assignee_id: e.target.value })}><option value="">— unassigned —</option>
         <optgroup label={area?.team_id ? 'Team members' : 'Project team'}>{act.filter((e) => team.has(e.id)).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</optgroup>
         <optgroup label="Other engineers">{act.filter((e) => !team.has(e.id)).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</optgroup></select></Field>

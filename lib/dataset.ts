@@ -17,7 +17,8 @@ export async function loadDataset(): Promise<Dataset> {
     q(`select id,source_status,activity_flag,target_status,note from status_mappings order by source_status,activity_flag`),
     q(`select project_id,old_status,new_status,changed_at,changed_by from project_status_history order by changed_at`),
     q(`select id,manager_id,team_id,project_id from task_areas`),
-    q(`select id,area_id,title,start_date::text as start_date,due_date::text as due_date,assignee_id,status,comment,building_no,created_at,updated_at from tasks order by due_date nulls last, created_at`),
+    q(`select id,area_id,title,start_date::text as start_date,due_date::text as due_date,assignee_id,status,comment,building_no,series_id,created_at,updated_at from tasks order by due_date nulls last, created_at`)
+      .catch(() => q(`select id,area_id,title,start_date::text as start_date,due_date::text as due_date,assignee_id,status,comment,building_no,created_at,updated_at from tasks order by due_date nulls last, created_at`)),   /* before migration 048 there is no series_id */
     q(`select t.id,t.name,coalesce((select array_agg(m.employee_id) from team_members m where m.team_id=t.id),'{}') as member_ids from teams t order by lower(t.name)`),
     q(`select id,name,key,country,logo_id,description,name_ar from clients order by lower(name)`).catch(() => []),   /* before migration 046 the Clients table does not exist yet */
   ]);
