@@ -3,6 +3,7 @@ import { compareByStatusThenManager, managerNames } from '@/lib/projectSort';
 import { useMemo, useState } from 'react';
 import { BellRing, ChevronDown, ChevronRight, FolderPlus, Pencil, Plus, Trash2, UsersRound } from 'lucide-react';
 import { useApp } from '@/components/store';
+import { TaskCalendar } from '@/components/TaskCalendar';
 import { Badge, Confirm, Empty, Field, Modal, PageHeader, StatusBadge, useToast } from '@/components/ui';
 import { api, fmtDate } from '@/lib/client';
 import { TASK_STATUSES, TASK_TEMPLATES, canEditTasks, commentMissing, canManageSubAreas, canEditTeamTasks, canManageTeams, isOverdue, managedProjectIds, taskStats } from '@/lib/tasks';
@@ -79,6 +80,8 @@ export default function TasksPage() {
               <span className="ml-auto flex flex-wrap gap-2 text-xs"><Badge tone="blue">{st.open} open</Badge>{st.overdue > 0 && <Badge tone="red">{st.overdue} overdue</Badge>}<Badge tone="green">{st.done} done</Badge></span>
             </button>
             {isOpen && <div className="space-y-4 p-4">
+              <TaskCalendar tasks={all.filter(visible)} today={today} isLate={(t) => isOverdue(t, today)} onOpen={editor ? (t) => setTaskForm({ area_id: t.area_id, task: t }) : undefined}
+                detail={(t) => { const p = pById.get(areas.find((a) => a.id === t.area_id)?.project_id ?? ''); return [p ? `${p.project_no ? p.project_no + ' · ' : ''}${p.name}` : null, t.assignee_id ? emp.get(t.assignee_id)?.name : 'Unassigned', t.status, [t.start_date, t.due_date].filter(Boolean).map((d) => fmtDate(d!)).join(' → ')].filter(Boolean).join(' · '); }} />
               {m.kind === 'team' && <p className="text-sm text-slate-600"><b>Members:</b> {m.team!.member_ids.length ? m.team!.member_ids.map((id) => emp.get(id)?.name ?? '—').join(', ') : 'none yet'}</p>}
               <div className="flex flex-wrap gap-2">{manage && <button className="btn-secondary btn-sm" onClick={() => setAddArea(m)}><FolderPlus size={14} />Add project</button>}
                 {m.kind === 'team' && canManageTeams(me.role) && <><button className="btn-secondary btn-sm" onClick={() => setTeamForm(m.team!)}><Pencil size={14} />Edit team &amp; members</button><button className="btn-ghost btn-sm text-red-600" onClick={() => setDelTeam(m.team!)}><Trash2 size={14} />Delete team</button></>}</div>
