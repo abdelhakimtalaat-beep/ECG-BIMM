@@ -1,5 +1,5 @@
 // Tiny SMTP client (implicit TLS, AUTH PLAIN) so no extra package is needed. Works with a Gmail "app password".
-// Configure with env vars SMTP_USER and SMTP_PASS (optional: SMTP_HOST, SMTP_PORT, SMTP_FROM_NAME). Without them mail is switched off.
+// Configure with env vars SMTP_USER and SMTP_PASS (optional: SMTP_HOST, SMTP_PORT, SMTP_FROM_NAME, SMTP_FROM_EMAIL = the address shown to the reader; it must be allowed by the mail server). Without them mail is switched off.
 import tls from 'node:tls';
 import type { Duplex } from 'node:stream';
 
@@ -28,7 +28,7 @@ export function buildMessage(from: { email: string; name: string }, m: Mail): st
 export async function sendMail(m: Mail, o: MailOpts = {}): Promise<void> {
   const user = o.user ?? process.env.SMTP_USER, pass = o.pass ?? process.env.SMTP_PASS;
   if (!user || !pass) throw new Error('Mail is not configured');
-  const from = { email: user, name: o.fromName ?? process.env.SMTP_FROM_NAME ?? 'ECG BIM Portal' };
+  const from = { email: process.env.SMTP_FROM_EMAIL?.trim() || user, name: o.fromName ?? process.env.SMTP_FROM_NAME ?? 'ECG BIM Portal' };
   const raw = buildMessage(from, m).replace(/\r?\n/g, '\r\n').replace(/^\./gm, '..');
   const sock = o.connect ? o.connect() : tls.connect({ host: process.env.SMTP_HOST || 'smtp.gmail.com', port: Number(process.env.SMTP_PORT) || 465, servername: process.env.SMTP_HOST || 'smtp.gmail.com' });
   await new Promise<void>((resolve, reject) => {

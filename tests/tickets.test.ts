@@ -52,3 +52,8 @@ test('routing e-mails', () => {
   assert.match(ticketMessage(tk, { kind: 'new', by: 'Sara', routedTo: ['Ali', 'Omar'] }, 'Admin', null).text, /automatically to: Ali, Omar/);
   assert.match(ticketMessage(tk, { kind: 'new', by: 'Sara', routedTo: [], type: 'New Tool' }, 'Admin', null).text, /R&D BIM Engineers/);
 });
+test('resolved e-mail names the resolver and the reviewer', () => {
+  const tk = { ticket_no: 3, title: 'x', project_name: 'P', software: 'Revit', priority: 'Low', problem: 'p' };
+  const m = ticketMessage(tk, { kind: 'resolved', answer: 'Do this', hasImage: false, resolvedBy: 'Ali', reviewedBy: 'Abdelhakim' }, 'S', null).text;
+  assert.ok(m.includes('Resolved by: Ali') && m.includes('Reviewed by: Abdelhakim') && m.indexOf('Reviewed by') < m.indexOf('Final solution:'));
+});

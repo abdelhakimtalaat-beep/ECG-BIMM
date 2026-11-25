@@ -60,9 +60,9 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       mail = await mailTicket(e, mailRow(t), { kind: 'returned', by: who, note: b.note });
     } else if (b.action === 'resolve') {
       if (!canResolve(me, t)) throw new ApiError(403, 'Only the Administrator can confirm the answer');
-      const img = await okImage(b.image_id, t, me0.email);
-      await tx(async (c) => { await c.query(`update tickets set final_answer=$2, final_image_id=$3, resolved_by=$4, resolved_at=now(), status='Resolved', updated_at=now() where id=$1`, [id, b.text, img, who]); await ev(c, 'Answer sent to the requester', null, false); await audit(c, me0.email, 'update', 'ticket', id, `Query TS-${t.ticket_no} resolved and answer e-mailed to ${t.requester_email}`); });
-      mail = await mailTicket({ email: t.requester_email, name: t.requester_name }, mailRow(t), { kind: 'resolved', answer: b.text, hasImage: !!img }, await loadImage(img));
+      const img = await okImage(b.image_id, t, me0.email); const resolver: string = t.status === 'Answered' && t.draft_by ? t.draft_by : who;   /* the engineer who wrote it; the person who confirms is the reviewer */
+      await tx(async (c) => { await c.query(`update tickets set final_answer=$2, final_image_id=$3, resolved_by=$4, final_by=$5, resolved_at=now(), status='Resolved', updated_at=now() where id=$1`, [id, b.text, img, who, resolver]); await ev(c, 'Solution sent to the requester', null, false); await audit(c, me0.email, 'update', 'ticket', id, `Query TS-${t.ticket_no} resolved and answer e-mailed to ${t.requester_email}`); });
+      mail = await mailTicket({ email: t.requester_email, name: t.requester_name }, mailRow(t), { kind: 'resolved', answer: b.text, hasImage: !!img, resolvedBy: resolver, reviewedBy: who }, await loadImage(img));
     } else {
       if (!canReopen(me, t)) throw new ApiError(403, 'Only the requester or a reviewer can reopen a resolved ticket');
       const to = await routeRecipients(t.ticket_type, t.project_id, t.requester_id); const single = to.length === 1 ? to[0] : null;

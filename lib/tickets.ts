@@ -51,7 +51,7 @@ const brief = (t: { ticket_no: number | string; title: string; project_name: str
 type T = { ticket_no: number | string; title: string; project_name: string; software: string; priority: string; problem?: string; ticket_type?: string };
 export type TicketMail =
   | { kind: 'received' } | { kind: 'new'; by: string; routedTo?: string[]; type?: string } | { kind: 'incoming'; by: string; others: string[] } | { kind: 'assigned'; by: string } | { kind: 'review'; by: string }
-  | { kind: 'returned'; by: string; note: string } | { kind: 'resolved'; answer: string; hasImage: boolean } | { kind: 'reopened'; by: string; note: string };
+  | { kind: 'returned'; by: string; note: string } | { kind: 'resolved'; answer: string; hasImage: boolean; resolvedBy?: string; reviewedBy?: string } | { kind: 'reopened'; by: string; note: string };
 /** Subject and text of each e-mail of the workflow. */
 export function ticketMessage(t: T, m: TicketMail, name: string, link: string | null): { subject: string; text: string } {
   const no = ticketNo(t.ticket_no), open = link ? ['', `Open it in the portal: ${link}`] : [];
@@ -63,7 +63,7 @@ export function ticketMessage(t: T, m: TicketMail, name: string, link: string | 
     case 'assigned': return { subject: `[${no}] Ticket transferred to you (${t.priority}): ${t.title}`, text: [...head(name), `${m.by} transferred this ticket to you. Please write the final solution in the portal; it is reviewed before it is sent to the requester.`, '', ...brief(t), ...problem, ...open].join('\n') };
     case 'review': return { subject: `[${no}] Solution waiting for your review: ${t.title}`, text: [...head(name), `${m.by} wrote the final solution of this ticket. Please review it, edit it if needed and confirm to send it to the requester.`, '', ...brief(t), ...open].join('\n') };
     case 'returned': return { subject: `[${no}] Your answer was returned for changes: ${t.title}`, text: [...head(name), `${m.by} returned your answer with this note:`, m.note, '', ...brief(t), ...open].join('\n') };
-    case 'resolved': return { subject: `[${no}] Solution of your ticket: ${t.title}`, text: [...head(name), 'The BIM Department solved your ticket.', '', ...brief(t), '', 'Final solution:', m.answer, ...(m.hasImage ? ['', '(The image is attached to this e-mail.)'] : []), ...open, '', 'If this did not solve the problem, open the ticket in the portal and press Reopen.', ...sig].join('\n') };
+    case 'resolved': return { subject: `[${no}] Solution of your ticket: ${t.title}`, text: [...head(name), 'The BIM Department solved your ticket.', '', ...brief(t), ...(m.resolvedBy ? [`Resolved by: ${m.resolvedBy}`] : []), ...(m.reviewedBy ? [`Reviewed by: ${m.reviewedBy}`] : []), '', 'Final solution:', m.answer, ...(m.hasImage ? ['', '(The image is attached to this e-mail.)'] : []), ...open, '', 'If this did not solve the problem, open the ticket in the portal and press Reopen.', ...sig].join('\n') };
     case 'reopened': return { subject: `[${no}] Ticket reopened: ${t.title}`, text: [...head(name), `${m.by} reopened this ticket:`, m.note, '', ...brief(t), ...open].join('\n') };
   }
 }
