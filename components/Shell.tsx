@@ -84,11 +84,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <aside className={clsx('no-print sticky top-0 hidden h-screen flex-col bg-[#0B2545] transition-all md:flex', collapsed ? 'w-[68px]' : 'w-60')}>
-        <div className="flex h-16 items-center justify-center border-b border-white/10 px-3"><div className="rounded-md bg-white px-2 py-1"><img src="/api/logo" alt="ECG – Engineering Consultants Group" className={clsx('object-contain', collapsed ? 'h-7 w-10' : 'h-9 w-32')} /></div></div>
+        <div className="flex flex-col items-center justify-center gap-1 border-b border-white/10 px-3 py-2.5"><div className="rounded-md bg-white px-2 py-1"><img src="/api/logo" alt="ECG – Engineering Consultants Group" className={clsx('object-contain', collapsed ? 'h-7 w-10' : 'h-9 w-32')} /></div>{!collapsed && <p className="text-center text-[11px] font-medium leading-tight text-[#B9D5F4]">(BIM Management Department)</p>}</div>
         {nav}
         <button onClick={() => setCollapsed(!collapsed)} className="m-3 flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-[#B9D5F4] hover:bg-white/10" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>{collapsed ? <PanelLeftOpen size={16} /> : <><PanelLeftClose size={16} /> Collapse</>}</button>
       </aside>
-      {mobile && <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setMobile(false)}><aside className="flex h-full w-64 flex-col bg-[#0B2545]" onClick={(e) => e.stopPropagation()}><div className="flex h-16 items-center justify-center border-b border-white/10"><div className="rounded-md bg-white px-2 py-1"><img src="/api/logo" alt="ECG" className="h-9 w-32 object-contain" /></div></div>{nav}</aside></div>}
+      {mobile && <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setMobile(false)}><aside className="flex h-full w-64 flex-col bg-[#0B2545]" onClick={(e) => e.stopPropagation()}><div className="flex flex-col items-center justify-center gap-1 border-b border-white/10 py-2.5"><div className="rounded-md bg-white px-2 py-1"><img src="/api/logo" alt="ECG" className="h-9 w-32 object-contain" /></div><p className="text-center text-[11px] font-medium leading-tight text-[#B9D5F4]">(BIM Management Department)</p></div>{nav}</aside></div>}
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="no-print sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white px-4">
           <button className="btn-ghost btn-sm md:hidden" onClick={() => setMobile(true)} aria-label="Open menu"><Menu size={20} /></button>
