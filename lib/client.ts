@@ -4,12 +4,10 @@ import type { Status } from './types';
 export class ApiFail extends Error { status: number; constructor(status: number, m: string) { super(m); this.status = status; } }
 
 export async function api<T = any>(url: string, opts: { method?: string; body?: unknown; raw?: BodyInit; headers?: Record<string, string> } = {}): Promise<T> {
-  const res = await fetch(url, {
-    method: opts.method ?? (opts.body !== undefined || opts.raw ? 'POST' : 'GET'),
-    headers: { ...(opts.body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...opts.headers },
-    body: opts.raw ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined),
-    cache: 'no-store',
-  });
+  const method = opts.method ?? (opts.body !== undefined || opts.raw ? 'POST' : 'GET');
+  const send = () => fetch(url, { method, headers: { ...(opts.body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...opts.headers }, body: opts.raw ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined), cache: 'no-store' });
+  let res = await send();
+  if (res.status === 503 && method === 'GET') { await new Promise((r) => setTimeout(r, 700)); res = await send(); }   /* the server was busy for a moment: try once more instead of failing */
   if (res.status === 401 && typeof window !== 'undefined' && !location.pathname.startsWith('/login') && !location.pathname.startsWith('/setup')) { location.href = '/login'; }
   const text = await res.text();
   let data: any = null; try { data = text ? JSON.parse(text) : null; } catch { data = text; }

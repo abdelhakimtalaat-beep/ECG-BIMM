@@ -31,13 +31,17 @@ export class ApiError extends Error {
 export async function currentUser(): Promise<Me | null> {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
+  let uid: unknown;
+  try { uid = (await jwtVerify(token, secret())).payload.uid; } catch { return null; }   /* a bad or expired cookie = signed out */
+  /* A database hiccup (dropped connection, busy pool) must NOT look like "signed out": retry once, then report "busy" instead of logging the person out. */
+  const read = () => one<Me & { active: boolean; is_guest: boolean }>('select id,email,full_name,role,employee_id,allowed_tabs,active,is_guest from users where id=$1', [uid]);
+  let u: (Me & { active: boolean; is_guest: boolean }) | null;
+  try { try { u = await read(); } catch { await new Promise((r) => setTimeout(r, 300)); u = await read(); } } catch { throw new ApiError(503, 'The server is busy. Please try again in a moment'); }
   try {
-    const { payload } = await jwtVerify(token, secret());
-    const u = await one<Me & { active: boolean; is_guest: boolean }>('select id,email,full_name,role,employee_id,allowed_tabs,active,is_guest from users where id=$1', [payload.uid]);
     if (!u || !u.active) return null;
     if (u.is_guest) { const g = await getGuestCfg(); if (!g.enabled) return null; return { id: u.id, email: u.email, full_name: u.full_name, role: 'viewer', employee_id: null, allowed_tabs: g.tabs, is_guest: true }; }   /* general access: always read only, tabs from the Administrator's setting */
     return { id: u.id, email: u.email, full_name: u.full_name, role: u.role, employee_id: u.employee_id, allowed_tabs: u.allowed_tabs ?? null };
-  } catch { return null; }
+  } catch { throw new ApiError(503, 'The server is busy. Please try again in a moment'); }
 }
 export async function requireUser(roles?: Role[]): Promise<Me> {
   const u = await currentUser();

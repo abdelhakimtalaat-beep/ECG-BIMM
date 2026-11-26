@@ -6,9 +6,9 @@ function make(): Pool {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set');
   const local = /localhost|127\.0\.0\.1|\[::1\]/.test(url) || process.env.DATABASE_SSL === 'disable';
-  return new Pool({ connectionString: url, ssl: local ? false : { rejectUnauthorized: false }, max: 5, idleTimeoutMillis: 20000 });
+  return new Pool({ connectionString: url, ssl: local ? false : { rejectUnauthorized: false }, max: 5, idleTimeoutMillis: 20000, connectionTimeoutMillis: 10000 });
 }
-export function pool(): Pool { return g.__ecgPool ?? (g.__ecgPool = make()); }
+export function pool(): Pool { if (!g.__ecgPool) { g.__ecgPool = make(); g.__ecgPool.on('error', (e) => console.error('pg idle client error', e.message)); } return g.__ecgPool; }   /* a dropped idle connection must not crash the function */
 
 export async function q<T = any>(text: string, params: any[] = []): Promise<T[]> {
   const r = await pool().query(text, params);
